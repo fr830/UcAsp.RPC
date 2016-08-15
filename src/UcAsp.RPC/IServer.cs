@@ -1,0 +1,23 @@
+﻿/***************************************************
+*创建人:余日祥
+*创建时间:2016/8/1 19:27:39
+*功能说明:<Function>
+*版权所有:<Copyright>
+***************************************************/
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Reflection;
+namespace UcAsp.RPC
+{
+    public interface IServer
+    {
+        // Dictionary<string, Type> TypeDic { get; set; }
+        Dictionary<string, Tuple<string, MethodInfo>> MemberInfos { get; set; }
+
+       // event EventHandler<DataEventArgs> OnReceive;
+        void StartListen(int port);
+        // void Close(object socket);
+    }
+}
