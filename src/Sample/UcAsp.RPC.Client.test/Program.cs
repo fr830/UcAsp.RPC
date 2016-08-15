@@ -50,6 +50,7 @@ namespace UcAsp.RPC.Client.test
             Console.ReadKey();
         }
         IFace.ITest clazz = context.GetProxyObject<IFace.ITest>();
+        IFace.ITest2 clazz2 = context.GetProxyObject<IFace.ITest2>();
         private void Tasks(object i)
         {
             
@@ -57,8 +58,10 @@ namespace UcAsp.RPC.Client.test
             int x = clazz.GetInt((int)i);
             Tuple<int> t = clazz.GetTuple((int)i);
             List<string> m = clazz.Good(i.ToString(), "MM", "MMM");
-
+            int code = clazz2.GetMore((int)i);
             List<Imodel> model = clazz.GetModel((int)i);
+
+            Console.WriteLine("code"+code);
 
             Console.WriteLine(x);
             Console.WriteLine(t.Item1);

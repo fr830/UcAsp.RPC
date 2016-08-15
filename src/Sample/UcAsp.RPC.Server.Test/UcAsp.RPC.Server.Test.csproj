@@ -45,11 +45,11 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\Face\Face.csproj">
+    <ProjectReference Include="..\Face\Face.csproj">
       <Project>{6785b58c-3a68-422f-a722-b3953d27dca5}</Project>
       <Name>Face</Name>
     </ProjectReference>
-    <ProjectReference Include="..\UcAsp.RPC\UcAsp.RPC.csproj">
+    <ProjectReference Include="..\..\UcAsp.RPC\UcAsp.RPC.csproj">
       <Project>{4d6db5dd-ab98-4342-bb71-825ad752ee7b}</Project>
       <Name>UcAsp.RPC</Name>
     </ProjectReference>

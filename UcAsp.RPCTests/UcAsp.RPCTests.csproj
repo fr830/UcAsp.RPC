@@ -56,15 +56,15 @@
     <Compile Include="ProxyTests.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Face\Face.csproj">
+    <ProjectReference Include="..\src\Sample\Face\Face.csproj">
       <Project>{6785b58c-3a68-422f-a722-b3953d27dca5}</Project>
       <Name>Face</Name>
     </ProjectReference>
-    <ProjectReference Include="..\IFace\IFace.csproj">
+    <ProjectReference Include="..\src\Sample\IFace\IFace.csproj">
       <Project>{34cb8eff-6268-4e05-bd6d-0112a31ef01f}</Project>
       <Name>IFace</Name>
     </ProjectReference>
-    <ProjectReference Include="..\src\UcAsp.RPC.Server.Test\UcAsp.RPC.Server.Test.csproj">
+    <ProjectReference Include="..\src\Sample\UcAsp.RPC.Server.Test\UcAsp.RPC.Server.Test.csproj">
       <Project>{b7910715-cfe1-4143-ae28-a57401cc47df}</Project>
       <Name>UcAsp.RPC.Server.Test</Name>
     </ProjectReference>

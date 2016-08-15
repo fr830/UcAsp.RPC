@@ -5,15 +5,15 @@ VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UcAsp.RPC", "src\UcAsp.RPC\UcAsp.RPC.csproj", "{4D6DB5DD-AB98-4342-BB71-825AD752EE7B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IFace", "IFace\IFace.csproj", "{34CB8EFF-6268-4E05-BD6D-0112A31EF01F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IFace", "src\Sample\IFace\IFace.csproj", "{34CB8EFF-6268-4E05-BD6D-0112A31EF01F}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UcAsp.RPCTests", "UcAsp.RPCTests\UcAsp.RPCTests.csproj", "{D6259300-5857-4CE7-A104-133AEDCB2A7D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UcAsp.RPC.Server.Test", "src\UcAsp.RPC.Server.Test\UcAsp.RPC.Server.Test.csproj", "{B7910715-CFE1-4143-AE28-A57401CC47DF}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UcAsp.RPC.Server.Test", "src\Sample\UcAsp.RPC.Server.Test\UcAsp.RPC.Server.Test.csproj", "{B7910715-CFE1-4143-AE28-A57401CC47DF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UcAsp.RPC.Client.test", "src\UcAsp.RPC.Client.test\UcAsp.RPC.Client.test.csproj", "{19027C9E-573E-4821-BC3E-4AB96D7813E2}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UcAsp.RPC.Client.test", "src\Sample\UcAsp.RPC.Client.test\UcAsp.RPC.Client.test.csproj", "{19027C9E-573E-4821-BC3E-4AB96D7813E2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Face", "Face\Face.csproj", "{6785B58C-3A68-422F-A722-B3953D27DCA5}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Face", "src\Sample\Face\Face.csproj", "{6785B58C-3A68-422F-A722-B3953D27DCA5}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Sample", "Sample", "{7119E17D-25A5-4D41-BB46-033D53111138}"
 EndProject

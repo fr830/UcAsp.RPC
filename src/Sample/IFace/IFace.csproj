@@ -41,6 +41,7 @@
   <ItemGroup>
     <Compile Include="ITest.cs" />
     <Compile Include="Imodel.cs" />
+    <Compile Include="ITest2.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
