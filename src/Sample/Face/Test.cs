@@ -15,9 +15,13 @@ namespace Face
 {
     public class Test : ITest
     {
-
+        public string ToList(List<Imodel> i)
+        {
+            return i[0].Code.ToString() + i[0].Message + i[0].Codes(i[0].Message);
+        }
         public string Get(string msg, int c)
         {
+
             return msg + c.ToString();
         }
         public List<string> Good(string yun, string mm, string kkk)

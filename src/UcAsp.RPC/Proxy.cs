@@ -45,10 +45,6 @@ namespace UcAsp.RPC
                 paras.ReferencedAssemblies.Add(assembly.ManifestModule.Name);
                 paras.GenerateExecutable = false;
                 paras.GenerateInMemory = true;
-
-
-
-
                 CompilerResults cr = complier.CompileAssemblyFromSource(paras, GetCodeString(type, type.Namespace, nameSpace, nameClass));
                 if (cr.Errors.HasErrors)
                 {
@@ -77,7 +73,7 @@ namespace UcAsp.RPC
             string interFaceName = type.Name;
             Assembly assembly = type.Assembly;
             MemberInfo[] m = type.GetMethods();
-            PropertyInfo[] p = type.GetProperties();
+            PropertyInfo[] pi = type.GetProperties();
 
             StringBuilder sb = new StringBuilder();
             sb.Append("using System;\r\n");
@@ -90,10 +86,20 @@ namespace UcAsp.RPC
 
             sb.Append(Environment.NewLine);
             sb.Append("{");
+
+
+
             sb.Append(Environment.NewLine);
             sb.Append("    public class " + nameClass + ":ProxyObject," + interFaceName);
             sb.Append(Environment.NewLine);
             sb.Append("    {");
+
+
+            foreach (PropertyInfo p in pi)
+            {
+                sb.Append(" public " + GetTypeName(p.PropertyType) + " " + p.Name + "{get;set;}");
+            }
+
             foreach (MethodInfo mi in m)
             {
 

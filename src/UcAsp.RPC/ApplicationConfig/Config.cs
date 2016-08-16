@@ -19,7 +19,7 @@ namespace UcAsp.RPC
         {
         }
 
-        public Config(string fileName,string groupName) :
+        public Config(string fileName, string groupName) :
             base(fileName)
         {
             _groupName = groupName;
@@ -290,11 +290,32 @@ namespace UcAsp.RPC
                 XmlNode entryNode = root.SelectSingleNode(GroupNameSlash + section + "/add[@key=\"" + entry + "\"]");
                 return entryNode.Attributes["value"].Value;
             }
-            catch
+            catch (Exception ex)
             {
                 return null;
             }
         }
+
+        public  object GetValue(int i,string section, string entry)
+        {
+            VerifyAndAdjustSection(ref section);
+            VerifyAndAdjustEntry(ref entry);
+
+            try
+            {
+                XmlDocument doc = GetXmlDocument();
+                XmlElement root = doc.DocumentElement;
+                XmlNodeList list = root.SelectNodes(_groupName);
+                XmlNode entryNode = list[i].SelectSingleNode(section + "/add[@key=\"" + entry + "\"]");
+                return entryNode.Attributes["value"].Value;
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
+        }
+
+
 
         /// <summary>
         ///   Removes an entry from a section. </summary>
@@ -423,6 +444,18 @@ namespace UcAsp.RPC
                 sections[i++] = node.Name;
 
             return sections;
-        }	
+        }
+
+        public int GetGroupCount()
+        {
+            XmlDocument doc = GetXmlDocument();
+            if (doc == null)
+                return 0;
+            XmlElement root = doc.DocumentElement;
+            if (root == null)
+                return 0;
+            XmlNodeList note = root.SelectNodes(_groupName);
+            return note.Count;
+        }
     }
 }

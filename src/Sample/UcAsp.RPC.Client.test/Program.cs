@@ -29,7 +29,7 @@ namespace UcAsp.RPC.Client.test
             //// resut = resut + "\r\n" + m[0];
             //Console.WriteLine(m[0]);
           //  IFace.ITest clazz = context.GetProxyObject<IFace.ITest>();
-            for (int i = 0; i < 10000; i++)
+            for (int i = 0; i < 100000; i++)
             {
                 
                 //  new Program().Tasks(0);
@@ -53,7 +53,11 @@ namespace UcAsp.RPC.Client.test
         IFace.ITest2 clazz2 = context.GetProxyObject<IFace.ITest2>();
         private void Tasks(object i)
         {
-            
+            Imodel im = new Imodel { Code=1, Message="厕所呢" };
+            List<Imodel> il = new List<Imodel>();
+            il.Add(im);
+           string mesage= clazz.ToList(il);
+            Console.WriteLine(mesage);
             string mx = clazz.Get("MM", (int)i);
             int x = clazz.GetInt((int)i);
             Tuple<int> t = clazz.GetTuple((int)i);

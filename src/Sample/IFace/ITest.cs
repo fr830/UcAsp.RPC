@@ -7,6 +7,7 @@ namespace IFace
 {
     public interface ITest
     {
+       // string GetProper { get; set; }
         string Get(string msg, int c);
         List<string> Good(string yun, string mm, string kkk);
         int GetInt(int i);
@@ -15,6 +16,7 @@ namespace IFace
         float GetFloat(float i);
         List<Imodel> GetModel(int i);
 
+        string ToList(List<Imodel> i);
 
 
     }

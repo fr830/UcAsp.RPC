@@ -13,10 +13,10 @@ namespace UcAsp.RPC
     public class ApplicationContext
     {
         private static IServer _server = null;
-        private static IClient _client = null;
+
         private static Dictionary<string, Type> _obj = new Dictionary<string, Type>();
         private static Dictionary<string, Tuple<string, MethodInfo>> memberinfos = new Dictionary<string, Tuple<string, MethodInfo>>();
-        private static Dictionary<string, string> proxobj = new Dictionary<string, string>();
+        private static Dictionary<string, Tuple<string,IClient>> proxobj = new Dictionary<string, Tuple<string, IClient>>();
 
 
 
@@ -34,7 +34,7 @@ namespace UcAsp.RPC
             string name = sssembly.FullName;
             if (proxobj.ContainsKey(name))
             {
-                string[] content = proxobj[name].Split(',');
+                string[] content = proxobj[name].Item1.Split(',');
                 string nameSpace = content[0];
                 string className = content[1];
                 object clazz = Proxy.GetObjectType<T>(nameSpace, className);
@@ -43,7 +43,7 @@ namespace UcAsp.RPC
                 PropertyInfo property = type.GetProperty("Client");
                 if (property != null && property.CanWrite)
                 {
-                    property.SetValue(clazz, _client, null);
+                    property.SetValue(clazz, proxobj[name].Item2, null);
                 }
                 return (T)clazz;
             }
@@ -73,27 +73,37 @@ namespace UcAsp.RPC
 
         private void InitializeClient(Config config)
         {
-            string seripaddress = config.GetValue("server", "ip", "127.0.0.1");
-            int port = config.GetValue("server", "port", 9008);
-            int pool = config.GetValue("server", "pool", 20);
-            if (_client == null || !_client.IsConnect)
+
+            int count = config.GetGroupCount();
+            for (int i = 0; i < count; i++)
             {
-                _client = new TcpClient();
+                IClient _client = new TcpClient();
+                string seripaddress = (string)config.GetValue(i, "server", "ip");
+                int port = Convert.ToInt32(config.GetValue(i, "server", "port"));
+                int pool = Convert.ToInt32(config.GetValue(i, "server", "pool"));
+                //if (_client == null || !_client.IsConnect)
+                // {
+
                 _client.Connect(seripaddress, port, pool);
-            }
-            string[] assemblys = config.GetEntryNames("assmebly");
-            foreach (var assname in assemblys)
-            {
-                lock (proxobj)
+                //}
+                string[] assemblys = config.GetEntryNames("assmebly");
+                foreach (var assname in assemblys)
                 {
-                    string obj = config.GetValue("assmebly", assname).ToString();
-                    if (!proxobj.ContainsKey(assname))
+                    lock (proxobj)
                     {
-                        proxobj.Add(assname, obj);
+                        object obj = config.GetValue(i, "assmebly", assname);
+                        if (obj != null)
+                        {
+                            string ass = (string)obj.ToString();
+                            if (!proxobj.ContainsKey(assname))
+                            {
+                                Tuple<string, IClient> tuple = new Tuple<string, IClient>(ass,_client);
+                                proxobj.Add(assname, tuple);
+                            }
+                        }
                     }
                 }
             }
-
         }
         private void InitializeServer(Config config)
         {

@@ -42,8 +42,14 @@ namespace UcAsp.RPC.Tests
             //string s = clazz.Good("s", "m", "ss");
 
         }
-
-        [TestMethod()]
+        [TestMethod]
+        public void Xml()
+        {
+            Config config = new Config("Application.config");
+            config.GroupName = "client";
+          string ip=  config.GetValue(0, "server", "ip").ToString();
+        }
+       // [TestMethod()]
         public void Distance()
         {
             int iRssi = Math.Abs(-71);
