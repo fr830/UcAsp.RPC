@@ -16,22 +16,21 @@ using UcAsp.RPC;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Reflection;
+using log4net;
 namespace UcAsp.RPC
 {
-    public class TcpServer : IServer
+    public class TcpServer : ServerBase
     {
-        public TcpServer() { }
+        private readonly ILog _log = LogManager.GetLogger(typeof(TcpServer));
         private Socket _server;
-        private ISerializer _serializer = new JsonSerializer();
-        public Dictionary<string, Tuple<string, MethodInfo>> MemberInfos { get; set; }
 
-       // public event EventHandler<DataEventArgs> OnReceive;
-        public void StartListen(int port)
+        public override void StartListen(int port)
         {
             _server = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             this._server.Bind(new IPEndPoint(IPAddress.Any, port));
             this._server.Listen(3000);
-            Console.WriteLine(_server.LocalEndPoint);
+            _log.Info("开启服务：" + port);
+            // Console.WriteLine(_server.LocalEndPoint);
 
             /// while (true)
             //{
@@ -49,14 +48,13 @@ namespace UcAsp.RPC
             while (true)
             {
                 Socket socket = this._server.Accept();
+                _log.Info("连接：" + socket.LocalEndPoint);
                 ThreadPool.QueueUserWorkItem(Recive, socket);
             }
         }
         private void Recive(object _server)
         {
-
             Socket socket = (Socket)(_server);
-
             while (true)
             {
                 ByteBuilder _recvBuilder = new ByteBuilder(1024);
@@ -64,7 +62,6 @@ namespace UcAsp.RPC
                 {
                     try
                     {
-                        Console.WriteLine(socket.RemoteEndPoint + "/" + Thread.CurrentThread.ManagedThreadId);
                         byte[] buffer = new byte[1024];
                         while (true)
                         {
@@ -80,11 +77,12 @@ namespace UcAsp.RPC
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine(ex);
+                        _log.Error(ex);
+                        // Console.WriteLine(ex);
                         socket.Dispose();
                         Thread thread = Thread.CurrentThread;
                         thread.Abort();
-                        
+
 
                     }
                 }
@@ -93,66 +91,9 @@ namespace UcAsp.RPC
 
         }
 
-        private List<object> CorrectParameters(MethodInfo method, List<object> parameterValues)
-        {
-            if (parameterValues.Count == method.GetParameters().Length)
-            {
-                for (int i = 0; i < parameterValues.Count; i++)
-                {
-                    // 传递的参数值
-                    object entity = parameterValues[i];
-                    // 传递参数的类型
-                    Type eType = entity.GetType();
-
-                    Type[] ParameterTypes = new Type[method.GetParameters().Length];
-                    for (int x = 0; x < method.GetParameters().Length; x++)
-                    {
-                        ParameterTypes[x] = method.GetParameters()[x].ParameterType;
-                    }
-                    // 目标方法参数类型
-                    Type pType = ParameterTypes[i];
-                    // 类型不一致，需要转换类型
-                    if (eType.Equals(pType) == false)
-                    {
-                        // 转换entity的类型
-                        Binary bin = this._serializer.ToBinary(entity);
-                        object pValue = this._serializer.ToEntity(bin, pType);
-                        // 保存参数
-                        parameterValues[i] = pValue;
-                    }
-                }
-            }
-
-            return parameterValues;
-        }
 
 
-        private void Call(Socket socket, DataEventArgs e)
-        {
-            int p = e.ActionParam.LastIndexOf(".");
 
-            string code = e.ActionParam.Substring(p + 1);
 
-            string name = MemberInfos[code].Item1;
-
-            MethodInfo method = MemberInfos[code].Item2;
-            var parameters = this._serializer.ToEntity<List<object>>(e.Binary);
-            if (parameters == null) parameters = new List<object>();
-            parameters = this.CorrectParameters(method, parameters);
-
-            Object bll = ApplicationContext.GetObject(name);
-
-            var result = method.Invoke(bll, parameters.ToArray());
-            if (!method.ReturnType.Equals(typeof(void)))
-            {
-                e.Binary = this._serializer.ToBinary(result);
-            }
-            else
-            {
-                e.Binary = null;
-            }
-            e.ActionCmd = CallActionCmd.Success.ToString();
-            socket.Send(e.ToByteArray());
-        }
     }
 }

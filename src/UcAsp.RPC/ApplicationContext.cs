@@ -1,26 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Reflection;
-using UcAsp.RPC;
-using TcpClient = UcAsp.RPC.TcpClient;
-using System.Net;
-using System.Net.Sockets;
-using UcAsp.RPC;
+using log4net;
 namespace UcAsp.RPC
 {
     public class ApplicationContext
     {
+        private readonly ILog _log = LogManager.GetLogger(typeof(ApplicationContext));
         private static IServer _server = null;
-
+        private static IServer _httpserver = null;
         private static Dictionary<string, Type> _obj = new Dictionary<string, Type>();
-        private static Dictionary<string, Tuple<string, MethodInfo>> memberinfos = new Dictionary<string, Tuple<string, MethodInfo>>();
-        private static Dictionary<string, Tuple<string,IClient>> proxobj = new Dictionary<string, Tuple<string, IClient>>();
-
-
-
-
+        private static Dictionary<string, Tuple<string, MethodInfo>> _memberinfos = new Dictionary<string, Tuple<string, MethodInfo>>();
+        private static Dictionary<string, Tuple<string, IClient>> _proxobj = new Dictionary<string, Tuple<string, IClient>>();
         private bool _started;
         /// <summary>
         /// 客户端获取创建对象
@@ -30,11 +21,11 @@ namespace UcAsp.RPC
         /// <returns></returns>
         public T GetProxyObject<T>()
         {
-            Type sssembly = typeof(T);
-            string name = sssembly.FullName;
-            if (proxobj.ContainsKey(name))
+            Type asssembly = typeof(T);
+            string name = asssembly.FullName;
+            if (_proxobj.ContainsKey(name))
             {
-                string[] content = proxobj[name].Item1.Split(',');
+                string[] content = _proxobj[name].Item1.Split(',');
                 string nameSpace = content[0];
                 string className = content[1];
                 object clazz = Proxy.GetObjectType<T>(nameSpace, className);
@@ -43,32 +34,35 @@ namespace UcAsp.RPC
                 PropertyInfo property = type.GetProperty("Client");
                 if (property != null && property.CanWrite)
                 {
-                    property.SetValue(clazz, proxobj[name].Item2, null);
+                    property.SetValue(clazz, _proxobj[name].Item2, null);
                 }
                 return (T)clazz;
             }
             else
             {
+                _log.Error("未配置" + name);
                 throw new Exception("未配置" + name);
 
             }
         }
-        public ApplicationContext()
+        public ApplicationContext(string configpath)
         {
-            Config config = new Config("Application.config");
-            config.GroupName = "service";
+            Config config = new Config(configpath) { GroupName = "service" };
             object server = config.GetValue("server", "port");
-
             if (server != null)
             {
                 InitializeServer(config);
             }
             config.GroupName = "client";
-            object client = config.GetValue("server", "port");
+            object client = config.GetValue("server", "ip");
             if (client != null)
             {
                 InitializeClient(config);
             }
+        }
+        public ApplicationContext()
+        {
+            new ApplicationContext("Application.config");
         }
 
         private void InitializeClient(Config config)
@@ -77,28 +71,37 @@ namespace UcAsp.RPC
             int count = config.GetGroupCount();
             for (int i = 0; i < count; i++)
             {
-                IClient _client = new TcpClient();
-                string seripaddress = (string)config.GetValue(i, "server", "ip");
-                int port = Convert.ToInt32(config.GetValue(i, "server", "port"));
-                int pool = Convert.ToInt32(config.GetValue(i, "server", "pool"));
-                //if (_client == null || !_client.IsConnect)
-                // {
+                IClient _client = null;
+                string protocol = (string)config.GetValue(i, "server", "protocol");
+                if (protocol.Equals("tcp"))
+                {
+                    _client = new TcpClient();
 
-                _client.Connect(seripaddress, port, pool);
-                //}
+                    string seripaddress = (string)config.GetValue(i, "server", "ip");
+
+                    int pool = Convert.ToInt32(config.GetValue(i, "server", "pool"));
+                    string[] ipport = seripaddress.Split(';');
+                    for (int l = 0; l < ipport.Length; l++)
+                    {
+                        string ip = ipport[l].Split(':')[0];
+                        int port = int.Parse(ipport[l].Split(':')[1]);
+                        _client.Connect(ip, port, pool);
+                    }
+                }
                 string[] assemblys = config.GetEntryNames("assmebly");
                 foreach (var assname in assemblys)
                 {
-                    lock (proxobj)
+                    lock (_proxobj)
                     {
                         object obj = config.GetValue(i, "assmebly", assname);
                         if (obj != null)
                         {
                             string ass = (string)obj.ToString();
-                            if (!proxobj.ContainsKey(assname))
+                            _log.Info(ass);
+                            if (!_proxobj.ContainsKey(assname))
                             {
-                                Tuple<string, IClient> tuple = new Tuple<string, IClient>(ass,_client);
-                                proxobj.Add(assname, tuple);
+                                Tuple<string, IClient> tuple = new Tuple<string, IClient>(ass, _client);
+                                _proxobj.Add(assname, tuple);
                             }
                         }
                     }
@@ -107,22 +110,16 @@ namespace UcAsp.RPC
         }
         private void InitializeServer(Config config)
         {
-
-
-
             string[] assemblys = config.GetEntryNames("assmebly");
             foreach (var assname in assemblys)
             {
                 string obj = config.GetValue("assmebly", assname).ToString();
-
                 Assembly assmebly = Assembly.LoadFrom(obj);
-
                 Type[] type = assmebly.GetTypes();
-                //Module[] mode = assmebly.GetModules();
                 foreach (Type t in type)
                 {
                     //添加类；
-                    string action = t.Namespace + "." + t.Name;
+                    string action = string.Format("{0}.{1}", t.Namespace, t.Name);
                     if (!_obj.ContainsKey(action))
                     {
                         _obj.Add(action, t);
@@ -132,12 +129,11 @@ namespace UcAsp.RPC
                     foreach (MethodInfo info in infos)
                     {
                         string method = Proxy.GetMethodMd5Code(info);
-
-                        Console.WriteLine(method + "." + info.Name);
-                        if (!memberinfos.ContainsKey(method))
+                        _log.Info(string.Format("{0}.{1}", method, info.Name));                        
+                        if (!_memberinfos.ContainsKey(method))
                         {
                             Tuple<string, MethodInfo> tuple = new Tuple<string, MethodInfo>(action, info);
-                            memberinfos.Add(method, tuple);
+                            _memberinfos.Add(method, tuple);
                         }
                     }
                 }
@@ -146,45 +142,52 @@ namespace UcAsp.RPC
 
 
             int port = config.GetValue("server", "port", 9008);
+            string protocol = (string)config.GetValue("server", "protocol");
+            // if (protocol.Equals("tcp"))
+            //{
             _server = new TcpServer();
-            _server.MemberInfos = memberinfos;
+            _httpserver = new HttpServer();
+            // }
+
+            _server.MemberInfos = _httpserver.MemberInfos = _memberinfos;
             //_tcpServer.OnReceive += Server_OnReceive;
             _server.StartListen(port);
+            _httpserver.StartListen(port + 1);
 
         }
 
 
 
-        private void Server_OnReceive(object sender, DataEventArgs e)
-        {
+        //private void Server_OnReceive(object sender, DataEventArgs e)
+        //{
 
-            //Socket client = (Socket)sender;
+        //    //Socket client = (Socket)sender;
 
-            //int p = e.ActionParam.LastIndexOf(".");
-            //string code = e.ActionParam.Substring(p + 1);
+        //    //int p = e.ActionParam.LastIndexOf(".");
+        //    //string code = e.ActionParam.Substring(p + 1);
 
-            //string name = memberinfos[code].Item1;
+        //    //string name = memberinfos[code].Item1;
 
-            //MethodInfo method = memberinfos[code].Item2;
-            //var parameters = this._serializer.ToEntity<List<object>>(e.Binary);
-            //if (parameters == null) parameters = new List<object>();
-            //parameters = this.CorrectParameters(method, parameters);
+        //    //MethodInfo method = memberinfos[code].Item2;
+        //    //var parameters = this._serializer.ToEntity<List<object>>(e.Binary);
+        //    //if (parameters == null) parameters = new List<object>();
+        //    //parameters = this.CorrectParameters(method, parameters);
 
-            //Object bll = this.GetObject(name);
+        //    //Object bll = this.GetObject(name);
 
-            //var result = method.Invoke(bll, parameters.ToArray());
-            //if (!method.ReturnType.Equals(typeof(void)))
-            //{
-            //    e.Binary = this._serializer.ToBinary(result);
-            //}
-            //else
-            //{
-            //    e.Binary = null;
-            //}
-            //e.ActionCmd = CallActionCmd.Success.ToString();
-            //client.Send(e.ToByteArray());
+        //    //var result = method.Invoke(bll, parameters.ToArray());
+        //    //if (!method.ReturnType.Equals(typeof(void)))
+        //    //{
+        //    //    e.Binary = this._serializer.ToBinary(result);
+        //    //}
+        //    //else
+        //    //{
+        //    //    e.Binary = null;
+        //    //}
+        //    //e.ActionCmd = CallActionCmd.Success.ToString();
+        //    //client.Send(e.ToByteArray());
 
-        }
+        //}
 
 
         public static object GetObject(string className)
@@ -192,19 +195,11 @@ namespace UcAsp.RPC
             if (_obj.ContainsKey(className))
             {
                 Type type = _obj[className];
-                Assembly assembly = type.Assembly;
                 object obj = Activator.CreateInstance(type);
                 return obj;
             }
             return null;
         }
-        /// <summary>
-        /// 纠正参数的值
-        /// Json序列化为List(object)后,object的类型和参数的类型不一致
-        /// </summary>
-        /// <param name="method">欲调用的目标方法</param>
-        /// <param name="parameterValues">传递的参数值</param>
-        /// <returns></returns>
 
     }
 }

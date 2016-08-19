@@ -10,13 +10,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-
+using log4net;
 namespace UcAsp.RPC
 { /// <summary>
   /// 可变长byte集合
   /// </summary>
     public class ByteBuilder
     {
+        private readonly  ILog _log = LogManager.GetLogger(typeof(ByteBuilder));
         /// <summary>
         /// 原始数据
         /// </summary>
@@ -94,7 +95,9 @@ namespace UcAsp.RPC
                     Array.Copy(srcArray, index, this._baseBuffer, this.Count, count);
                 }
                 catch (Exception ex)
-                { }
+                {
+                    _log.Error(ex);
+                }
                 this.Count = newLength;
             }
         }

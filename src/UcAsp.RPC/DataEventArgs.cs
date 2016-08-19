@@ -11,12 +11,13 @@ using System.Collections.Generic;
 using System.Text;
 using System.Net;
 using System.Net.Sockets;
-
+using log4net;
 namespace UcAsp.RPC
 {
     [Serializable]
     public class DataEventArgs : EventArgs
     {
+        private readonly static ILog _log = LogManager.GetLogger(typeof(DataEventArgs));
         /// 二进制数据
         /// </summary>
         public Binary Binary { get; set; }
@@ -135,6 +136,7 @@ namespace UcAsp.RPC
                 }
                 else
                 {
+                    _log.Error("无效包 清除");
                     Console.WriteLine("无效包 清除");
                     // 无效包 清除
                     recvBuilder.Clear();
@@ -143,6 +145,7 @@ namespace UcAsp.RPC
             }
             else
             {
+                _log.Error("无效包 清除");
                 Console.WriteLine("无效包 清除");
                 return null;
             }

@@ -15,16 +15,18 @@ using System.CodeDom.Compiler;
 using Microsoft.CSharp;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
+using log4net;
 namespace UcAsp.RPC
 {
     public static class Proxy
     {
-        private static object obj = new object();
+        private static readonly ILog _log = LogManager.GetLogger(typeof(ApplicationContext));
+        private static object _obj = new object();
         private static Dictionary<string, object> _nameSpaceList = new Dictionary<string, object>();
         public static object GetObjectType<T>(string nameSpace, string nameClass)
         {
 
-            lock (obj)
+            lock (_obj)
             {
                 Type type = typeof(T);
 
@@ -48,19 +50,20 @@ namespace UcAsp.RPC
                 CompilerResults cr = complier.CompileAssemblyFromSource(paras, GetCodeString(type, type.Namespace, nameSpace, nameClass));
                 if (cr.Errors.HasErrors)
                 {
-                    Console.WriteLine("编译错误：");
                     foreach (CompilerError err in cr.Errors)
                     {
-                        Console.WriteLine(err.ErrorText);
+                        _log.Error(err);
+                        // Console.WriteLine(err.ErrorText);
                     }
                     return default(T);
                 }
                 else
                 {
                     Assembly objAssembly = cr.CompiledAssembly;
-                    object objHelloWorld = objAssembly.CreateInstance(nameSpace + "." + nameClass);
-                    _nameSpaceList.Add(nameSpace + nameClass, objHelloWorld);
-                    return objHelloWorld;
+                    _log.Info("创建对象" + string.Format("{0}.{1}", nameSpace, nameClass));
+                    object obj = objAssembly.CreateInstance(string.Format("{0}.{1}", nameSpace, nameClass));
+                    _nameSpaceList.Add(nameSpace + nameClass, obj);
+                    return obj;
                 }
             }
 
@@ -81,23 +84,17 @@ namespace UcAsp.RPC
             sb.Append("using System.Collections.Generic;\r\n");
             sb.Append("using System.Reflection;\r\n");
             sb.Append("using UcAsp.RPC;\r\n");
-            sb.Append("using " + assmbly + ";\r\n");
-            sb.Append("namespace " + nameSpace + "");
+            sb.AppendFormat("using {0};\r\n", assmbly);
+            sb.AppendFormat("namespace {0}\r\n", nameSpace);
+            sb.Append("{\r\n");
 
-            sb.Append(Environment.NewLine);
-            sb.Append("{");
-
-
-
-            sb.Append(Environment.NewLine);
-            sb.Append("    public class " + nameClass + ":ProxyObject," + interFaceName);
-            sb.Append(Environment.NewLine);
-            sb.Append("    {");
+            sb.AppendFormat("    public class {0}:ProxyObject,{1}\r\n", nameClass, interFaceName);
+            sb.Append("    {\r\n");
 
 
             foreach (PropertyInfo p in pi)
             {
-                sb.Append(" public " + GetTypeName(p.PropertyType) + " " + p.Name + "{get;set;}");
+                sb.AppendFormat(" public {0} {1}{{get;set;}}\r\n", GetTypeName(p.PropertyType), p.Name);
             }
 
             foreach (MethodInfo mi in m)
@@ -107,53 +104,51 @@ namespace UcAsp.RPC
                 ParameterInfo[] para = method.GetParameters();
 
                 sb.Append(Environment.NewLine);
-                sb.Append("        public " + GetTypeName(mi.ReturnType) + " " + method.Name + "(");
+                sb.AppendFormat("        public {0} {1}(", GetTypeName(mi.ReturnType), method.Name);
                 for (int x = 0; x < para.Length; x++)
                 {
-                    sb.Append("" + GetTypeName(para[x].ParameterType) + " " + para[x].Name + "");
+                    sb.AppendFormat("{0} {1}", GetTypeName(para[x].ParameterType), para[x].Name);
                     if (x != para.Length - 1)
                     {
                         sb.Append(",");
                     }
                 }
-                sb.Append("     )");
+                sb.Append("     )\r\n");
                 sb.Append(Environment.NewLine);
                 sb.Append("        {\r\n");
 
 
 
 
-                sb.AppendLine("            List<object> entity = new List<object>();");
+                sb.AppendLine("            List<object> entity = new List<object>();\r\n");
                 foreach (var pa in para)
                 {
-                    sb.AppendLine(string.Format("            entity.Add({0});", pa.Name));
+                    sb.AppendLine(string.Format("            entity.Add({0});\r\n", pa.Name));
                 }
 
                 sb.AppendLine("            DataEventArgs e = new DataEventArgs();");
                 sb.AppendLine("            e.Binary = this.Serializer.ToBinary(entity);");
 
-                string action = mi.DeclaringType.FullName + "." + mi.Name + "." + GetMethodMd5Code(mi);
-                sb.AppendLine(string.Format("            e.ActionParam = \"{0}\";", action));
-                sb.AppendLine("            e.ActionCmd = CallActionCmd.Call.ToString();");
+                string action = string.Format("{0}.{1}.{2}", mi.DeclaringType.FullName, mi.Name, GetMethodMd5Code(mi));
+                sb.AppendLine(string.Format("            e.ActionParam = \"{0}\";\r\n", action));
+                sb.AppendLine("            e.ActionCmd = CallActionCmd.Call.ToString();\r\n");
 
-                sb.AppendLine("            DataEventArgs data = this.Client.CallServiceMethod(e);");
-                sb.AppendLine("            if (data.ActionCmd == CallActionCmd.Timeout.ToString() || data.ActionCmd == CallActionCmd.Error.ToString()) { ");
-                sb.AppendLine("                Exception ex = new Exception(\"Call Service Method \" + data.ActionCmd + \": \" + data.ActionParam);");
-                sb.AppendLine("                throw (ex);");
-                sb.AppendLine("            }");
+                sb.AppendLine("            DataEventArgs data = this.Client.CallServiceMethod(e);\r\n");
+                sb.AppendLine("            if (data.ActionCmd == CallActionCmd.Timeout.ToString() || data.ActionCmd == CallActionCmd.Error.ToString()) {\r\n ");
+                sb.AppendLine("                Exception ex = new Exception(\"Call Service Method \" + data.ActionCmd + \": \" + data.ActionParam);\r\n");
+                sb.AppendLine("                throw (ex);\r\n");
+                sb.AppendLine("            }\r\n");
 
                 if (IsVoid(mi.ReturnType) == false)
                 {
-                    sb.AppendLine(string.Format("            return this.Serializer.ToEntity<{0}>(data.Binary);", GetTypeName(mi.ReturnType)));
+                    sb.AppendLine(string.Format("            return this.Serializer.ToEntity<{0}>(data.Binary);\r\n", GetTypeName(mi.ReturnType)));
 
                 }
 
-                sb.Append("        }");
+                sb.Append("        }\r\n");
 
             }
-            sb.Append(Environment.NewLine);
-            sb.Append("    }");
-            sb.Append(Environment.NewLine);
+            sb.Append("    }\r\n");
             sb.Append("}");
             string result = sb.ToString();
             return result;

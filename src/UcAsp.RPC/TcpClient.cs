@@ -64,7 +64,7 @@ namespace UcAsp.RPC
 
 
                     _client.Send(e.ToByteArray());
-
+                    _client.ReceiveTimeout = 30000;
                     ByteBuilder _recvBuilder = new ByteBuilder(1024);
                     if (_client.Connected)
                     {
@@ -83,6 +83,7 @@ namespace UcAsp.RPC
 
                     _isconnect = true;
                     DataEventArgs dex = DataEventArgs.Parse(_recvBuilder);
+                    _client.ReceiveTimeout = 99999999;
                     return dex;
                 }
                 catch (Exception ex)
