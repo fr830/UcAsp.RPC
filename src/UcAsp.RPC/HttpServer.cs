@@ -204,12 +204,12 @@ namespace UcAsp.RPC
             {
 
                 sb.Append(@"<div class=""row"">");
-                sb.AppendFormat(@"<div class=""col - md - 4"">{0} </div> <div class=""col - md - 4"">返回类型：{1}  方法名：{2}", kv.Value.Item1, Proxy.GetTypeName(kv.Value.Item2.ReturnType), kv.Value.Item2.Name);
+                sb.AppendFormat(@"<div class=""col - md - 4"">{0} </div> <div class=""col - md - 4"">返回类型：{1}  方法名：{2}", kv.Value.Item1, Proxy.GetTypeName(kv.Value.Item2.ReturnType).Replace("<", "&lt;").Replace(">", " &gt;"), kv.Value.Item2.Name.Replace("<", "&lt;").Replace(">", " &gt;"));
                 ParameterInfo[] para = kv.Value.Item2.GetParameters();
                 sb.Append(@"(");
                 for (int x = 0; x < para.Length; x++)
                 {
-                    sb.AppendFormat("{0} {1}", Proxy.GetTypeName(para[x].ParameterType), para[x].Name);
+                    sb.AppendFormat("{0} {1}", Proxy.GetTypeName(para[x].ParameterType).Replace("<", "&lt;").Replace(">", " &gt;"), para[x].Name.Replace("<", "&lt;").Replace(">", " &gt;"));
                     if (x != para.Length - 1)
                     {
                         sb.Append(",");
