@@ -43,7 +43,7 @@ namespace UcAsp.RPC
             this.ActionCmd = "";
             this.ActionParam = "";
             this.HttpSessionId = "";
-            
+
         }
 
         /// <summary>
@@ -132,11 +132,11 @@ namespace UcAsp.RPC
                     //{
                     // 返回数据事件包给发送者
                     return new DataEventArgs() { Binary = entityBinary, ActionCmd = cmd, CallHashCode = hashCode, ActionParam = param, HttpSessionId = id };
-                    //}
                 }
                 else
                 {
                     _log.Error("无效包 清除");
+                    Console.WriteLine(string.Format("{0}/{1}", totalLength, checkLength));
                     Console.WriteLine("无效包 清除");
                     // 无效包 清除
                     recvBuilder.Clear();
@@ -146,7 +146,9 @@ namespace UcAsp.RPC
             else
             {
                 _log.Error("无效包 清除");
+                Console.WriteLine(string.Format("{0}/{1}", recvBuilder.Count, recvBuilder.GetInt32(0)));
                 Console.WriteLine("无效包 清除");
+                recvBuilder.Clear();
                 return null;
             }
         }

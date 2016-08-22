@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Reflection;
 using log4net;
@@ -9,6 +10,7 @@ namespace UcAsp.RPC
         private readonly ILog _log = LogManager.GetLogger(typeof(ApplicationContext));
         private static IServer _server = null;
         private static IServer _httpserver = null;
+        private static IClient _client = null;
         private static Dictionary<string, Type> _obj = new Dictionary<string, Type>();
         private static Dictionary<string, Tuple<string, MethodInfo>> _memberinfos = new Dictionary<string, Tuple<string, MethodInfo>>();
         private static Dictionary<string, Tuple<string, IClient>> _proxobj = new Dictionary<string, Tuple<string, IClient>>();
@@ -71,23 +73,44 @@ namespace UcAsp.RPC
             int count = config.GetGroupCount();
             for (int i = 0; i < count; i++)
             {
-                IClient _client = null;
+
                 string protocol = (string)config.GetValue(i, "server", "protocol");
                 if (protocol.Equals("tcp"))
                 {
-                    _client = new TcpClient();
-
-                    string seripaddress = (string)config.GetValue(i, "server", "ip");
-
-                    int pool = Convert.ToInt32(config.GetValue(i, "server", "pool"));
-                    string[] ipport = seripaddress.Split(';');
-                    for (int l = 0; l < ipport.Length; l++)
+                    if (_client == null)
                     {
-                        string ip = ipport[l].Split(':')[0];
-                        int port = int.Parse(ipport[l].Split(':')[1]);
-                        _client.Connect(ip, port, pool);
+                        _client = new TcpClient();
+
+                        string seripaddress = (string)config.GetValue(i, "server", "ip");
+
+                        int pool = Convert.ToInt32(config.GetValue(i, "server", "pool"));
+                        string[] ipport = seripaddress.Split(';');
+                        for (int l = 0; l < ipport.Length; l++)
+                        {
+                            string ip = ipport[l].Split(':')[0];
+                            int port = int.Parse(ipport[l].Split(':')[1]);
+                            _client.Connect(ip, port, pool);
+                        }
                     }
                 }
+                string[] relation = config.GetEntryNames("relation");
+                Proxy.RelationDll = new Dictionary<string, string>();
+                foreach (string va in relation)
+                {
+                    
+                    if (!Proxy.RelationDll.ContainsKey(va))
+                    {
+                        object rdll = config.GetValue(i, "relation", va);
+                        if (rdll != null)
+                        {
+                            Proxy.RelationDll.Add(va, rdll.ToString());
+                        }
+
+                    }
+                    //  Proxy.RelationDll.Add(vdll.ToString());
+                    // Proxy.RelationAssmbly.Add(va);
+                }
+
                 string[] assemblys = config.GetEntryNames("assmebly");
                 foreach (var assname in assemblys)
                 {
@@ -129,7 +152,7 @@ namespace UcAsp.RPC
                     foreach (MethodInfo info in infos)
                     {
                         string method = Proxy.GetMethodMd5Code(info);
-                        _log.Info(string.Format("{0}.{1}", method, info.Name));                        
+                        _log.Info(string.Format("{0}.{1}", method, info.Name));
                         if (!_memberinfos.ContainsKey(method))
                         {
                             Tuple<string, MethodInfo> tuple = new Tuple<string, MethodInfo>(action, info);

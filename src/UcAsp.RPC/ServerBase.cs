@@ -19,6 +19,7 @@ namespace UcAsp.RPC
     {
         private readonly ILog _log = LogManager.GetLogger(typeof(ServerBase));
         public ISerializer _serializer = new JsonSerializer();
+        public const int buffersize = 1024*50;
         public virtual Dictionary<string, Tuple<string, MethodInfo>> MemberInfos
         { get; set; }
 
@@ -96,13 +97,51 @@ namespace UcAsp.RPC
                     e.Binary = null;
                 }
                 e.ActionCmd = CallActionCmd.Success.ToString();
-                socket.Send(e.ToByteArray());
+                byte[] _bf = e.ToByteArray();
+                socket.Send(_bf, 0, _bf.Length, SocketFlags.None);
+                //Console.WriteLine(string.Format("ServerBase1:{0}{1}/{2}", e.ActionCmd, e.ActionParam, _bf.Length));
+
+
+                //_log.Error(string.Format("ServerBase1:{0}{1}/{2}", e.ActionCmd, e.ActionParam, _bf.Length));
+                //int i = 0;
+                //while (true)
+                //{
+                //    int size = _bf.Length - i * buffersize > buffersize ? buffersize : _bf.Length - i * buffersize;
+                //    int offset = 0;
+                //    if (i > 0)
+                //    {
+                //        offset = i * buffersize;
+                //    }
+                //socket.Send(_bf, i * buffersize, size, SocketFlags.None);
+                //    if (size < buffersize)
+                //    {
+                //        break;
+                //    }
+                //    i++;
+                //}
             }
             catch (Exception ex)
             {
                 _log.Error(ex);
                 e.ActionCmd = CallActionCmd.Error.ToString();
-                socket.Send(e.ToByteArray());
+                byte[] _bf = e.ToByteArray();
+                int i = 0;
+                while (true)
+                {
+                    int size = _bf.Length - i * buffersize > buffersize ? buffersize : _bf.Length - i * buffersize;
+                    int offset = 0;
+                    if (i > 0)
+                    {
+                        offset = i * buffersize;
+                    }
+                    socket.Send(_bf, i * buffersize, size, SocketFlags.None);
+                    if (size < buffersize)
+                    {
+                        break;
+                    }
+                    i++;
+                }
+
             }
         }
     }

@@ -20,7 +20,7 @@ namespace UcAsp.RPC
     public class TcpClient : IClient, IDisposable
     {
         private Queue<Socket> _dicClient = new Queue<Socket>();
-
+        private const int buffersize = 1024 * 10;
         bool _isconnect = false;
         public string LastError
         {
@@ -33,7 +33,8 @@ namespace UcAsp.RPC
         {
             Task<DataEventArgs> task = new Task<DataEventArgs>(Call, e);
             task.Start();
-            return task.Result;
+            DataEventArgs data = task.Result;
+            return data;
             //return Call(e);
         }
 
@@ -61,24 +62,29 @@ namespace UcAsp.RPC
                 {
                     _client = _dicClient.Dequeue();
                     _dicClient.Enqueue(_client);
+                    byte[] _bf = e.ToByteArray();
 
 
-                    _client.Send(e.ToByteArray());
-                    _client.ReceiveTimeout = 30000;
-                    ByteBuilder _recvBuilder = new ByteBuilder(1024);
+                    _client.Send(_bf, 0, _bf.Length, SocketFlags.None);
+
+                    // _client.ReceiveTimeout = 900000;
+                    ByteBuilder _recvBuilder = new ByteBuilder(buffersize);
                     if (_client.Connected)
                     {
-                        byte[] buffer = new byte[1024];
-
+                        _client.ReceiveTimeout = 60000;
+                        byte[] buffer = new byte[buffersize];
+                        int total = 0;
                         while (true)
                         {
 
                             int len = _client.Receive(buffer, 0, buffer.Length, SocketFlags.None);
                             _recvBuilder.Add(buffer);
-                            if (len - 1024 <= 0)
+                            total = _recvBuilder.GetInt32(0);
+                            Thread.Sleep(1);
+                            if ((len - buffer.Length) <= 0 && _recvBuilder.Count - (buffer.Length - len) >= total)
                             { break; }
                         }
-
+                        Console.WriteLine(total + "/" + _recvBuilder.Count);
                     }
 
                     _isconnect = true;
@@ -88,6 +94,7 @@ namespace UcAsp.RPC
                 }
                 catch (Exception ex)
                 {
+                    Console.WriteLine(ex);
                     e.ActionCmd = CallActionCmd.Error.ToString();
                     return e;
                 }

@@ -48,26 +48,30 @@ namespace UcAsp.RPC
             while (true)
             {
                 Socket socket = this._server.Accept();
-                _log.Info("连接：" + socket.LocalEndPoint);
+                Console.WriteLine("连接：" + socket.RemoteEndPoint);
+                _log.Info("连接：" + socket.RemoteEndPoint);
                 ThreadPool.QueueUserWorkItem(Recive, socket);
             }
         }
-        private void Recive(object _server)
+        private void Recive(object obj)
         {
-            Socket socket = (Socket)(_server);
+            Socket socket = (Socket)(obj);
             while (true)
             {
-                ByteBuilder _recvBuilder = new ByteBuilder(1024);
+                ByteBuilder _recvBuilder = new ByteBuilder(buffersize);
                 if (socket.Connected)
                 {
                     try
                     {
-                        byte[] buffer = new byte[1024];
+                        byte[] buffer = new byte[buffersize];
+                        int total = 0;
                         while (true)
                         {
-                            int len = socket.Receive(buffer, 0, buffer.Length, SocketFlags.None);
+                            int len =socket.Receive(buffer, 0, buffer.Length, SocketFlags.None);
                             _recvBuilder.Add(buffer);
-                            if (len - 1024 <= 0)
+                            total = _recvBuilder.GetInt32(0);
+                            Thread.Sleep(1);
+                            if ((len - buffer.Length) <= 0 && _recvBuilder.Count - (buffer.Length - len) >= total)
                             { break; }
                         }
                         DataEventArgs e = DataEventArgs.Parse(_recvBuilder);
@@ -78,10 +82,10 @@ namespace UcAsp.RPC
                     catch (Exception ex)
                     {
                         _log.Error(ex);
-                        // Console.WriteLine(ex);
-                        socket.Dispose();
-                        Thread thread = Thread.CurrentThread;
-                        thread.Abort();
+                        Console.WriteLine(ex);
+                        //socket.Dispose();
+                        // Thread thread = Thread.CurrentThread;
+                        // thread.Abort();
 
 
                     }

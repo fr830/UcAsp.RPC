@@ -29,13 +29,14 @@ namespace UcAsp.RPC.Client.test
             //// resut = resut + "\r\n" + m[0];
             //Console.WriteLine(m[0]);
             //  IFace.ITest clazz = context.GetProxyObject<IFace.ITest>();
-            for (int i = 0; i < 200; i++)
+            for (int i = 0; i < 2000; i++)
             {
 
-                //  new Program().Tasks(0);
-                Task task = new Task(new Program().Tasks, i);
-                task.Start();
-                Console.WriteLine(i);
+                  new Program().Tasks(i);
+               // Task task = new Task(new Program().Tasks, i);
+               // task.Start();
+                // new Program().Tasks(0);
+                // Console.WriteLine(0);
                 //Task tas = new Task(() =>
                 //{
                 //    IFace.ITest clazz = new Program().context.GetProxyObject<IFace.ITest>();
@@ -55,33 +56,42 @@ namespace UcAsp.RPC.Client.test
         {
             IFace.ITest clazz = context.GetProxyObject<IFace.ITest>();
             IFace.ITest2 clazz2 = context.GetProxyObject<IFace.ITest2>();
-            Imodel im = new Imodel { Code = (int)i, Message = "厕所呢" };
-            List<Imodel> il = new List<Imodel>();
-            il.Add(im);
-            string mesage = clazz.ToList(il);
-            Console.WriteLine(mesage);
-            string mx = clazz.Get("MM", (int)i);
-            Console.WriteLine(mx);
-            int x = clazz.GetInt((int)i);
+            //Task t1 = new Task(() =>
+            //{
+                Imodel im = new Imodel { Code = (int)i, Message = "厕所呢厕所呢厕所呢厕所呢厕所" };
+                List<Imodel> il = new List<Imodel>();
+                il.Add(im);
+                string mesage = clazz.ToList(il);
+               // Console.WriteLine(mesage+"/"+ i);
+            //});
+            //t1.Start();
+            //Task t2 = new Task(() =>
+            //{
+                string mx = clazz.Get("MM", (int)i);
+               // Console.WriteLine(mx + "/" + i);
+            //});
+            //t2.Start();
+            //Task t3 = new Task(() =>
+            //{
+                int x = clazz.GetInt((int)i);
 
-            Console.WriteLine(x);
+               // Console.WriteLine(x + "/" + i);
+            //});
+            //t3.Start();
+            //Task t4 = new Task(() =>
+            //{
+                Tuple<int> t = clazz.GetTuple((int)i);
+              //  Console.WriteLine(t.Item1 + "/" + i);
+            //});
+            //t4.Start();
+            //Task t5 = new Task(() =>
+            //{
+                List<string> m = clazz.Good(i.ToString(), "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM", "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM");
+                Console.WriteLine(m[0] + "/" + i);
+            //});
+            //t5.Start();
 
-            Tuple<int> t = clazz.GetTuple((int)i);
-            Console.WriteLine(t.Item1);
-            List<string> m = clazz.Good(i.ToString(), "MM", "MMM");
-            Console.WriteLine(m[0]);
 
-            int code = clazz2.GetMore((int)i);
-            Console.WriteLine("code" + code);
-            List<Imodel> model = clazz.GetModel((int)i);
-
-           
-
-            
-
-
-
-            Console.WriteLine(model[0].Code);
 
             // Thread.Sleep(1000);
             //return m[0];

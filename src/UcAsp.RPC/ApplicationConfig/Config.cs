@@ -306,7 +306,9 @@ namespace UcAsp.RPC
                 XmlDocument doc = GetXmlDocument();
                 XmlElement root = doc.DocumentElement;
                 XmlNodeList list = root.SelectNodes(_groupName);
-                XmlNode entryNode = list[i].SelectSingleNode(section + "/add[@key=\"" + entry + "\"]");
+                XmlNode entryNode = list[i].SelectSingleNode(string.Format("{0}/add[@key=\"{1}\"]", section, entry));
+                if (entryNode == null)
+                    return null;
                 return entryNode.Attributes["value"].Value;
             }
             catch (Exception ex)
