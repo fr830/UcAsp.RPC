@@ -60,7 +60,7 @@ namespace UcAsp.RPC
                 {
                     try
                     {
-                        Byte[] bReceive = new Byte[1024];
+                        Byte[] bReceive = new Byte[buffersize];
                         int i = socket.Receive(bReceive, bReceive.Length, 0);
                         //转换成字符串类型
                         string sBuffer = Encoding.ASCII.GetString(bReceive).Substring(0, i);

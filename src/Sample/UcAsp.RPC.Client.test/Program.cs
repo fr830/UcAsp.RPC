@@ -11,7 +11,7 @@ namespace UcAsp.RPC.Client.test
 {
     class Program
     {
-        static ApplicationContext context = new ApplicationContext();
+        static ApplicationContext context;
 
         string resut = string.Empty;
         static void Main(string[] args)
@@ -19,6 +19,7 @@ namespace UcAsp.RPC.Client.test
 
 
             Thread.Sleep(3000);
+            context = new ApplicationContext();
             //IFace.ITest clazz = context.GetProxyObject<IFace.ITest>();
             //Console.WriteLine(".");
 

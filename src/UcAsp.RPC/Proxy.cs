@@ -21,7 +21,7 @@ namespace UcAsp.RPC
     public static class Proxy
     {
         private static readonly ILog _log = LogManager.GetLogger(typeof(Proxy));
-        public static Dictionary<string,string> RelationDll { set; get; }
+        public static Dictionary<string, string> RelationDll { set; get; }
         private static object _obj = new object();
         private static Dictionary<string, object> _nameSpaceList = new Dictionary<string, object>();
         public static object GetObjectType<T>(string nameSpace, string nameClass)
@@ -46,9 +46,12 @@ namespace UcAsp.RPC
                 paras.ReferencedAssemblies.Add("System.dll");
                 paras.ReferencedAssemblies.Add("UcAsp.RPC.dll");
                 paras.ReferencedAssemblies.Add("log4net.dll");
-                foreach (var vdll in RelationDll)
+                if (RelationDll != null)
                 {
-                    paras.ReferencedAssemblies.Add(vdll.Value);
+                    foreach (var vdll in RelationDll)
+                    {
+                        paras.ReferencedAssemblies.Add(vdll.Value);
+                    }
                 }
                 paras.ReferencedAssemblies.Add(assembly.ManifestModule.Name);
                 paras.GenerateExecutable = false;
@@ -59,7 +62,7 @@ namespace UcAsp.RPC
                     foreach (CompilerError err in cr.Errors)
                     {
                         _log.Error(err);
-                         Console.WriteLine(err.ErrorText);
+                        Console.WriteLine(err.ErrorText);
                     }
                     return default(T);
                 }
@@ -91,8 +94,12 @@ namespace UcAsp.RPC
             sb.Append("using System.Reflection;\r\n");
             sb.Append("using UcAsp.RPC;\r\n");
             sb.Append("using log4net;\r\n");
-            foreach(var rassmbly in RelationDll) { 
-            sb.AppendLine(string.Format("using {0};\r\n", rassmbly.Key));
+            if (RelationDll != null)
+            {
+                foreach (var rassmbly in RelationDll)
+                {
+                    sb.AppendLine(string.Format("using {0};\r\n", rassmbly.Key));
+                }
             }
             sb.AppendFormat("using {0};\r\n", assmbly);
             sb.AppendFormat("namespace {0}\r\n", nameSpace);

@@ -25,6 +25,7 @@ namespace  UcAsp.RPC
         /// </summary>
         Validate,
 
+        Register,
         /// <summary>
         /// 调用返回正确
         /// </summary>

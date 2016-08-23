@@ -11,10 +11,13 @@ namespace UcAsp.RPC
         private static IServer _server = null;
         private static IServer _httpserver = null;
         private static IClient _client = null;
+
+        private static ISerializer _serializer = new JsonSerializer();
+
         private static Dictionary<string, Type> _obj = new Dictionary<string, Type>();
         private static Dictionary<string, Tuple<string, MethodInfo>> _memberinfos = new Dictionary<string, Tuple<string, MethodInfo>>();
         private static Dictionary<string, Tuple<string, IClient>> _proxobj = new Dictionary<string, Tuple<string, IClient>>();
-        private bool _started;
+        private static List<RegisterInfo> _registerInfo = new List<RegisterInfo>();
         /// <summary>
         /// 客户端获取创建对象
         /// </summary>
@@ -50,6 +53,7 @@ namespace UcAsp.RPC
         public ApplicationContext(string configpath)
         {
             Config config = new Config(configpath) { GroupName = "service" };
+
             object server = config.GetValue("server", "port");
             if (server != null)
             {
@@ -62,6 +66,9 @@ namespace UcAsp.RPC
                 InitializeClient(config);
             }
         }
+
+
+
         public ApplicationContext()
         {
             new ApplicationContext("Application.config");
@@ -94,41 +101,58 @@ namespace UcAsp.RPC
                     }
                 }
                 string[] relation = config.GetEntryNames("relation");
-                Proxy.RelationDll = new Dictionary<string, string>();
-                foreach (string va in relation)
+                if (relation != null)
                 {
-                    
-                    if (!Proxy.RelationDll.ContainsKey(va))
+                    Proxy.RelationDll = new Dictionary<string, string>();
+                    foreach (string va in relation)
                     {
-                        object rdll = config.GetValue(i, "relation", va);
-                        if (rdll != null)
+
+                        if (!Proxy.RelationDll.ContainsKey(va))
                         {
-                            Proxy.RelationDll.Add(va, rdll.ToString());
+                            object rdll = config.GetValue(i, "relation", va);
+                            if (rdll != null)
+                            {
+                                Proxy.RelationDll.Add(va, rdll.ToString());
+                            }
+
                         }
-
                     }
-                    //  Proxy.RelationDll.Add(vdll.ToString());
-                    // Proxy.RelationAssmbly.Add(va);
                 }
-
-                string[] assemblys = config.GetEntryNames("assmebly");
-                foreach (var assname in assemblys)
+                DataEventArgs callreg = new DataEventArgs() { ActionCmd = CallActionCmd.Register.ToString(), ActionParam = "Register" };
+                DataEventArgs reg = _client.CallServiceMethod(callreg);
+                List<RegisterInfo> registerInfos = _serializer.ToEntity<List<RegisterInfo>>(reg.Binary);
+                foreach (RegisterInfo info in registerInfos)
                 {
                     lock (_proxobj)
                     {
-                        object obj = config.GetValue(i, "assmebly", assname);
-                        if (obj != null)
+                        string assname = info.FaceNameSpace + "." + info.InterfaceName;
+                        string ass = info.NameSpace + "," + info.ClassName;
+                        if (!_proxobj.ContainsKey(assname))
                         {
-                            string ass = (string)obj.ToString();
-                            _log.Info(ass);
-                            if (!_proxobj.ContainsKey(assname))
-                            {
-                                Tuple<string, IClient> tuple = new Tuple<string, IClient>(ass, _client);
-                                _proxobj.Add(assname, tuple);
-                            }
+                            Tuple<string, IClient> tuple = new Tuple<string, IClient>(ass, _client);
+                            _proxobj.Add(assname, tuple);
                         }
                     }
                 }
+
+                //string[] assemblys = config.GetEntryNames("assmebly");
+                //foreach (var assname in assemblys)
+                //{
+                //    lock (_proxobj)
+                //    {
+                //        object obj = config.GetValue(i, "assmebly", assname);
+                //        if (obj != null)
+                //        {
+                //            string ass = (string)obj.ToString();
+                //            _log.Info(ass);
+                //            if (!_proxobj.ContainsKey(assname))
+                //            {
+                //                Tuple<string, IClient> tuple = new Tuple<string, IClient>(ass, _client);
+                //                _proxobj.Add(assname, tuple);
+                //            }
+                //        }
+                //    }
+                //}
             }
         }
         private void InitializeServer(Config config)
@@ -141,22 +165,30 @@ namespace UcAsp.RPC
                 Type[] type = assmebly.GetTypes();
                 foreach (Type t in type)
                 {
-                    //添加类；
-                    string action = string.Format("{0}.{1}", t.Namespace, t.Name);
-                    if (!_obj.ContainsKey(action))
+                    Type[] _interface = t.GetInterfaces();
+                    if (_interface.Length > 0)
                     {
-                        _obj.Add(action, t);
-                    }
-                    ///添加方法
-                    MethodInfo[] infos = t.GetMethods();
-                    foreach (MethodInfo info in infos)
-                    {
-                        string method = Proxy.GetMethodMd5Code(info);
-                        _log.Info(string.Format("{0}.{1}", method, info.Name));
-                        if (!_memberinfos.ContainsKey(method))
+                        //添加类；
+                        string action = string.Format("{0}.{1}", t.Namespace, t.Name);
+                        if (!_obj.ContainsKey(action))
                         {
-                            Tuple<string, MethodInfo> tuple = new Tuple<string, MethodInfo>(action, info);
-                            _memberinfos.Add(method, tuple);
+                            _obj.Add(action, t);
+                        }
+
+
+                        RegisterInfo reg = new RegisterInfo() { ClassName = t.Name, NameSpace = t.Namespace, FaceNameSpace = _interface[0].Namespace, InterfaceName = _interface[0].Name };
+                        _registerInfo.Add(reg);
+                        ///添加方法
+                        MethodInfo[] infos = t.GetMethods();
+                        foreach (MethodInfo info in infos)
+                        {
+                            string method = Proxy.GetMethodMd5Code(info);
+                            _log.Info(string.Format("{0}.{1}", method, info.Name));
+                            if (!_memberinfos.ContainsKey(method))
+                            {
+                                Tuple<string, MethodInfo> tuple = new Tuple<string, MethodInfo>(action, info);
+                                _memberinfos.Add(method, tuple);
+                            }
                         }
                     }
                 }
@@ -173,6 +205,7 @@ namespace UcAsp.RPC
             // }
 
             _server.MemberInfos = _httpserver.MemberInfos = _memberinfos;
+            _server.RegisterInfo = _httpserver.RegisterInfo = _registerInfo;
             //_tcpServer.OnReceive += Server_OnReceive;
             _server.StartListen(port);
             _httpserver.StartListen(port + 1);

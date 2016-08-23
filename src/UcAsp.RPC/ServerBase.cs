@@ -19,9 +19,10 @@ namespace UcAsp.RPC
     {
         private readonly ILog _log = LogManager.GetLogger(typeof(ServerBase));
         public ISerializer _serializer = new JsonSerializer();
-        public const int buffersize = 1024*50;
+        public const int buffersize = 1024 * 50;
         public virtual Dictionary<string, Tuple<string, MethodInfo>> MemberInfos
         { get; set; }
+        public virtual List<RegisterInfo> RegisterInfo { get; set; }
 
         public virtual void StartListen(int port)
         {
@@ -74,27 +75,34 @@ namespace UcAsp.RPC
             DataEventArgs e = (DataEventArgs)obj;
             try
             {
-                int p = e.ActionParam.LastIndexOf(".");
-
-                string code = e.ActionParam.Substring(p + 1);
-
-                string name = MemberInfos[code].Item1;
-
-                MethodInfo method = MemberInfos[code].Item2;
-                var parameters = this._serializer.ToEntity<List<object>>(e.Binary);
-                if (parameters == null) parameters = new List<object>();
-                parameters = this.CorrectParameters(method, parameters);
-
-                Object bll = ApplicationContext.GetObject(name);
-
-                var result = method.Invoke(bll, parameters.ToArray());
-                if (!method.ReturnType.Equals(typeof(void)))
+                if (e.ActionCmd == CallActionCmd.Register.ToString())
                 {
-                    e.Binary = this._serializer.ToBinary(result);
+                    e.Binary = this._serializer.ToBinary(RegisterInfo);
                 }
-                else
+                else if(e.ActionCmd == CallActionCmd.Call.ToString())
                 {
-                    e.Binary = null;
+                    int p = e.ActionParam.LastIndexOf(".");
+
+                    string code = e.ActionParam.Substring(p + 1);
+
+                    string name = MemberInfos[code].Item1;
+
+                    MethodInfo method = MemberInfos[code].Item2;
+                    var parameters = this._serializer.ToEntity<List<object>>(e.Binary);
+                    if (parameters == null) parameters = new List<object>();
+                    parameters = this.CorrectParameters(method, parameters);
+
+                    Object bll = ApplicationContext.GetObject(name);
+
+                    var result = method.Invoke(bll, parameters.ToArray());
+                    if (!method.ReturnType.Equals(typeof(void)))
+                    {
+                        e.Binary = this._serializer.ToBinary(result);
+                    }
+                    else
+                    {
+                        e.Binary = null;
+                    }
                 }
                 e.ActionCmd = CallActionCmd.Success.ToString();
                 byte[] _bf = e.ToByteArray();
