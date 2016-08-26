@@ -33,9 +33,9 @@ namespace UcAsp.RPC.Client.test
             for (int i = 0; i < 2000; i++)
             {
 
-                  new Program().Tasks(i);
-               // Task task = new Task(new Program().Tasks, i);
-               // task.Start();
+                // new Program().Tasks(i);
+                Task task = new Task(new Program().Tasks, i);
+               task.Start();
                 // new Program().Tasks(0);
                 // Console.WriteLine(0);
                 //Task tas = new Task(() =>
@@ -59,36 +59,38 @@ namespace UcAsp.RPC.Client.test
             IFace.ITest2 clazz2 = context.GetProxyObject<IFace.ITest2>();
             //Task t1 = new Task(() =>
             //{
-                Imodel im = new Imodel { Code = (int)i, Message = "厕所呢厕所呢厕所呢厕所呢厕所" };
-                List<Imodel> il = new List<Imodel>();
-                il.Add(im);
-                string mesage = clazz.ToList(il);
-               // Console.WriteLine(mesage+"/"+ i);
+            Imodel im = new Imodel { Code = (int)i, Message = "厕所呢厕所呢厕所呢厕所呢厕所" };
+            List<Imodel> il = new List<Imodel>();
+            il.Add(im);
+            string mesage = clazz.ToList(il);
+            // Console.WriteLine(mesage+"/"+ i);
             //});
             //t1.Start();
             //Task t2 = new Task(() =>
             //{
-                string mx = clazz.Get("MM", (int)i);
-               // Console.WriteLine(mx + "/" + i);
+            string mx = clazz.Get("MM", (int)i);
+            // Console.WriteLine(mx + "/" + i);
             //});
             //t2.Start();
             //Task t3 = new Task(() =>
             //{
-                int x = clazz.GetInt((int)i);
+            int x = clazz.GetInt((int)i);
 
-               // Console.WriteLine(x + "/" + i);
+            // Console.WriteLine(x + "/" + i);
             //});
             //t3.Start();
             //Task t4 = new Task(() =>
             //{
-                Tuple<int> t = clazz.GetTuple((int)i);
-              //  Console.WriteLine(t.Item1 + "/" + i);
+            Tuple<int> t = clazz.GetTuple((int)i);
+            int mmmm = t.Item1;
+            //  Console.WriteLine(t.Item1 + "/" + i);
             //});
             //t4.Start();
             //Task t5 = new Task(() =>
             //{
-                List<string> m = clazz.Good(i.ToString(), "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM", "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM");
-                Console.WriteLine(m[0] + "/" + i);
+            List<string> m = clazz.Good(i.ToString(), "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM", "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM");
+            //strig m=   
+            Console.WriteLine(m[0] + "/" + i);
             //});
             //t5.Start();
 

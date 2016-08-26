@@ -113,34 +113,20 @@ namespace UcAsp.RPC
                 // 检验数据
                 if (totalLength == checkLength)
                 {
-                    //// CallbackInfo info = null;
-                    // if (hashCode > 0)
-                    // {
-                    //   //  info = CallbackListPool.CallbackList.Find((item) => item.HashCode == hashCode);
-                    // }
-
-                    // if (info != null)
-                    // {
-
-                    //     // 回调实体数据
-                    //     ///CallbackListPool.CallbackList.Remove(info);
-                    //     info.CallBack(new DataEventArgs() { Binary = entityBinary, ActionCmd = cmd, CallHashCode = hashCode, ActionParam = param, HttpSessionId = id });
-                    //     // 因为回调数据,继续分析数据包直到没有数据
-                    //     return DataEventArgs.Parse(recvBuilder);
-                    //}
-                    //else
-                    //{
+                    
                     // 返回数据事件包给发送者
                     return new DataEventArgs() { Binary = entityBinary, ActionCmd = cmd, CallHashCode = hashCode, ActionParam = param, HttpSessionId = id };
                 }
                 else
                 {
+
                     _log.Error("无效包 清除");
                     Console.WriteLine(string.Format("{0}/{1}", totalLength, checkLength));
                     Console.WriteLine("无效包 清除");
                     // 无效包 清除
                     recvBuilder.Clear();
-                    return null;
+                    return new DataEventArgs() { Binary = null, ActionCmd = CallActionCmd.Error.ToString(), CallHashCode = hashCode, ActionParam = param, HttpSessionId = id };
+                    
                 }
             }
             else
@@ -149,7 +135,7 @@ namespace UcAsp.RPC
                 Console.WriteLine(string.Format("{0}/{1}", recvBuilder.Count, recvBuilder.GetInt32(0)));
                 Console.WriteLine("无效包 清除");
                 recvBuilder.Clear();
-                return null;
+                return new DataEventArgs() { Binary = null, ActionCmd = CallActionCmd.Error.ToString() };
             }
         }
     }

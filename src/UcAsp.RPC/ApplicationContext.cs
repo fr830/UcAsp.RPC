@@ -3,6 +3,9 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Reflection;
 using log4net;
+using System.Net.Sockets;
+using System.Net;
+using System.Timers;
 namespace UcAsp.RPC
 {
     public class ApplicationContext
@@ -10,7 +13,7 @@ namespace UcAsp.RPC
         private readonly ILog _log = LogManager.GetLogger(typeof(ApplicationContext));
         private static IServer _server = null;
         private static IServer _httpserver = null;
-        private static IClient _client = null;
+        private static List<IClient> _clients = null;
 
         private static ISerializer _serializer = new JsonSerializer();
 
@@ -18,6 +21,8 @@ namespace UcAsp.RPC
         private static Dictionary<string, Tuple<string, MethodInfo>> _memberinfos = new Dictionary<string, Tuple<string, MethodInfo>>();
         private static Dictionary<string, Tuple<string, IClient>> _proxobj = new Dictionary<string, Tuple<string, IClient>>();
         private static List<RegisterInfo> _registerInfo = new List<RegisterInfo>();
+
+        private Timer Pong = new Timer();
         /// <summary>
         /// 客户端获取创建对象
         /// </summary>
@@ -77,29 +82,38 @@ namespace UcAsp.RPC
         private void InitializeClient(Config config)
         {
 
-            int count = config.GetGroupCount();
-            for (int i = 0; i < count; i++)
+            string[] ipport = ((string)config.GetValue("server", "ip")).Split(';');
+            int pool = Convert.ToInt32(config.GetValue("server", "pool"));
+            for (int i = 0; i < ipport.Length; i++)
             {
-
-                string protocol = (string)config.GetValue(i, "server", "protocol");
-                if (protocol.Equals("tcp"))
+                if (_clients == null)
                 {
-                    if (_client == null)
+                    _clients = new List<IClient>();
+                    Pong.Interval = 1000;
+                    Pong.Elapsed += Pong_Elapsed;
+                   // Pong.Start();
+                }
+
+
+                foreach (IClient iclient in _clients)
+                {
+                    Socket skpk = iclient.DicClient.Peek();
+                    string _ip = ((IPEndPoint)skpk.LocalEndPoint).Address.ToString();
+                    string _port = ((IPEndPoint)skpk.LocalEndPoint).Port.ToString();
+                    if (_ip + ":" + _port == ipport[0] + ":" + ipport[1])
                     {
-                        _client = new TcpClient();
-
-                        string seripaddress = (string)config.GetValue(i, "server", "ip");
-
-                        int pool = Convert.ToInt32(config.GetValue(i, "server", "pool"));
-                        string[] ipport = seripaddress.Split(';');
-                        for (int l = 0; l < ipport.Length; l++)
-                        {
-                            string ip = ipport[l].Split(':')[0];
-                            int port = int.Parse(ipport[l].Split(':')[1]);
-                            _client.Connect(ip, port, pool);
-                        }
+                        return;
                     }
                 }
+                TcpClient _client = new TcpClient();
+                string ip = ipport[i].Split(':')[0];
+                int port = int.Parse(ipport[i].Split(':')[1]);
+                _client.Connect(ip, port, pool);
+                if (!_client.IsConnect)
+                    return;
+
+                _clients.Add(_client);
+
                 string[] relation = config.GetEntryNames("relation");
                 if (relation != null)
                 {
@@ -125,12 +139,24 @@ namespace UcAsp.RPC
                 {
                     lock (_proxobj)
                     {
-                        string assname = info.FaceNameSpace + "." + info.InterfaceName;
-                        string ass = info.NameSpace + "," + info.ClassName;
+                        string assname = string.Format("{0}.{1}", info.FaceNameSpace, info.InterfaceName);
+                        string ass = string.Format("{0},{1}", info.NameSpace, info.ClassName);
                         if (!_proxobj.ContainsKey(assname))
                         {
                             Tuple<string, IClient> tuple = new Tuple<string, IClient>(ass, _client);
                             _proxobj.Add(assname, tuple);
+                        }
+                        else
+                        {
+                            IClient client = _proxobj[assname].Item2;
+
+                            while (_client.DicClient.Count > 0)
+                            {
+                                Socket socket = _client.DicClient.Dequeue();
+                                client.DicClient.Enqueue(socket);
+                            }
+                            Tuple<string, IClient> tuple = new Tuple<string, IClient>(_proxobj[assname].Item1, client);
+                            _proxobj[assname] = tuple;
                         }
                     }
                 }
@@ -153,6 +179,27 @@ namespace UcAsp.RPC
                 //        }
                 //    }
                 //}
+            }
+        }
+
+        private void Pong_Elapsed(object sender, ElapsedEventArgs e)
+        {
+            foreach (IClient iclient in _clients)
+            {
+                try
+                {
+                    Socket skpk = iclient.DicClient.Peek();
+                    DataEventArgs callping = new DataEventArgs() { ActionCmd = CallActionCmd.Ping.ToString(), ActionParam = "Register" };
+                    DataEventArgs ping = iclient.CallServiceMethod(callping);
+                    string result = _serializer.ToEntity<string>(ping.Binary);
+                    Console.WriteLine(result);
+                    
+                }
+                catch (Exception ex)
+                {
+                    _log.Error(ex);
+                }
+                
             }
         }
         private void InitializeServer(Config config)

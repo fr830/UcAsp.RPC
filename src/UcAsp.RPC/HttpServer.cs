@@ -142,12 +142,14 @@ namespace UcAsp.RPC
                 var result = method.Invoke(bll, parameters.ToArray());
                 string data = JsonConvert.SerializeObject(result);
                 byte[] buffer = Encoding.UTF8.GetBytes(data);
+                HttpRespone.SendHeader(_httpversion, _mimetype, buffer.Length, " 200 OK", ref socket);
                 HttpRespone.SendToBrowser(buffer, ref socket);
 
             }
             catch (Exception ex)
             {
-                string message = "{ \"Error\":\"" + ex.Message + ";" + ex.Source + "\"}";
+                string message = string.Format("{ \"Error\":\"{0};{1}\"}", ex.Message, ex.Source);
+                HttpRespone.SendHeader(_httpversion, _mimetype, message.Length, " 500 OK", ref socket);
                 HttpRespone.SendToBrowser(message, ref socket);
             }
         }
@@ -204,7 +206,7 @@ namespace UcAsp.RPC
             {
 
                 sb.Append(@"<div class=""row"">");
-                sb.AppendFormat(@"<div class=""col - md - 4"">{0} </div> <div class=""col - md - 4"">返回类型：{1}  方法名：{2}", kv.Value.Item1, Proxy.GetTypeName(kv.Value.Item2.ReturnType).Replace("<", "&lt;").Replace(">", " &gt;"), kv.Value.Item2.Name.Replace("<", "&lt;").Replace(">", " &gt;"));
+                sb.AppendFormat(@"<div class=""col - md - 4"">{0} </div> <div class=""col - md - 4"">返回类型：{1}  方法名：{2}  ", kv.Value.Item1, Proxy.GetTypeName(kv.Value.Item2.ReturnType).Replace("<", "&lt;").Replace(">", " &gt;"), kv.Value.Item2.Name.Replace("<", "&lt;").Replace(">", " &gt;"));
                 ParameterInfo[] para = kv.Value.Item2.GetParameters();
                 sb.Append(@"(");
                 for (int x = 0; x < para.Length; x++)
@@ -215,8 +217,17 @@ namespace UcAsp.RPC
                         sb.Append(",");
                     }
                 }
-                sb.Append("     )</div>");
-                sb.Append(@"<div class=""col - md - 12""></div>");
+                sb.Append("     )  Method:POST</div>");
+                sb.Append(@"<div class=""col - md - 12"">Example:Request Body JSON [");
+                for (int xx = 0; xx < para.Length; xx++)
+                {
+                    sb.AppendFormat("{0}", Proxy.GetTypeName(para[xx].ParameterType).Replace("<", "&lt;").Replace(">", " &gt;"));
+                    if (xx != para.Length - 1)
+                    {
+                        sb.Append(",");
+                    }
+                }
+                sb.Append(@"]</div>");
                 sb.AppendFormat(@"<div class=""col - md - 12"">API URL：{0}/{1}  </div> ", _url, kv.Key);
                 sb.Append(@" </div>");
             }
@@ -242,6 +253,7 @@ namespace UcAsp.RPC
                 sBuffer = sBuffer + "Server: ISCS\r\n";
                 sBuffer = sBuffer + "Content-Type: " + sMIMEHeader + "\r\n";
                 sBuffer = sBuffer + "Accept-Ranges: bytes\r\n";
+                sBuffer = sBuffer + "Accept-Encoding: gzip,deflate\r\n";
                 sBuffer = sBuffer + "Content-Length: " + iTotBytes + "\r\n\r\n";
 
                 SendToBrowser(sBuffer, ref mySocket);
@@ -269,8 +281,19 @@ namespace UcAsp.RPC
                 try
                 {
                     if (socket.Connected)
-                    {
-                        socket.Send(data, data.Length, 0);
+                    {                        
+                        //byte[] gizpbytes = null;
+                        //using (MemoryStream cms = new MemoryStream())
+                        //{
+                        //    using (System.IO.Compression.GZipStream gzip = new System.IO.Compression.GZipStream(cms, System.IO.Compression.CompressionMode.Compress))
+                        //    {
+                        //        //将数据写入基础流，同时会被压缩
+                        //        gzip.Write(data, 0, data.Length);
+                        //    }
+                        //    gizpbytes = cms.ToArray();
+                        //}
+
+                        socket.Send(data, 0, data.Length, SocketFlags.None);
                     }
                 }
                 catch (Exception e)

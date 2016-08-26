@@ -14,14 +14,17 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using System.IO;
 using System.Collections.Concurrent;
 namespace UcAsp.RPC
 {
     public class TcpClient : IClient, IDisposable
     {
-        private Queue<Socket> _dicClient = new Queue<Socket>();
+
         private const int buffersize = 1024 * 10;
         bool _isconnect = false;
+
+        public Queue<Socket> DicClient { get; set; }
         public string LastError
         {
             get;
@@ -31,9 +34,9 @@ namespace UcAsp.RPC
 
         public DataEventArgs CallServiceMethod(DataEventArgs e)
         {
-            Task<DataEventArgs> task = new Task<DataEventArgs>(Call, e);
-            task.Start();
-            DataEventArgs data = task.Result;
+            // Task<DataEventArgs> task = new Task<DataEventArgs>(Call, e);
+            // task.Start();
+            DataEventArgs data = Call(e);
             return data;
             //return Call(e);
         }
@@ -44,7 +47,7 @@ namespace UcAsp.RPC
             DataEventArgs e = (DataEventArgs)obj;
             e.CallHashCode = Convert.ToInt32(Task.CurrentId);
             int times = 0;
-            while (_dicClient.Count < 1)
+            while (DicClient.Count < 1)
             {
                 Thread.Sleep(100);
                 times++;
@@ -56,52 +59,115 @@ namespace UcAsp.RPC
                 }
             }
 
-            lock (_dicClient)
+            // lock (DicClient)
+            // {
+            try
             {
-                try
+                int trytimes = 0;
+                lock (DicClient)
                 {
-                    _client = _dicClient.Dequeue();
-                    _dicClient.Enqueue(_client);
-                    byte[] _bf = e.ToByteArray();
-
-
-                    _client.Send(_bf, 0, _bf.Length, SocketFlags.None);
-
-                    // _client.ReceiveTimeout = 900000;
-                    ByteBuilder _recvBuilder = new ByteBuilder(buffersize);
-                    if (_client.Connected)
+                    while (DicClient.Peek() == null)
                     {
-                        _client.ReceiveTimeout = 60000;
-                        byte[] buffer = new byte[buffersize];
-                        int total = 0;
-                        while (true)
+                        if (DicClient.Count > 0)
                         {
-
-                            int len = _client.Receive(buffer, 0, buffer.Length, SocketFlags.None);
-                            _recvBuilder.Add(buffer);
-                            total = _recvBuilder.GetInt32(0);
-                            Thread.Sleep(1);
-                            if ((len - buffer.Length) <= 0 && _recvBuilder.Count - (buffer.Length - len) >= total)
-                            { break; }
+                            DicClient.Dequeue();
                         }
-                        Console.WriteLine(total + "/" + _recvBuilder.Count);
+                        trytimes++;
+                        Thread.Sleep(1);
+
                     }
+                    _client = DicClient.Dequeue();
+                    while (!_client.Connected)
+                    {
+                        if (DicClient.Count <= 0)
+                        {
+                            throw new Exception("当前服务器都已经掉线。");
+                        }
+                        _client = DicClient.Dequeue();
 
-                    _isconnect = true;
-                    DataEventArgs dex = DataEventArgs.Parse(_recvBuilder);
-                    _client.ReceiveTimeout = 99999999;
-                    return dex;
+                    }
                 }
-                catch (Exception ex)
+                DicClient.Enqueue(_client);
+                byte[] _bf = e.ToByteArray();
+                byte[] gizpbytes = null;
+                using (MemoryStream cms = new MemoryStream())
                 {
-                    Console.WriteLine(ex);
-                    e.ActionCmd = CallActionCmd.Error.ToString();
-                    return e;
+                    using (System.IO.Compression.GZipStream gzip = new System.IO.Compression.GZipStream(cms, System.IO.Compression.CompressionMode.Compress))
+                    {
+                        //将数据写入基础流，同时会被压缩
+                        gzip.Write(_bf, 0, _bf.Length);
+                    }
+                    gizpbytes = cms.ToArray();
                 }
 
+                _client.Send(gizpbytes, 0, gizpbytes.Length, SocketFlags.None);
 
+                // _client.ReceiveTimeout = 900000;
+                ByteBuilder _recvBuilder = new ByteBuilder(buffersize);
+                if (_client.Connected)
+                {
+                    _client.ReceiveTimeout = 180000;
+                    byte[] buffer = new byte[buffersize];
+                    int total = 0;
+                    while (true)
+                    {
 
+                        int len = _client.ReceiveBufferSize;
+                        buffer = new byte[len];
+                        _client.Receive(buffer);
+                        byte[] gbuffer = null;
+                        using (MemoryStream dms = new MemoryStream())
+                        {
+                            using (MemoryStream cms = new MemoryStream(buffer))
+                            {
+
+                                using (System.IO.Compression.GZipStream gzip = new System.IO.Compression.GZipStream(cms, System.IO.Compression.CompressionMode.Decompress))
+                                {
+
+                                    byte[] bytes = new byte[1024];
+                                    int glen = 0;
+                                    try
+                                    {
+                                        //读取压缩流，同时会被解压
+                                        while ((glen = gzip.Read(bytes, 0, bytes.Length)) > 0)
+                                        {
+                                            dms.Write(bytes, 0, glen);
+                                        }
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Console.WriteLine(ex);
+                                    }
+                                    gbuffer = dms.ToArray();
+
+                                }
+                            }
+
+                        }
+
+                        _recvBuilder.Add(gbuffer);
+                        total = _recvBuilder.GetInt32(0);
+                        //Thread.Sleep(1);
+                        if (_recvBuilder.Count == total)
+                        { break; }
+                    }
+                }
+
+                _isconnect = true;
+                DataEventArgs dex = DataEventArgs.Parse(_recvBuilder);
+                _client.ReceiveTimeout = 99999999;
+                return dex;
             }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+                e.ActionCmd = CallActionCmd.Error.ToString();
+                return e;
+            }
+
+
+
+            // }
             //}
             //catch (Exception ext)
             //{
@@ -116,11 +182,13 @@ namespace UcAsp.RPC
 
             try
             {
+                if (DicClient == null)
+                { DicClient = new Queue<Socket>(); }
                 for (int i = 0; i < pool; i++)
                 {
                     IPEndPoint ep = new IPEndPoint(IPAddress.Parse(ip), port);
                     Socket _client = TcpConnect(ep);
-                    _dicClient.Enqueue(_client);
+                    DicClient.Enqueue(_client);
                     _isconnect = true;
                 }
             }
@@ -157,10 +225,10 @@ namespace UcAsp.RPC
             {
                 if (disposing)
                 {
-                    int count = _dicClient.Count();
+                    int count = DicClient.Count();
                     for (int i = 0; i < count; i++)
                     {
-                        Socket socket = _dicClient.Dequeue();
+                        Socket socket = DicClient.Dequeue();
                         socket.Disconnect(true);
                         socket.Dispose();
                     }

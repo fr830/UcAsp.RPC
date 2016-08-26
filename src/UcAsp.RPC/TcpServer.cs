@@ -17,6 +17,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Reflection;
 using log4net;
+using System.IO;
 namespace UcAsp.RPC
 {
     public class TcpServer : ServerBase
@@ -58,7 +59,7 @@ namespace UcAsp.RPC
             Socket socket = (Socket)(obj);
             while (true)
             {
-                ByteBuilder _recvBuilder = new ByteBuilder(buffersize);
+                ByteBuilder _recvBuilder = new ByteBuilder(socket.ReceiveBufferSize);
                 if (socket.Connected)
                 {
                     try
@@ -67,11 +68,43 @@ namespace UcAsp.RPC
                         int total = 0;
                         while (true)
                         {
-                            int len =socket.Receive(buffer, 0, buffer.Length, SocketFlags.None);
-                            _recvBuilder.Add(buffer);
+                            int len = socket.ReceiveBufferSize;
+                            buffer = new byte[len];
+                            socket.Receive(buffer);
+                            byte[] gbuffer = null;
+                            using (MemoryStream dms = new MemoryStream())
+                            {
+                                using (MemoryStream cms = new MemoryStream(buffer))
+                                {
+
+                                    using (System.IO.Compression.GZipStream gzip = new System.IO.Compression.GZipStream(cms, System.IO.Compression.CompressionMode.Decompress))
+                                    {
+
+                                        byte[] bytes = new byte[1024];
+                                        int glen = 0;
+                                        try
+                                        {
+                                            //读取压缩流，同时会被解压
+                                            while ((glen = gzip.Read(bytes, 0, bytes.Length)) > 0)
+                                            {
+                                                dms.Write(bytes, 0, glen);
+                                            }
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            Console.WriteLine(ex);
+                                        }
+                                        gbuffer = dms.ToArray();
+
+                                    }
+                                }
+
+                            }
+
+                            _recvBuilder.Add(gbuffer);
                             total = _recvBuilder.GetInt32(0);
-                            Thread.Sleep(1);
-                            if ((len - buffer.Length) <= 0 && _recvBuilder.Count - (buffer.Length - len) >= total)
+                            //Thread.Sleep(1);
+                            if (_recvBuilder.Count == total)
                             { break; }
                         }
                         DataEventArgs e = DataEventArgs.Parse(_recvBuilder);
