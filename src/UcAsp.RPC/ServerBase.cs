@@ -112,7 +112,7 @@ namespace UcAsp.RPC
                     }
                 }
                 e.ActionCmd = CallActionCmd.Success.ToString();
-                Send(socket,e);
+                Send(socket, e);
                 //Console.WriteLine(string.Format("ServerBase1:{0}{1}/{2}", e.ActionCmd, e.ActionParam, _bf.Length));
 
 
@@ -145,18 +145,9 @@ namespace UcAsp.RPC
         public virtual void Send(Socket socket, DataEventArgs e)
         {
             byte[] _bf = e.ToByteArray();
-            byte[] gizpbytes = null;
-            using (MemoryStream cms = new MemoryStream())
-            {
-                using (System.IO.Compression.GZipStream gzip = new System.IO.Compression.GZipStream(cms, System.IO.Compression.CompressionMode.Compress))
-                {
-                    //将数据写入基础流，同时会被压缩
-                    gzip.Write(_bf, 0, _bf.Length);
-                }
-                gizpbytes = cms.ToArray();
-            }
 
-            socket.Send(gizpbytes, 0, gizpbytes.Length, SocketFlags.None);
+
+            socket.Send(_bf, 0, _bf.Length, SocketFlags.None);
         }
     }
 }

@@ -70,38 +70,10 @@ namespace UcAsp.RPC
                         {
                             int len = socket.ReceiveBufferSize;
                             buffer = new byte[len];
-                            socket.Receive(buffer);
-                            byte[] gbuffer = null;
-                            using (MemoryStream dms = new MemoryStream())
-                            {
-                                using (MemoryStream cms = new MemoryStream(buffer))
-                                {
+                            int l = socket.Receive(buffer);
+                            
 
-                                    using (System.IO.Compression.GZipStream gzip = new System.IO.Compression.GZipStream(cms, System.IO.Compression.CompressionMode.Decompress))
-                                    {
-
-                                        byte[] bytes = new byte[1024];
-                                        int glen = 0;
-                                        try
-                                        {
-                                            //读取压缩流，同时会被解压
-                                            while ((glen = gzip.Read(bytes, 0, bytes.Length)) > 0)
-                                            {
-                                                dms.Write(bytes, 0, glen);
-                                            }
-                                        }
-                                        catch (Exception ex)
-                                        {
-                                            Console.WriteLine(ex);
-                                        }
-                                        gbuffer = dms.ToArray();
-
-                                    }
-                                }
-
-                            }
-
-                            _recvBuilder.Add(gbuffer);
+                            _recvBuilder.Add(buffer, 0, l);
                             total = _recvBuilder.GetInt32(0);
                             //Thread.Sleep(1);
                             if (_recvBuilder.Count == total)

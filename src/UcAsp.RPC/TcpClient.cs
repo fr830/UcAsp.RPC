@@ -64,8 +64,8 @@ namespace UcAsp.RPC
             try
             {
                 int trytimes = 0;
-                lock (DicClient)
-                {
+               // lock (DicClient)
+               // {
                     while (DicClient.Peek() == null)
                     {
                         if (DicClient.Count > 0)
@@ -86,21 +86,12 @@ namespace UcAsp.RPC
                         _client = DicClient.Dequeue();
 
                     }
-                }
+               // }
                 DicClient.Enqueue(_client);
                 byte[] _bf = e.ToByteArray();
-                byte[] gizpbytes = null;
-                using (MemoryStream cms = new MemoryStream())
-                {
-                    using (System.IO.Compression.GZipStream gzip = new System.IO.Compression.GZipStream(cms, System.IO.Compression.CompressionMode.Compress))
-                    {
-                        //将数据写入基础流，同时会被压缩
-                        gzip.Write(_bf, 0, _bf.Length);
-                    }
-                    gizpbytes = cms.ToArray();
-                }
+                
 
-                _client.Send(gizpbytes, 0, gizpbytes.Length, SocketFlags.None);
+                _client.Send(_bf, 0, _bf.Length, SocketFlags.None);
 
                 // _client.ReceiveTimeout = 900000;
                 ByteBuilder _recvBuilder = new ByteBuilder(buffersize);
@@ -114,40 +105,12 @@ namespace UcAsp.RPC
 
                         int len = _client.ReceiveBufferSize;
                         buffer = new byte[len];
-                        _client.Receive(buffer);
-                        byte[] gbuffer = null;
-                        using (MemoryStream dms = new MemoryStream())
-                        {
-                            using (MemoryStream cms = new MemoryStream(buffer))
-                            {
+                        int l = _client.Receive(buffer);
 
-                                using (System.IO.Compression.GZipStream gzip = new System.IO.Compression.GZipStream(cms, System.IO.Compression.CompressionMode.Decompress))
-                                {
 
-                                    byte[] bytes = new byte[1024];
-                                    int glen = 0;
-                                    try
-                                    {
-                                        //读取压缩流，同时会被解压
-                                        while ((glen = gzip.Read(bytes, 0, bytes.Length)) > 0)
-                                        {
-                                            dms.Write(bytes, 0, glen);
-                                        }
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        Console.WriteLine(ex);
-                                    }
-                                    gbuffer = dms.ToArray();
-
-                                }
-                            }
-
-                        }
-
-                        _recvBuilder.Add(gbuffer);
+                        _recvBuilder.Add(buffer, 0, l);
                         total = _recvBuilder.GetInt32(0);
-                        //Thread.Sleep(1);
+                      //  Console.WriteLine(e.ActionParam+":"+_recvBuilder.Count+"."+total);
                         if (_recvBuilder.Count == total)
                         { break; }
                     }
@@ -160,7 +123,7 @@ namespace UcAsp.RPC
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex);
+               Console.WriteLine(ex);
                 e.ActionCmd = CallActionCmd.Error.ToString();
                 return e;
             }
