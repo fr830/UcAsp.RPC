@@ -2,12 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Net.Sockets;
+using System.Net;
 namespace UcAsp.RPC
 {
     public interface IClient
     {
-        Queue<Socket> DicClient { get; set; }
+        IPEndPoint IpAddress { get; set; }
+        //   Queue<Socket> DicClient { get; set; }
 
 
         void Connect(String ip, int port, int pool);
@@ -17,7 +18,5 @@ namespace UcAsp.RPC
         DataEventArgs CallServiceMethod(DataEventArgs e);
 
         string LastError { get; set; }
-
-        bool IsConnect { get; }
     }
 }

@@ -21,6 +21,7 @@ namespace UcAsp.RPC
         private static Dictionary<string, Tuple<string, MethodInfo>> _memberinfos = new Dictionary<string, Tuple<string, MethodInfo>>();
         private static Dictionary<string, Tuple<string, IClient>> _proxobj = new Dictionary<string, Tuple<string, IClient>>();
         private static List<RegisterInfo> _registerInfo = new List<RegisterInfo>();
+        private static string _config;
 
         private Timer Pong = new Timer();
         /// <summary>
@@ -57,6 +58,7 @@ namespace UcAsp.RPC
         }
         public ApplicationContext(string configpath)
         {
+            _config = configpath;
             Config config = new Config(configpath) { GroupName = "service" };
 
             object server = config.GetValue("server", "port");
@@ -76,6 +78,7 @@ namespace UcAsp.RPC
 
         public ApplicationContext()
         {
+            _config = "Application.config";
             new ApplicationContext("Application.config");
         }
 
@@ -89,28 +92,14 @@ namespace UcAsp.RPC
                 if (_clients == null)
                 {
                     _clients = new List<IClient>();
-                    Pong.Interval = 1000;
-                    Pong.Elapsed += Pong_Elapsed;
-                   // Pong.Start();
+
                 }
 
-
-                foreach (IClient iclient in _clients)
-                {
-                    Socket skpk = iclient.DicClient.Peek();
-                    string _ip = ((IPEndPoint)skpk.LocalEndPoint).Address.ToString();
-                    string _port = ((IPEndPoint)skpk.LocalEndPoint).Port.ToString();
-                    if (_ip + ":" + _port == ipport[0] + ":" + ipport[1])
-                    {
-                        return;
-                    }
-                }
                 TcpClient _client = new TcpClient();
                 string ip = ipport[i].Split(':')[0];
                 int port = int.Parse(ipport[i].Split(':')[1]);
-                _client.Connect(ip, port, pool);
-                if (!_client.IsConnect)
-                    return;
+                IPEndPoint ep = new IPEndPoint(IPAddress.Parse(ip), port);
+                _client.IpAddress = ep;
 
                 _clients.Add(_client);
 
@@ -150,11 +139,7 @@ namespace UcAsp.RPC
                         {
                             IClient client = _proxobj[assname].Item2;
 
-                            while (_client.DicClient.Count > 0)
-                            {
-                                Socket socket = _client.DicClient.Dequeue();
-                                client.DicClient.Enqueue(socket);
-                            }
+
                             Tuple<string, IClient> tuple = new Tuple<string, IClient>(_proxobj[assname].Item1, client);
                             _proxobj[assname] = tuple;
                         }
@@ -180,6 +165,9 @@ namespace UcAsp.RPC
                 //    }
                 //}
             }
+            Pong.Interval = 60000;
+            Pong.Elapsed += Pong_Elapsed;
+            Pong.Start();
         }
 
         private void Pong_Elapsed(object sender, ElapsedEventArgs e)
@@ -188,18 +176,25 @@ namespace UcAsp.RPC
             {
                 try
                 {
-                    Socket skpk = iclient.DicClient.Peek();
+
                     DataEventArgs callping = new DataEventArgs() { ActionCmd = CallActionCmd.Ping.ToString(), ActionParam = "Register" };
                     DataEventArgs ping = iclient.CallServiceMethod(callping);
                     string result = _serializer.ToEntity<string>(ping.Binary);
                     Console.WriteLine(result);
-                    
+
                 }
                 catch (Exception ex)
                 {
+                    try
+                    {
+                        Config config = new Config(_config) { GroupName = "service" };
+                        config.GroupName = "client";
+                        InitializeClient(config);
+                    }
+                    catch (Exception e0) { _log.Error(e0); }
                     _log.Error(ex);
                 }
-                
+
             }
         }
         private void InitializeServer(Config config)
@@ -259,7 +254,14 @@ namespace UcAsp.RPC
 
         }
 
+        ~ApplicationContext()
+        {
 
+            if (Pong != null)
+            {
+                Pong.Dispose();
+            }
+        }
 
         //private void Server_OnReceive(object sender, DataEventArgs e)
         //{

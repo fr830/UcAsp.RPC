@@ -31,16 +31,9 @@ namespace UcAsp.RPC
             this._server.Bind(new IPEndPoint(IPAddress.Any, port));
             this._server.Listen(3000);
             _log.Info("开启服务：" + port);
-            // Console.WriteLine(_server.LocalEndPoint);
-
-            /// while (true)
-            //{
-            //Socket socket = this._server.Accept();
+            ThreadPool.QueueUserWorkItem(Accept, _server);
 
 
-            ThreadPool.QueueUserWorkItem(Accept, null);
-
-            //}
 
 
         }
@@ -48,9 +41,8 @@ namespace UcAsp.RPC
         {
             while (true)
             {
-                Socket socket = this._server.Accept();
-                Console.WriteLine("连接：" + socket.RemoteEndPoint);
-                _log.Info("连接：" + socket.RemoteEndPoint);
+                Socket server = (Socket)obj;
+                Socket socket = server.Accept();
                 ThreadPool.QueueUserWorkItem(Recive, socket);
             }
         }
@@ -71,8 +63,6 @@ namespace UcAsp.RPC
                             int len = socket.ReceiveBufferSize;
                             buffer = new byte[len];
                             int l = socket.Receive(buffer);
-                            
-
                             _recvBuilder.Add(buffer, 0, l);
                             total = _recvBuilder.GetInt32(0);
                             //Thread.Sleep(1);
@@ -87,12 +77,17 @@ namespace UcAsp.RPC
                     catch (Exception ex)
                     {
                         _log.Error(ex);
-                        Console.WriteLine(ex);
-                        //socket.Dispose();
-                        // Thread thread = Thread.CurrentThread;
-                        // thread.Abort();
+                        Console.WriteLine(socket.RemoteEndPoint + "断开服务");
 
 
+
+
+                    }
+                    finally
+                    {
+                        socket.Dispose();
+                        Thread thread = Thread.CurrentThread;
+                        thread.Abort();
                     }
                 }
             }
@@ -101,8 +96,6 @@ namespace UcAsp.RPC
         }
 
 
-
-
-
     }
+
 }
