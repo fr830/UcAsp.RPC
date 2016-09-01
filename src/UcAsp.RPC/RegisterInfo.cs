@@ -13,6 +13,7 @@ using System.Text;
 using System.Reflection;
 namespace UcAsp.RPC
 {
+    [Serializable]
     public class RegisterInfo
     {
         public string InterfaceName { get; set; }

@@ -15,6 +15,8 @@ using System.Net.Sockets;
 using log4net;
 using System.IO;
 using System.IO.Compression;
+using System.Runtime.Serialization;
+using System.Runtime.Serialization.Formatters.Binary;
 namespace UcAsp.RPC
 {
     public class ServerBase : IServer
@@ -103,7 +105,8 @@ namespace UcAsp.RPC
 
                     var result = method.Invoke(bll, parameters.ToArray());
                     if (!method.ReturnType.Equals(typeof(void)))
-                    {
+                    {                        
+
                         e.Binary = this._serializer.ToBinary(result);
                     }
                     else
@@ -138,6 +141,7 @@ namespace UcAsp.RPC
             {
                 _log.Error(ex);
                 e.ActionCmd = CallActionCmd.Error.ToString();
+                
                 Send(socket, e);
             }
         }

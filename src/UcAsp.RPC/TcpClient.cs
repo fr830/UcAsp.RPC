@@ -16,14 +16,17 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.IO;
 using System.Collections.Concurrent;
+using log4net;
 namespace UcAsp.RPC
 {
     public class TcpClient : IClient
     {
-
+        private readonly ILog _log = LogManager.GetLogger(typeof(TcpClient));
+        private ConcurrentQueue<DataEventArgs> _task = new ConcurrentQueue<DataEventArgs>();
+        private ConcurrentQueue<DataEventArgs> _runtask = new ConcurrentQueue<DataEventArgs>();
         private const int buffersize = 1024 * 10;
         private Socket socket;
-        public IPEndPoint IpAddress { get; set; }
+        public List<IPEndPoint> IpAddress { get; set; }
 
         public string LastError
         {
@@ -34,11 +37,25 @@ namespace UcAsp.RPC
 
         public DataEventArgs CallServiceMethod(DataEventArgs e)
         {
-            // Task<DataEventArgs> task = new Task<DataEventArgs>(Call, e);
-            // task.Start();
-            DataEventArgs data = Call(e);
-            return data;
-            //return Call(e);
+            _task.Enqueue(e);
+            DataEventArgs eq;
+            Task<DataEventArgs> task = new Task<DataEventArgs>(() => {
+                bool result = _task.TryDequeue(out eq);
+                if (result)
+                {
+                    _runtask.Enqueue(eq);
+                    DataEventArgs data = Call(eq);
+                    return data;
+                }
+                else
+                {
+                    DataEventArgs data = new DataEventArgs() { ActionCmd = CallActionCmd.Error.ToString() };
+                    return data;
+                }
+
+            });
+            task.Start();
+            return task.Result;
         }
 
         private DataEventArgs Call(object obj)
@@ -79,11 +96,13 @@ namespace UcAsp.RPC
                     }
                 }
                 DataEventArgs dex = DataEventArgs.Parse(_recvBuilder);
-                //_client.ReceiveTimeout = 99999999;
+                DataEventArgs eq;
+                bool result = _task.TryDequeue(out eq);
                 return dex;
             }
             catch (Exception ex)
             {
+                _log.Error(ex);
                 Console.WriteLine(ex);
                 e.ActionCmd = CallActionCmd.Error.ToString();
                 return e;
@@ -103,28 +122,27 @@ namespace UcAsp.RPC
         }
         public void Connect(string ip, int port, int pool)
         {
-
-            try
-            {
-
-                IPEndPoint ep = new IPEndPoint(IPAddress.Parse(ip), port);
-                IpAddress = ep;
-                Socket socket = TcpConnect(ep);
-
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex);
-            }
+            IPEndPoint ep = new IPEndPoint(IPAddress.Parse(ip), port);
+            Socket socket = TcpConnect(ep);
 
         }
         private Socket TcpConnect(object obj)
         {
-            IPEndPoint ep = (IPEndPoint)obj;
-            Socket client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            client.Connect(ep);
-            return client;
+            try
+            {
+                List<IPEndPoint> list = (List<IPEndPoint>)obj;
 
+                int rad = new Random().Next(list.GetHashCode()) % list.Count;               
+                Socket client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                client.Connect(list[rad]);
+
+                return client;
+            }
+            catch (Exception ex)
+            {
+                _log.Error(ex);
+                return null;
+            }
         }
         public void Exit()
         {

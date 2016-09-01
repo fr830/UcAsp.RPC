@@ -11,11 +11,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Newtonsoft.Json;
+using System.IO;
+using System.Runtime.Serialization;
+using System.Runtime.Serialization.Formatters.Binary;
 namespace UcAsp.RPC
 {
-    public class JsonSerializer:ISerializer
+    public class JsonSerializer : ISerializer
     {
-        
+
 
         public T ToEntity<T>(Binary binary)
         {
@@ -23,8 +26,12 @@ namespace UcAsp.RPC
             {
                 return default(T);
             }
-            String s = Encoding.UTF8.GetString(binary.Buffer, 0, binary.Buffer.Length);
-            return JsonConvert.DeserializeObject<T>(s);
+            using (MemoryStream ms = new MemoryStream(binary.Buffer))
+            {
+                IFormatter formater = new BinaryFormatter();
+                ms.Seek(0, SeekOrigin.Begin);
+                return (T)formater.Deserialize(ms);
+            }
         }
 
         public object ToEntity(Binary binary, Type type)
@@ -33,8 +40,17 @@ namespace UcAsp.RPC
             {
                 return null;
             }
-            String s = Encoding.UTF8.GetString(binary.Buffer, 0, binary.Buffer.Length);
-            return JsonConvert.DeserializeObject(s, type);
+            using (MemoryStream ms = new MemoryStream())
+            {
+                IFormatter formater = new BinaryFormatter();
+                ms.Write(binary.Buffer, 0, binary.Buffer.Length);
+                return formater.Deserialize(ms);
+            }
+            
+            //String s = Encoding.UTF8.GetString(binary.Buffer, 0, binary.Buffer.Length);
+            //return JsonConvert.DeserializeObject(s, type);
+
+
         }
 
         public Binary ToBinary(object entity)
@@ -44,8 +60,15 @@ namespace UcAsp.RPC
                 return null;
             }
 
-            String s = JsonConvert.SerializeObject(entity);
-            return new Binary(Encoding.UTF8.GetBytes(s));
+            //String s = JsonConvert.SerializeObject(entity);
+            //return new Binary(Encoding.UTF8.GetBytes(s));
+
+            using (MemoryStream ms = new MemoryStream())
+            {
+                IFormatter formater = new BinaryFormatter();
+                formater.Serialize(ms, entity);
+                return new Binary(ms.ToArray());
+            }
         }
     }
 }

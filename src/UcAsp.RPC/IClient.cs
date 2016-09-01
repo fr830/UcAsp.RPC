@@ -7,7 +7,7 @@ namespace UcAsp.RPC
 {
     public interface IClient
     {
-        IPEndPoint IpAddress { get; set; }
+        List<IPEndPoint> IpAddress { get; set; }
         //   Queue<Socket> DicClient { get; set; }
 
 

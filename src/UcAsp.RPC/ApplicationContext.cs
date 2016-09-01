@@ -93,13 +93,17 @@ namespace UcAsp.RPC
                 {
                     _clients = new List<IClient>();
 
+
                 }
 
-                TcpClient _client = new TcpClient();
+                TcpClient _client = new TcpClient() { IpAddress = new List<IPEndPoint>() };
                 string ip = ipport[i].Split(':')[0];
                 int port = int.Parse(ipport[i].Split(':')[1]);
                 IPEndPoint ep = new IPEndPoint(IPAddress.Parse(ip), port);
-                _client.IpAddress = ep;
+                _client.IpAddress.Add(ep);
+                // _client.IpAddress = new List<IPEndPoint>();
+
+
 
                 _clients.Add(_client);
 
@@ -124,46 +128,38 @@ namespace UcAsp.RPC
                 DataEventArgs callreg = new DataEventArgs() { ActionCmd = CallActionCmd.Register.ToString(), ActionParam = "Register" };
                 DataEventArgs reg = _client.CallServiceMethod(callreg);
                 List<RegisterInfo> registerInfos = _serializer.ToEntity<List<RegisterInfo>>(reg.Binary);
-                foreach (RegisterInfo info in registerInfos)
+                if (registerInfos != null)
                 {
-                    lock (_proxobj)
+                    foreach (RegisterInfo info in registerInfos)
                     {
-                        string assname = string.Format("{0}.{1}", info.FaceNameSpace, info.InterfaceName);
-                        string ass = string.Format("{0},{1}", info.NameSpace, info.ClassName);
-                        if (!_proxobj.ContainsKey(assname))
+                        lock (_proxobj)
                         {
-                            Tuple<string, IClient> tuple = new Tuple<string, IClient>(ass, _client);
-                            _proxobj.Add(assname, tuple);
-                        }
-                        else
-                        {
-                            IClient client = _proxobj[assname].Item2;
-
-
-                            Tuple<string, IClient> tuple = new Tuple<string, IClient>(_proxobj[assname].Item1, client);
-                            _proxobj[assname] = tuple;
+                            string assname = string.Format("{0}.{1}", info.FaceNameSpace, info.InterfaceName);
+                            string ass = string.Format("{0},{1}", info.NameSpace, info.ClassName);
+                            if (!_proxobj.ContainsKey(assname))
+                            {
+                                Tuple<string, IClient> tuple = new Tuple<string, IClient>(ass, _client);
+                                _client.IpAddress = new List<IPEndPoint>();
+                                _client.IpAddress.Add(ep);
+                                _proxobj.Add(assname, tuple);
+                            }
+                            else
+                            {
+                                IClient client = _proxobj[assname].Item2;
+                                bool iscontant = false;
+                                foreach (IPEndPoint eip in client.IpAddress)
+                                {
+                                    if (eip == ep)
+                                        iscontant = true;
+                                }
+                                if (!iscontant)
+                                    client.IpAddress.Add(ep);
+                                Tuple<string, IClient> tuple = new Tuple<string, IClient>(_proxobj[assname].Item1, client);
+                                _proxobj[assname] = tuple;
+                            }
                         }
                     }
-                }
-
-                //string[] assemblys = config.GetEntryNames("assmebly");
-                //foreach (var assname in assemblys)
-                //{
-                //    lock (_proxobj)
-                //    {
-                //        object obj = config.GetValue(i, "assmebly", assname);
-                //        if (obj != null)
-                //        {
-                //            string ass = (string)obj.ToString();
-                //            _log.Info(ass);
-                //            if (!_proxobj.ContainsKey(assname))
-                //            {
-                //                Tuple<string, IClient> tuple = new Tuple<string, IClient>(ass, _client);
-                //                _proxobj.Add(assname, tuple);
-                //            }
-                //        }
-                //    }
-                //}
+                }               
             }
             Pong.Interval = 60000;
             Pong.Elapsed += Pong_Elapsed;

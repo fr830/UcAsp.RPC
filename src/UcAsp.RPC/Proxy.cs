@@ -163,6 +163,7 @@ namespace UcAsp.RPC
 
                 if (IsVoid(method.ReturnType) == false)
                 {
+
                     sb.AppendLine(string.Format("            return this.Serializer.ToEntity<{0}>(data.Binary);\r\n", GetTypeName(method.ReturnType)));
 
                 }

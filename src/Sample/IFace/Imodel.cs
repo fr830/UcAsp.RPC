@@ -13,6 +13,7 @@ using System.Text;
 
 namespace IFace
 {
+    [Serializable]
     public class Imodel
     {
         private string Program_Id = "6ed95b67-7a65-4238-bd94-a7de0b534694";

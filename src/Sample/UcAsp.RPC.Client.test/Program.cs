@@ -30,11 +30,11 @@ namespace UcAsp.RPC.Client.test
             //// resut = resut + "\r\n" + m[0];
             //Console.WriteLine(m[0]);
             //  IFace.ITest clazz = context.GetProxyObject<IFace.ITest>();
-            for (int i = 0; i < 2000; i++)
+            for (int i = 0; i < 1000; i++)
             {
 
-                // new Program().Tasks(i);
-                Task task = new Task(new Program().Tasks, i);
+                // new Program().Tasks(0);
+               Task task = new Task(new Program().Tasks, i);
                task.Start();
                 // new Program().Tasks(0);
                 // Console.WriteLine(0);
@@ -49,7 +49,7 @@ namespace UcAsp.RPC.Client.test
                 // Thread thread = new Thread(new ParameterizedThreadStart(new Program().Tasks));
                 // thread.Start(i);
                 //Thread.Sleep(1000);
-            }
+           }
             Console.ReadKey();
         }
 

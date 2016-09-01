@@ -79,9 +79,6 @@ namespace UcAsp.RPC
                         _log.Error(ex);
                         Console.WriteLine(socket.RemoteEndPoint + "断开服务");
 
-
-
-
                     }
                     finally
                     {
