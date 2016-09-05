@@ -248,13 +248,13 @@ namespace UcAsp.RPC
                 {
                     foreach (ChannelPool cp in tp.IpAddress)
                     {
-                        if (cp.IpAddress.Address == ip && cp.IpAddress.Port == port)
+                        if (cp.IpAddress.Address.ToString() == ip.ToString() && cp.IpAddress.Port == port)
                             return;
                     }
 
 
                 }
-                if (flag)
+                if (!flag)
                 {
                     AddClient(ip.ToString(), port);
                 }

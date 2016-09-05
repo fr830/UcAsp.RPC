@@ -34,7 +34,7 @@ namespace UcAsp.RPC.Client.test
             //Console.WriteLine(m[0]);
             //  IFace.ITest clazz = context.GetProxyObject<IFace.ITest>();
             d = DateTime.Now.Ticks;
-            for (int i = 0; i < 5000; i++)
+            for (int i = 0; i < 3000; i++)
             {
 
                 // new Program().Tasks(0);
