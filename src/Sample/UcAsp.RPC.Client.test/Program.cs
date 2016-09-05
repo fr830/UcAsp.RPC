@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using IFace;
+using Face;
 namespace UcAsp.RPC.Client.test
 {
     class Program
@@ -14,12 +15,14 @@ namespace UcAsp.RPC.Client.test
         static ApplicationContext context;
 
         string resut = string.Empty;
+        static long d = DateTime.Now.Ticks;
         static void Main(string[] args)
         {
-
+            
 
             Thread.Sleep(3000);
             context = new ApplicationContext();
+
             //IFace.ITest clazz = context.GetProxyObject<IFace.ITest>();
             //Console.WriteLine(".");
 
@@ -30,7 +33,8 @@ namespace UcAsp.RPC.Client.test
             //// resut = resut + "\r\n" + m[0];
             //Console.WriteLine(m[0]);
             //  IFace.ITest clazz = context.GetProxyObject<IFace.ITest>();
-            for (int i = 0; i < 1000; i++)
+            d = DateTime.Now.Ticks;
+            for (int i = 0; i < 5000; i++)
             {
 
                 // new Program().Tasks(0);
@@ -55,7 +59,8 @@ namespace UcAsp.RPC.Client.test
 
         private void Tasks(object i)
         {
-            IFace.ITest clazz = context.GetProxyObject<IFace.ITest>();
+
+            IFace.ITest clazz =  context.GetProxyObject<IFace.ITest>();
             IFace.ITest2 clazz2 = context.GetProxyObject<IFace.ITest2>();
             //Task t1 = new Task(() =>
             //{
@@ -90,7 +95,12 @@ namespace UcAsp.RPC.Client.test
             //{
             List<string> m = clazz.Good(i.ToString(), "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM", "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM");
             //strig m=   
-            Console.WriteLine(m[0] + "/" + i);
+            Console.Write(".");
+            if ((int)i == 2999)
+            {
+                Console.WriteLine(DateTime.Now.Ticks-d);
+            }
+            Console.WriteLine(i);
             //});
             //t5.Start();
 

@@ -26,7 +26,8 @@ namespace UcAsp.RPC
         private ConcurrentQueue<DataEventArgs> _runtask = new ConcurrentQueue<DataEventArgs>();
         private const int buffersize = 1024 * 10;
         private Socket socket;
-        public List<IPEndPoint> IpAddress { get; set; }
+        public List<ChannelPool> IpAddress { get; set; }
+        private List<ChannelPool> DisAddress { get; set; }
 
         public string LastError
         {
@@ -37,34 +38,32 @@ namespace UcAsp.RPC
 
         public DataEventArgs CallServiceMethod(DataEventArgs e)
         {
-            _task.Enqueue(e);
-            DataEventArgs eq;
-            Task<DataEventArgs> task = new Task<DataEventArgs>(() => {
-                bool result = _task.TryDequeue(out eq);
-                if (result)
-                {
-                    _runtask.Enqueue(eq);
-                    DataEventArgs data = Call(eq);
-                    return data;
-                }
-                else
-                {
-                    DataEventArgs data = new DataEventArgs() { ActionCmd = CallActionCmd.Error.ToString() };
-                    return data;
-                }
 
-            });
-            task.Start();
-            return task.Result;
+            DataEventArgs ex = Call(e);
+            while (ex.ActionCmd == CallActionCmd.Error.ToString() && ex.TryTimes < 10)
+            {
+                e.ActionCmd = CallActionCmd.Call.ToString();
+                ex = Call(e);
+                // Console.WriteLine(ex.ActionCmd);
+            }
+            return ex;
         }
 
         private DataEventArgs Call(object obj)
         {
             DataEventArgs e = (DataEventArgs)obj;
+            e.TryTimes = e.TryTimes + 1;
             try
             {
-                Socket _client = TcpConnect(IpAddress);
-
+                Socket _client;
+                if (e.ActionCmd == CallActionCmd.Ping.ToString())
+                {
+                    _client = PingTcpConnect(IpAddress);
+                }
+                else
+                {
+                    _client = TcpConnect(IpAddress);
+                }
                 e.CallHashCode = Convert.ToInt32(Task.CurrentId);
                 ByteBuilder _recvBuilder = new ByteBuilder(buffersize);
                 if (_client.Connected)
@@ -102,10 +101,13 @@ namespace UcAsp.RPC
             }
             catch (Exception ex)
             {
+
+
                 _log.Error(ex);
-                Console.WriteLine(ex);
+                // Console.WriteLine(ex);
                 e.ActionCmd = CallActionCmd.Error.ToString();
                 return e;
+
             }
 
 
@@ -128,27 +130,96 @@ namespace UcAsp.RPC
         }
         private Socket TcpConnect(object obj)
         {
+            List<ChannelPool> list = (List<ChannelPool>)obj;
+            List<ChannelPool> avblist = list.FindAll(o => o.Available = true);
+            if (avblist.Count <= 0)
+                return null;
+            int rad = new Random().Next(avblist.GetHashCode()) % list.Count;
+            ChannelPool pool = avblist[rad];
+            IPEndPoint ep = pool.IpAddress;
             try
             {
-                List<IPEndPoint> list = (List<IPEndPoint>)obj;
-
-                int rad = new Random().Next(list.GetHashCode()) % list.Count;               
                 Socket client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                client.Connect(list[rad]);
+                client.Connect(ep);
+                pool.RunTimes++;
+                pool.PingActives = DateTime.Now.Ticks;
+                return client;
+            }
+            catch (Exception ex)
+            {
+                bool r = IpAddress.Remove(pool);
+                if (r)
+                {
+                    if (DisAddress == null)
+                    { DisAddress = new List<ChannelPool>(); }
+
+                    DisAddress.Add(pool);
+                }
+                _log.Error(ex);
+                return null;
+            }
+        }
+
+        private Socket PingTcpConnect(object obj)
+        {
+            List<ChannelPool> list = (List<ChannelPool>)obj;
+
+            if (DisAddress != null)
+            {
+
+                for (int i = 0; i < DisAddress.Count; i++)
+                {
+                    try
+                    {
+                        ChannelPool dpool = DisAddress[i];
+                        IPEndPoint dep = dpool.IpAddress;
+                        Socket client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                        client.Connect(dep);
+                        bool r = DisAddress.Remove(dpool);
+                        if (r)
+                        {
+                            IpAddress.Add(dpool);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        _log.Error(e);
+                    }
+                }
+            }
+
+
+            int rad = new Random().Next(list.GetHashCode()) % list.Count;
+
+            ChannelPool pool = list[rad];
+            IPEndPoint ep = pool.IpAddress;
+            try
+            {
+                Socket client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                client.Connect(ep);
+                pool.RunTimes++;
+                pool.PingActives = DateTime.Now.Ticks;
+                pool.Available = true;
 
                 return client;
             }
             catch (Exception ex)
             {
+                pool.Available = false;
                 _log.Error(ex);
                 return null;
             }
+
+
         }
+
+
+
         public void Exit()
         {
             // Dispose();
         }
 
-
     }
+
 }

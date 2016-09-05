@@ -62,6 +62,7 @@
     <Compile Include="Binary.cs" />
     <Compile Include="ByteBuilder.cs" />
     <Compile Include="CallActionCmd.cs" />
+    <Compile Include="ChannelPool.cs" />
     <Compile Include="DataEventArgs.cs" />
     <Compile Include="HttpServer.cs" />
     <Compile Include="IClient.cs" />

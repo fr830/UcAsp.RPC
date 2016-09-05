@@ -45,7 +45,7 @@ namespace UcAsp.RPC
             this.HttpSessionId = "";
 
         }
-
+        public int TryTimes { get; set; }
         /// <summary>
         /// 转换为二进制数据
         /// </summary>
@@ -113,7 +113,7 @@ namespace UcAsp.RPC
                 // 检验数据
                 if (totalLength == checkLength)
                 {
-                    
+
                     // 返回数据事件包给发送者
                     return new DataEventArgs() { Binary = entityBinary, ActionCmd = cmd, CallHashCode = hashCode, ActionParam = param, HttpSessionId = id };
                 }
@@ -126,7 +126,7 @@ namespace UcAsp.RPC
                     // 无效包 清除
                     recvBuilder.Clear();
                     return new DataEventArgs() { Binary = null, ActionCmd = CallActionCmd.Error.ToString(), CallHashCode = hashCode, ActionParam = param, HttpSessionId = id };
-                    
+
                 }
             }
             else

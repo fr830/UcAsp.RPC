@@ -31,9 +31,13 @@ namespace UcAsp.RPC
             this._server.Bind(new IPEndPoint(IPAddress.Any, port));
             this._server.Listen(3000);
             _log.Info("开启服务：" + port);
-            ThreadPool.QueueUserWorkItem(Accept, _server);
+            for (int i = 0; i < 10; i++)
+            {
+                Thread th = new Thread(new ParameterizedThreadStart(Accept));
+                th.Start(_server);
+                //ThreadPool.QueueUserWorkItem(Accept, _server);
 
-
+            }
 
 
         }
