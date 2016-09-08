@@ -61,6 +61,49 @@ namespace UcAsp.RPC
 
             }
         }
+
+        public T GetProxyObject<T>(IClient client)
+        {
+            Type asssembly = typeof(T);
+            string name = asssembly.FullName;
+            if (_proxobj.ContainsKey(name))
+            {
+                string[] content = _proxobj[name].Item1.Split(',');
+                string nameSpace = content[0];
+                string className = content[1];
+                object clazz = Proxy.GetObjectType<T>(nameSpace, className);
+                Type type = clazz.GetType();
+                PropertyInfo property = type.GetProperty("Client");
+                if (property != null && property.CanWrite)
+                {
+                    foreach (IClient _c in _clients)
+                    {
+                        foreach (ChannelPool _p in _c.IpAddress)
+                        {
+                            foreach (ChannelPool _cp in client.IpAddress)
+                            {
+                                if (_p.IpAddress == _cp.IpAddress)
+                                {
+                                    break;
+                                }
+                                break;
+                            }
+                            break;
+                        }
+                        client = _c;
+                    }
+
+                    property.SetValue(clazz, client, null);
+                }
+                return (T)clazz;
+            }
+            else
+            {
+                _log.Error("未配置" + name);
+                throw new Exception("未配置" + name);
+
+            }
+        }
         public ApplicationContext(string configpath)
         {
             _config = configpath;
@@ -222,14 +265,14 @@ namespace UcAsp.RPC
         /// </summary>
         private void Broadcast()
         {
-            
+
             Config config = new Config(_config) { GroupName = "service" };
             int port = config.GetValue("server", "port", 9008);
             UdpClient client = new UdpClient(new IPEndPoint(IPAddress.Any, 0));
             IPEndPoint endpoint = new IPEndPoint(IPAddress.Parse("255.255.255.255"), 7788);
             byte[] buf = Encoding.Default.GetBytes(port.ToString());
             client.Send(buf, buf.Length, endpoint);
-            
+
         }
         /// <summary>
         /// 接收广播添加服务
