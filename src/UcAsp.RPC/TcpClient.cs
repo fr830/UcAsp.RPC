@@ -95,8 +95,7 @@ namespace UcAsp.RPC
                     }
                 }
                 DataEventArgs dex = DataEventArgs.Parse(_recvBuilder);
-                DataEventArgs eq;
-                bool result = _task.TryDequeue(out eq);
+                dex.RemoteIpAddress = (IPEndPoint)_client.RemoteEndPoint;
                 return dex;
             }
             catch (Exception ex)

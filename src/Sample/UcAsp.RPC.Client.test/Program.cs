@@ -62,32 +62,32 @@ namespace UcAsp.RPC.Client.test
         {
 
             
-            UcAsp.RPC.IClient client = new TcpClient();
-            client.IpAddress = new List<ChannelPool>();
-            client.IpAddress.Add(new ChannelPool() {  IpAddress=new IPEndPoint(IPAddress.Parse("10.10.0.66"), 9008) });
-
-            IFace.ITest clazz = context.GetProxyObject<IFace.ITest>();
+            UcAsp.RPC.IClient client = ApplicationContext._clients[0];
+           
+            
+            IFace.ITest clazz = context.GetProxyObject<IFace.ITest>(client);
+            
            // IFace.ITest2 clazz2 = context.GetProxyObject<IFace.ITest2>();
-          // int imx= clazz2.GetMore(123);
+           // int imx= clazz2.GetMore(123);
            // Console.WriteLine("omx"+ clazz2);
-            //Task t1 = new Task(() =>
-            //{
-            //Imodel im = new Imodel { Code = (int)i, Message = "厕所呢厕所呢厕所呢厕所呢厕所" };
+           //Task t1 = new Task(() =>
+           //{
+           //Imodel im = new Imodel { Code = (int)i, Message = "厕所呢厕所呢厕所呢厕所呢厕所" };
            // List<Imodel> il = new List<Imodel>();
            // il.Add(im);
            // string mesage = clazz.ToList(il);
-            // Console.WriteLine(mesage+"/"+ i);
-            //});
-            //t1.Start();
-            //Task t2 = new Task(() =>
-            //{
-            //string mx = clazz.Get("MM", (int)i);
-            // Console.WriteLine(mx + "/" + i);
-            //});
-            //t2.Start();
-            //Task t3 = new Task(() =>
-            //{
-            //int x = clazz.GetInt((int)i);
+           // Console.WriteLine(mesage+"/"+ i);
+           //});
+           //t1.Start();
+           //Task t2 = new Task(() =>
+           //{
+           //string mx = clazz.Get("MM", (int)i);
+           // Console.WriteLine(mx + "/" + i);
+           //});
+           //t2.Start();
+           //Task t3 = new Task(() =>
+           //{
+           //int x = clazz.GetInt((int)i);
 
             // Console.WriteLine(x + "/" + i);
             //});

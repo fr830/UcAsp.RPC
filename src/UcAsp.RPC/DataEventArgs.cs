@@ -78,6 +78,8 @@ namespace UcAsp.RPC
             return builder.GetBaseBuffer();
         }
 
+        public IPEndPoint RemoteIpAddress{ get; set; }
+
         /// <summary>
         /// 解析数据包
         /// </summary>

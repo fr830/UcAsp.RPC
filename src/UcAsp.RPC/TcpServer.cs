@@ -31,11 +31,15 @@ namespace UcAsp.RPC
             this._server.Bind(new IPEndPoint(IPAddress.Any, port));
             this._server.Listen(3000);
             _log.Info("开启服务：" + port);
-            for (int i = 0; i < 10; i++)
+            int coreCount = 2;
+            foreach (var item in new System.Management.ManagementObjectSearcher("Select * from Win32_Processor").Get())
+            {
+                coreCount += int.Parse(item["NumberOfLogicalProcessors"].ToString());
+            }
+            for (int i = 0; i < coreCount; i++)
             {
                 Thread th = new Thread(new ParameterizedThreadStart(Accept));
                 th.Start(_server);
-                //ThreadPool.QueueUserWorkItem(Accept, _server);
 
             }
 

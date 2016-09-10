@@ -16,7 +16,7 @@ namespace UcAsp.RPC
         private readonly ILog _log = LogManager.GetLogger(typeof(ApplicationContext));
         private static IServer _server = null;
         private static IServer _httpserver = null;
-        private static List<IClient> _clients = null;
+        public static List<IClient> _clients = null;
 
         private static ISerializer _serializer = new JsonSerializer();
 
