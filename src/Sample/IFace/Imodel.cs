@@ -27,4 +27,11 @@ namespace IFace
             return m;
         }
     }
+
+    public class Nvr
+    {
+        public string nv_ip { get; set; }
+        public List<Imodel> chanel { get; set; }
+
+    }
 }

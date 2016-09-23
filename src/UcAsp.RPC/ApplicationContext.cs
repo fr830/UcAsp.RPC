@@ -268,10 +268,12 @@ namespace UcAsp.RPC
 
             Config config = new Config(_config) { GroupName = "service" };
             int port = config.GetValue("server", "port", 9008);
-            UdpClient client = new UdpClient(new IPEndPoint(IPAddress.Any, 0));
-            IPEndPoint endpoint = new IPEndPoint(IPAddress.Parse("255.255.255.255"), 7788);
-            byte[] buf = Encoding.Default.GetBytes(port.ToString());
-            client.Send(buf, buf.Length, endpoint);
+            using (UdpClient client = new UdpClient(new IPEndPoint(IPAddress.Any, 0)))
+            {
+                IPEndPoint endpoint = new IPEndPoint(IPAddress.Parse("255.255.255.255"), 7788);
+                byte[] buf = Encoding.Default.GetBytes(port.ToString());
+                client.Send(buf, buf.Length, endpoint);
+            }
 
         }
         /// <summary>

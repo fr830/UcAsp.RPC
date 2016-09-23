@@ -19,9 +19,10 @@ namespace UcAsp.RPC.Tests
     [TestClass()]
     public class ProxyTests
     {
-       // [TestInitialize]
+        [TestInitialize]
         public void Initial()
         {
+            string m = DateTime.Now.ToUniversalTime().ToString("ddMMyyyyhhmmss");
             //ApplicationContext context = new ApplicationContext();
         }
        // [TestMethod()]

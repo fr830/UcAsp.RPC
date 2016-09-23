@@ -14,7 +14,7 @@ namespace IFace
         Tuple<int> GetTuple(int i);
 
         float GetFloat(float i);
-        List<Imodel> GetModel(int i);
+        List<Nvr> GetModel(int i);
 
         string ToList(List<Imodel> i);
 

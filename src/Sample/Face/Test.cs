@@ -67,13 +67,25 @@ namespace Face
             // Thread.Sleep(1200);
             return i;
         }
-        public List<Imodel> GetModel(int i)
+        public List<Nvr> GetModel(int i)
         {
+            List<Nvr> m = new List<Nvr>();
+
             // Thread.Sleep(2300);
             List<Imodel> list = new List<Imodel>();
             Imodel model = new Imodel { Code = i, Message = "测试" };
             list.Add(model);
-            return list;
+
+
+            Nvr n = new Nvr();
+
+            n.chanel = list;
+            n.nv_ip = "129.0.0.1";
+
+            m.Add(n);
+            return m;
         }
+
+
     }
 }

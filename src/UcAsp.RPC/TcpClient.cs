@@ -82,7 +82,7 @@ namespace UcAsp.RPC
                         int len = _client.ReceiveBufferSize;
                         buffer = new byte[len];
                         int l = _client.Receive(buffer);
-
+                        
 
                         _recvBuilder.Add(buffer, 0, l);
                         total = _recvBuilder.GetInt32(0);
