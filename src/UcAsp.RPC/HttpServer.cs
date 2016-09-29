@@ -197,13 +197,13 @@ namespace UcAsp.RPC
             sb.Append(@"<head>");
             sb.Append(@"<link href=""//echarts.baidu.com/echarts2/doc/asset/css/bootstrap.css"" rel=""stylesheet"">");
             sb.Append(@" </head><body>");
-            sb.Append(@"<div class=""navbar navbar-default navbar-fixed-top"" role=""navigation"" id=""head""> <div class=""container""><div class=""navbar - header"">UCAsp.NET</div></div></div>");
+            sb.Append(@"<div class=""navbar navbar-default"" role=""navigation"" id=""head""> <div class=""container""><div class=""navbar - header"">UCAsp.NET</div></div></div>");
             sb.Append(@"<div class=""container-fluid"">");
             foreach (KeyValuePair<string, Tuple<string, MethodInfo>> kv in MemberInfos)
             {
 
-                sb.Append(@"<div class=""row"">");
-                sb.AppendFormat(@"<div class=""col - md - 4"">{0} </div> <div class=""col - md - 4"">返回类型：{1}  方法名：{2}  ", kv.Value.Item1, Proxy.GetTypeName(kv.Value.Item2.ReturnType).Replace("<", "&lt;").Replace(">", " &gt;"), kv.Value.Item2.Name.Replace("<", "&lt;").Replace(">", " &gt;"));
+                sb.Append(@"<div class=""list-group"">");
+                sb.AppendFormat(@"<div class=""list-group-item"">{0} </div> <a href=""javascript:void(0)"" class=""list-group-item active"">方法名：{1}   ", kv.Value.Item1, kv.Value.Item2.Name.Replace("<", "&lt;").Replace(">", " &gt;"));
                 ParameterInfo[] para = kv.Value.Item2.GetParameters();
                 sb.Append(@"(");
                 for (int x = 0; x < para.Length; x++)
@@ -214,8 +214,8 @@ namespace UcAsp.RPC
                         sb.Append(",");
                     }
                 }
-                sb.Append("     )  Method:POST</div>");
-                sb.Append(@"<div class=""col - md - 12"">Example:Request Body JSON [");
+                sb.AppendFormat("     )  Method:POST   返回类型：{0}</a>", Proxy.GetTypeName(kv.Value.Item2.ReturnType).Replace("<", "&lt;").Replace(">", " &gt;"));
+                sb.Append(@"<div class=""list-group-item"">Example:Request Body JSON [");
                 for (int xx = 0; xx < para.Length; xx++)
                 {
                     sb.AppendFormat("{0}", Proxy.GetTypeName(para[xx].ParameterType).Replace("<", "&lt;").Replace(">", " &gt;"));
@@ -225,7 +225,7 @@ namespace UcAsp.RPC
                     }
                 }
                 sb.Append(@"]</div>");
-                sb.AppendFormat(@"<div class=""col - md - 12"">API URL：{0}/{1}  </div> ", _url, kv.Key);
+                sb.AppendFormat(@"<div class=""list-group-item"">API URL：{0}/{1}  </div> ", _url, kv.Key);
                 sb.Append(@" </div>");
             }
             sb.Append("</div>");

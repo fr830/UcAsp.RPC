@@ -71,18 +71,20 @@ namespace Face
         {
             List<Nvr> m = new List<Nvr>();
 
-            // Thread.Sleep(2300);
-            List<Imodel> list = new List<Imodel>();
-            Imodel model = new Imodel { Code = i, Message = "测试" };
-            list.Add(model);
+            for (int x = 0; x < i; x++)
+            {
+                List<Imodel> list = new List<Imodel>();
+                Imodel model = new Imodel { Code = i, Message = "测试" };
+                list.Add(model);
 
 
-            Nvr n = new Nvr();
+                Nvr n = new Nvr();
 
-            n.chanel = list;
-            n.nv_ip = "129.0.0.1";
+                n.chanel = list;
+                n.nv_ip = "129.0.0.1";
 
-            m.Add(n);
+                m.Add(n);
+            }
             return m;
         }
 
