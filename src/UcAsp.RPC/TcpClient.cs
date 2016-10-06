@@ -139,6 +139,8 @@ namespace UcAsp.RPC
             try
             {
                 Socket client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                //client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ExclusiveAddressUse, false);
+               // client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
                 client.Connect(ep);
                 pool.RunTimes++;
                 pool.PingActives = DateTime.Now.Ticks;

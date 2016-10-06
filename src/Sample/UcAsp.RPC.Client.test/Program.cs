@@ -62,10 +62,10 @@ namespace UcAsp.RPC.Client.test
         {
 
             
-            UcAsp.RPC.IClient client = ApplicationContext._clients[0];
+           // UcAsp.RPC.IClient client = ApplicationContext._clients[0];
            
             
-            IFace.ITest clazz = context.GetProxyObject<IFace.ITest>(client);
+            IFace.ITest clazz = context.GetProxyObject<IFace.ITest>();
             
            // IFace.ITest2 clazz2 = context.GetProxyObject<IFace.ITest2>();
            // int imx= clazz2.GetMore(123);

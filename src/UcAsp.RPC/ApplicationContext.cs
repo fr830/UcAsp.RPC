@@ -194,6 +194,7 @@ namespace UcAsp.RPC
                 }
 
             }
+            
         }
         private void InitializeServer(Config config)
         {
@@ -281,30 +282,49 @@ namespace UcAsp.RPC
         /// </summary>
         private void GetBorad()
         {
-            UdpClient client = new UdpClient(new IPEndPoint(IPAddress.Any, 7788));
-            IPEndPoint endpoint = new IPEndPoint(IPAddress.Any, 0);
-            while (true)
+            try
             {
-                byte[] buf = client.Receive(ref endpoint);
-                int port = int.Parse(Encoding.Default.GetString(buf));
-                IPAddress ip = endpoint.Address;
-                bool flag = false;
-                foreach (TcpClient tp in _clients)
+                // UdpClient client = new UdpClient(new IPEndPoint(IPAddress.Any, 7788));
+                Socket client = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+                client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ExclusiveAddressUse, false);
+                client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+                client.Bind(new IPEndPoint(IPAddress.Any, 7788));
+                EndPoint endpoint = new IPEndPoint(IPAddress.Any, 0);
+                while (true)
                 {
-                    foreach (ChannelPool cp in tp.IpAddress)
+                    byte[] buf = new byte[1024];
+                    int l = client.ReceiveFrom(buf, ref endpoint);
+                    int port = int.Parse(Encoding.Default.GetString(buf,0,l));
+                    IPAddress ip = ((IPEndPoint)endpoint).Address;
+                    bool flag = false;
+                    foreach (TcpClient tp in _clients)
                     {
-                        if (cp.IpAddress.Address.ToString() == ip.ToString() && cp.IpAddress.Port == port)
-                            return;
+                        foreach (ChannelPool cp in tp.IpAddress)
+                        {
+                            if (cp.IpAddress.Address.ToString() == ip.ToString() && cp.IpAddress.Port == port)
+                            {
+                                flag = true;
+                                continue;
+                            }                          
+
+                        }
+
                     }
-
-
+                    if (!flag)
+                    {
+                        AddClient(ip.ToString(), port);
+                    }
                 }
-                if (!flag)
-                {
-                    AddClient(ip.ToString(), port);
-                }
+
             }
-
+            catch (Exception ex)
+            {
+                _log.Error(ex);
+            }
+            finally
+            {
+              
+            }
         }
 
         ~ApplicationContext()

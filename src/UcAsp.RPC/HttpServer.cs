@@ -104,7 +104,7 @@ namespace UcAsp.RPC
                     catch (Exception ex)
                     {
                         _log.Error(ex);
-                        HttpRespone.SendError(_httpversion, ref socket);
+                        HttpRespone.SendError(_httpversion,ex.Message, ref socket);
                         //Thread thread = Thread.CurrentThread;
                         // thread.Abort();
                     }
@@ -144,7 +144,7 @@ namespace UcAsp.RPC
             }
             catch (Exception ex)
             {
-                string message = string.Format("{ \"Error\":\"{0};{1}\"}", ex.Message, ex.Source);
+                string message = ex.InnerException.Message+ ex.Message+ex.Source;
                 HttpRespone.SendHeader(_httpversion, _mimetype, message.Length, " 500 OK", ref socket);
                 HttpRespone.SendToBrowser(message, ref socket);
             }
@@ -301,6 +301,12 @@ namespace UcAsp.RPC
             public static void SendError(string sHttpVersion, ref Socket mySocket)
             {
                 string OutMessage = "<H2>Error!! 404 Not Found</H2><Br>";
+                SendHeader(sHttpVersion, "", OutMessage.Length, " 404 Not Found", ref mySocket);
+                SendToBrowser(OutMessage, ref mySocket);
+            }
+            public static void SendError(string sHttpVersion, string errorMsg,ref Socket mySocket)
+            {
+                string OutMessage = "<H2>Error!! 404 Not Found</H2><Br>"+ errorMsg;
                 SendHeader(sHttpVersion, "", OutMessage.Length, " 404 Not Found", ref mySocket);
                 SendToBrowser(OutMessage, ref mySocket);
             }
