@@ -62,8 +62,9 @@ namespace UcAsp.RPC
             }
         }
 
-        public T GetProxyObject<T>(IClient client)
+        public T GetProxyObject<T>(IPEndPoint ep)
         {
+            IClient client = null;
             Type asssembly = typeof(T);
             string name = asssembly.FullName;
             if (_proxobj.ContainsKey(name))
@@ -80,15 +81,8 @@ namespace UcAsp.RPC
                     {
                         foreach (ChannelPool _p in _c.IpAddress)
                         {
-                            foreach (ChannelPool _cp in client.IpAddress)
-                            {
-                                if (_p.IpAddress == _cp.IpAddress)
-                                {
-                                    break;
-                                }
+                            if (_p.IpAddress.Port == ep.Port && _p.IpAddress.Address.Equals(ep.Address))
                                 break;
-                            }
-                            break;
                         }
                         client = _c;
                     }
@@ -194,7 +188,7 @@ namespace UcAsp.RPC
                 }
 
             }
-            
+
         }
         private void InitializeServer(Config config)
         {
@@ -294,7 +288,7 @@ namespace UcAsp.RPC
                 {
                     byte[] buf = new byte[1024];
                     int l = client.ReceiveFrom(buf, ref endpoint);
-                    int port = int.Parse(Encoding.Default.GetString(buf,0,l));
+                    int port = int.Parse(Encoding.Default.GetString(buf, 0, l));
                     IPAddress ip = ((IPEndPoint)endpoint).Address;
                     bool flag = false;
                     foreach (TcpClient tp in _clients)
@@ -305,7 +299,7 @@ namespace UcAsp.RPC
                             {
                                 flag = true;
                                 continue;
-                            }                          
+                            }
 
                         }
 
@@ -323,7 +317,7 @@ namespace UcAsp.RPC
             }
             finally
             {
-              
+
             }
         }
 
