@@ -17,7 +17,7 @@ namespace UcAsp.RPC
         private static IServer _server = null;
         private static IServer _httpserver = null;
         public static List<IClient> _clients = null;
-
+        private static string _rootpath = string.Empty;
         private static ISerializer _serializer = new JsonSerializer();
 
         private static Dictionary<string, Type> _obj = new Dictionary<string, Type>();
@@ -101,7 +101,7 @@ namespace UcAsp.RPC
         public ApplicationContext(string configpath)
         {
             _config = configpath;
-            Config config = new Config(configpath) { GroupName = "service" };
+            Config config = new Config(_config) { GroupName = "service" };
 
             object server = config.GetValue("server", "port");
             if (server != null)
@@ -121,7 +121,9 @@ namespace UcAsp.RPC
         public ApplicationContext()
         {
             _config = "Application.config";
-            new ApplicationContext("Application.config");
+            _rootpath = AppDomain.CurrentDomain.BaseDirectory;
+            new ApplicationContext(_rootpath + _config);
+            _log.Error("系统初始");
         }
 
         private void InitializeClient(Config config)
@@ -196,7 +198,7 @@ namespace UcAsp.RPC
             foreach (var assname in assemblys)
             {
                 string obj = config.GetValue("assmebly", assname).ToString();
-                Assembly assmebly = Assembly.LoadFrom(obj);
+                Assembly assmebly = Assembly.LoadFrom(_rootpath+obj);
                 Type[] type = assmebly.GetTypes();
                 foreach (Type t in type)
                 {
