@@ -33,7 +33,6 @@
     &lt;server&gt;<br />
       &lt;add key="ip" value="127.0.0.1:9008;10.10.0.66:9008" /&gt;<br />
 &lt;!--连接线程数量--&gt;<br />
-      &lt;add key="pool" value="5" /&gt;<br />
     &lt;/server&gt;<br />
     &lt;!--接口依赖的应用--&gt;<br />
     &lt;relation&gt;<br />
