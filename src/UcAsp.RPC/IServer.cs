@@ -15,9 +15,12 @@ namespace UcAsp.RPC
     {
         // Dictionary<string, Type> TypeDic { get; set; }
         Dictionary<string, Tuple<string, MethodInfo>> MemberInfos { get; set; }
-         List<RegisterInfo> RegisterInfo { get; set; }
+        List<RegisterInfo> RegisterInfo { get; set; }
         // event EventHandler<DataEventArgs> OnReceive;
         void StartListen(int port);
         // void Close(object socket);
+        bool IsStart { get; set; }
+
+        void Stop();
     }
 }

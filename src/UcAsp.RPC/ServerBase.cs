@@ -28,9 +28,15 @@ namespace UcAsp.RPC
         { get; set; }
         public virtual List<RegisterInfo> RegisterInfo { get; set; }
 
+        public bool IsStart
+        {
+            get;
+            set;
+        }
+
         public virtual void StartListen(int port)
         {
-
+            IsStart = true;
         }
         /// <summary>
         /// 纠正参数的值
@@ -105,7 +111,7 @@ namespace UcAsp.RPC
 
                     var result = method.Invoke(bll, parameters.ToArray());
                     if (!method.ReturnType.Equals(typeof(void)))
-                    {                        
+                    {
 
                         e.Binary = this._serializer.ToBinary(result);
                     }
@@ -141,7 +147,7 @@ namespace UcAsp.RPC
             {
                 _log.Error(ex);
                 e.ActionCmd = CallActionCmd.Error.ToString();
-                
+                IsStart = false;
                 Send(socket, e);
             }
         }
@@ -153,5 +159,8 @@ namespace UcAsp.RPC
 
             socket.Send(_bf, 0, _bf.Length, SocketFlags.None);
         }
+
+        public virtual void Stop()
+        { }
     }
 }

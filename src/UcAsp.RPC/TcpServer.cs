@@ -27,6 +27,7 @@ namespace UcAsp.RPC
 
         public override void StartListen(int port)
         {
+            this.IsStart = true;
             _server = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             this._server.Bind(new IPEndPoint(IPAddress.Any, port));
             this._server.Listen(3000);
@@ -42,7 +43,6 @@ namespace UcAsp.RPC
                 th.Start(_server);
 
             }
-
 
         }
         private void Accept(object obj)
@@ -99,7 +99,11 @@ namespace UcAsp.RPC
 
 
         }
-
+        public override void Stop()
+        {
+            _server.Dispose();
+            _log.Error("服务退出");
+        }
 
     }
 

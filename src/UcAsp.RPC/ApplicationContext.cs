@@ -11,7 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 namespace UcAsp.RPC
 {
-    public class ApplicationContext
+    public class ApplicationContext : IDisposable
     {
         private readonly ILog _log = LogManager.GetLogger(typeof(ApplicationContext));
         private static IServer _server = null;
@@ -198,7 +198,7 @@ namespace UcAsp.RPC
             foreach (var assname in assemblys)
             {
                 string obj = config.GetValue("assmebly", assname).ToString();
-                Assembly assmebly = Assembly.LoadFrom(_rootpath+obj);
+                Assembly assmebly = Assembly.LoadFrom(_rootpath + obj);
                 Type[] type = assmebly.GetTypes();
                 foreach (Type t in type)
                 {
@@ -264,6 +264,11 @@ namespace UcAsp.RPC
         {
 
             Config config = new Config(_config) { GroupName = "service" };
+            if (!_server.IsStart)
+            {
+                InitializeServer(config);
+                _log.Info("重启服务器");
+            }
             int port = config.GetValue("server", "port", 9008);
             using (UdpClient client = new UdpClient(new IPEndPoint(IPAddress.Any, 0)))
             {
@@ -326,10 +331,7 @@ namespace UcAsp.RPC
         ~ApplicationContext()
         {
 
-            if (Pong != null)
-            {
-                Pong.Dispose();
-            }
+            Dispose();
         }
 
         //private void Server_OnReceive(object sender, DataEventArgs e)
@@ -435,7 +437,21 @@ namespace UcAsp.RPC
             return null;
         }
 
+        public void Dispose()
+        {
+            _log.Info("停止 服务");
+            _server.Stop();
+            if (Pong != null)
+            {
+                Pong.Stop();
+                Pong.Dispose();
+            }
+            if (Broad != null)
+            {
+                Broad.Stop();
+                Broad.Dispose();
+            }
 
-
+        }
     }
 }
