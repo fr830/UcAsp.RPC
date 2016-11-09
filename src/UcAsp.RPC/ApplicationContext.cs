@@ -440,7 +440,10 @@ namespace UcAsp.RPC
         public void Dispose()
         {
             _log.Info("停止 服务");
-            _server.Stop();
+            if (_server != null)
+            {
+                _server.Stop();
+            }
             if (Pong != null)
             {
                 Pong.Stop();
