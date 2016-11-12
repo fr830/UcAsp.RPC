@@ -11,7 +11,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace  UcAsp.RPC
+namespace UcAsp.RPC
 {
     public enum CallActionCmd
     {
@@ -30,11 +30,6 @@ namespace  UcAsp.RPC
         /// 调用返回正确
         /// </summary>
         Success,
-
-        /// <summary>
-        /// 调用返回错误
-        /// </summary>
-        Error,
 
         /// <summary>
         /// 发送心跳

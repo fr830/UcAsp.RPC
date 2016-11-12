@@ -46,6 +46,7 @@ namespace Face
                 list.Add(i.ToString());
                 list.Add(mm);
                 list.Add(kkk);
+                    //throw new Exception("错误");
             }
             return list;
         }

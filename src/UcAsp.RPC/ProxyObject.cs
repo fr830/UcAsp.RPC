@@ -20,11 +20,22 @@ namespace UcAsp.RPC
 
         private IClient _client;
 
-
-        public IClient Client
+        public List<IClient> Clients { get; set; }
+        public IClient Run
         {
-            get { return this._client;  }
-            set { this._client = value; }
+            get
+            {
+                if (Clients == null)
+                    throw new Exception("没有可用的服务器");
+                else
+                {
+                    int len = Clients.Count;
+                    int rad = new Random().Next(Clients.GetHashCode()) % len;
+                    return Clients[rad];
+
+                }
+
+            }
         }
 
         public ISerializer Serializer

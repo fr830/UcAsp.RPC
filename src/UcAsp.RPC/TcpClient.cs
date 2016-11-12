@@ -17,9 +17,10 @@ using System.Threading.Tasks;
 using System.IO;
 using System.Collections.Concurrent;
 using log4net;
+using System.Threading.Tasks;
 namespace UcAsp.RPC
 {
-    public class TcpClient : IClient
+    public class TcpClient : ClientBase
     {
         private readonly ILog _log = LogManager.GetLogger(typeof(TcpClient));
         private ConcurrentQueue<DataEventArgs> _task = new ConcurrentQueue<DataEventArgs>();
@@ -36,15 +37,25 @@ namespace UcAsp.RPC
             set;
         }
 
-        public DataEventArgs CallServiceMethod(DataEventArgs e)
+        public override DataEventArgs CallServiceMethod(object de)
         {
-
-            DataEventArgs ex = Call(e);
-            while (ex.ActionCmd == CallActionCmd.Error.ToString() && ex.TryTimes < 10)
+            DataEventArgs e = (DataEventArgs)de;
+            if (ApplicationContext._taskId < int.MaxValue)
             {
-                e.ActionCmd = CallActionCmd.Call.ToString();
+                ApplicationContext._taskId++;
+            }
+            else
+            {
+                ApplicationContext._taskId = 0;
+            }
+            e.TaskId = ApplicationContext._taskId;
+            DataEventArgs ex = Call(e);
+            while (ex.StatusCode != StatusCode.Success && ex.TryTimes < 5)
+            {
+                e.ActionCmd = ex.ActionCmd.ToString();
+                e.TryTimes++;
+                Thread.Sleep(10);
                 ex = Call(e);
-                // Console.WriteLine(ex.ActionCmd);
             }
             return ex;
         }
@@ -52,7 +63,9 @@ namespace UcAsp.RPC
         private DataEventArgs Call(object obj)
         {
             DataEventArgs e = (DataEventArgs)obj;
-            e.TryTimes = e.TryTimes + 1;
+
+            ByteBuilder _recvBuilder = new ByteBuilder(buffersize);
+            e.CallHashCode = Convert.ToInt32(e.TaskId);
             try
             {
                 Socket _client;
@@ -62,72 +75,76 @@ namespace UcAsp.RPC
                 }
                 else
                 {
-                    _client = TcpConnect(IpAddress);
+                    if (e.TryTimes > 1)
+                    { _client = TcpConnect(IpAddress, true); }
+                    else
+                        _client = TcpConnect(IpAddress, false);
                 }
-                e.CallHashCode = Convert.ToInt32(Task.CurrentId);
-                ByteBuilder _recvBuilder = new ByteBuilder(buffersize);
+
                 if (_client.Connected)
                 {
                     byte[] _bf = e.ToByteArray();
-
-
                     _client.Send(_bf, 0, _bf.Length, SocketFlags.None);
-                    _client.ReceiveTimeout = 180000;
+                    // _client.ReceiveTimeout = 10000;
                     byte[] buffer = new byte[buffersize];
                     int total = 0;
-
+                    int timeO = 0;
                     while (true)
                     {
 
                         int len = _client.ReceiveBufferSize;
                         buffer = new byte[len];
                         int l = _client.Receive(buffer);
-                        
-
                         _recvBuilder.Add(buffer, 0, l);
                         total = _recvBuilder.GetInt32(0);
-                        //  Console.WriteLine(e.ActionParam+":"+_recvBuilder.Count+"."+total);
-                        if (_recvBuilder.Count == total)
-                        {
 
-                            break;
+                        if (l == 0 && total == 0)
+                        {
+                            timeO++;
+                            Thread.Sleep(10);
+                            if (timeO > 1000)
+                                break;
                         }
+                        if (total == _recvBuilder.Count)
+                            break;
+                        //else
+                        //{ break; }
                     }
                 }
+                if (_recvBuilder.Count == 0)
+                {
+                    Console.WriteLine("连接超市");
+                }
                 DataEventArgs dex = DataEventArgs.Parse(_recvBuilder);
-                dex.RemoteIpAddress = (IPEndPoint)_client.RemoteEndPoint;
+                dex.RemoteIpAddress = _client.RemoteEndPoint.ToString();
                 return dex;
             }
             catch (Exception ex)
             {
-
-
                 _log.Error(ex);
-                // Console.WriteLine(ex);
-                e.ActionCmd = CallActionCmd.Error.ToString();
+                e.LastError = ex.Message;
+                e.StatusCode = StatusCode.Error;
                 return e;
 
             }
 
 
 
-            // }
-            //}
-            //catch (Exception ext)
-            //{
-            //    _isconnect = false;
-            //    DataEventArgs ex = new DataEventArgs { CallHashCode = (int)CallActionCmd.Error, ActionCmd = e.ActionCmd, ActionParam = e.ActionParam, HttpSessionId = e.HttpSessionId };
-            //    return ex;
-
-            //}
         }
-        public void Connect(string ip, int port, int pool)
+        public override void Connect(string ip, int port, int pool)
         {
-            IPEndPoint ep = new IPEndPoint(IPAddress.Parse(ip), port);
-            Socket socket = TcpConnect(ep);
+            IpAddress = new List<ChannelPool>();
+            for (int i = 0; i < pool; i++)
+            {
+                IPEndPoint ep = new IPEndPoint(IPAddress.Parse(ip), port);
+                Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);// TcpConnect(ep);
+                socket.Connect(ep);
+                ChannelPool channel = new ChannelPool() { Available = true, Client = socket, IpAddress = ep, PingActives = 0, RunTimes = 0 };
+                IpAddress.Add(channel);
+            }
 
         }
-        private Socket TcpConnect(object obj)
+        private Socket TcpConnect(object obj, bool reconnect)
         {
             List<ChannelPool> list = (List<ChannelPool>)obj;
             List<ChannelPool> avblist = list.FindAll(o => o.Available = true);
@@ -138,13 +155,28 @@ namespace UcAsp.RPC
             IPEndPoint ep = pool.IpAddress;
             try
             {
-                Socket client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                //client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ExclusiveAddressUse, false);
-               // client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-                client.Connect(ep);
-                pool.RunTimes++;
-                pool.PingActives = DateTime.Now.Ticks;
-                return client;
+                if (!reconnect && pool.Client != null && pool.Client.Connected)
+                {
+                    Socket client = pool.Client;
+                    //client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ExclusiveAddressUse, false);
+                    //client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+                    pool.RunTimes++;
+                    pool.PingActives = DateTime.Now.Ticks;
+                    return client;
+                }
+                else
+                {
+                    Socket client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                    client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ExclusiveAddressUse, false);
+                    client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+                    client.Connect(ep);
+                    pool.RunTimes++;
+                    pool.PingActives = DateTime.Now.Ticks;
+                    pool.Client = client;
+                    IpAddress = list;
+
+                    return client;
+                }
             }
             catch (Exception ex)
             {
@@ -174,7 +206,7 @@ namespace UcAsp.RPC
                     {
                         ChannelPool dpool = DisAddress[i];
                         IPEndPoint dep = dpool.IpAddress;
-                        Socket client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                        Socket client = new Socket(AddressFamily.InterNetwork, SocketType.Rdm, ProtocolType.Tcp);
                         client.Connect(dep);
                         bool r = DisAddress.Remove(dpool);
                         if (r)

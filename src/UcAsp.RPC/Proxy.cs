@@ -92,6 +92,7 @@ namespace UcAsp.RPC
             sb.Append("using System.Collections;\r\n");
             sb.Append("using System.Collections.Generic;\r\n");
             sb.Append("using System.Reflection;\r\n");
+            sb.Append("using System.Threading.Tasks;\r\n");
             sb.Append("using UcAsp.RPC;\r\n");
             sb.Append("using log4net;\r\n");
             if (RelationDll != null)
@@ -152,12 +153,14 @@ namespace UcAsp.RPC
                 sb.AppendLine("            e.ActionCmd = CallActionCmd.Call.ToString();\r\n");
                 sb.Append("       DataEventArgs data=new DataEventArgs();");
                 sb.Append("        try{\r\n");
-                sb.AppendLine("             data = this.Client.CallServiceMethod(e);\r\n");
+                sb.AppendLine("              Task<DataEventArgs> task = new Task<DataEventArgs>(Run.CallServiceMethod,e);\r\n");
+                sb.AppendLine("             task.Start();\r\n");
+                sb.AppendLine("             data = task.Result;\r\n");
                 sb.Append("       }catch (Exception ex)\r\n");
                 sb.Append("       { _log.Error(ex);}\r\n");
-                sb.AppendLine("            if (data.ActionCmd == CallActionCmd.Timeout.ToString() || data.ActionCmd == CallActionCmd.Error.ToString()) {\r\n ");
-                sb.AppendLine("           _log.Error(data.ActionCmd+\"/\"+data.ActionCmd );");
-                sb.AppendLine("                Exception ex = new Exception(\"Call Service Method \" + data.ActionCmd + \": \" + data.ActionParam);\r\n");
+                sb.AppendLine("            if (data.StatusCode != StatusCode.Success) {\r\n ");
+                sb.AppendLine("           _log.Error(data.ActionCmd + \": \" + data.ActionParam+ \": \" +data.StatusCode+ \": \" +data.LastError);");
+                sb.AppendLine("                Exception ex = new Exception(\"Call Service Method \" + data.ActionCmd + \": \" + data.ActionParam+ \": \" +data.StatusCode+ \": \" +data.LastError);\r\n");
                 sb.AppendLine("                throw (ex);\r\n");
                 sb.AppendLine("            }\r\n");
 

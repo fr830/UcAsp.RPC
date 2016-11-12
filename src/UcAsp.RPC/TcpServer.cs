@@ -29,6 +29,7 @@ namespace UcAsp.RPC
         {
             this.IsStart = true;
             _server = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            _server.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
             this._server.Bind(new IPEndPoint(IPAddress.Any, port));
             this._server.Listen(3000);
             _log.Info("开启服务：" + port);
@@ -49,53 +50,61 @@ namespace UcAsp.RPC
         {
             while (true)
             {
-                Socket server = (Socket)obj;
-                Socket socket = server.Accept();
-                ThreadPool.QueueUserWorkItem(Recive, socket);
+                try
+                {
+                    Socket server = (Socket)obj;
+                    Socket socket = server.Accept();
+                    ThreadPool.QueueUserWorkItem(Recive, socket);
+                }
+                catch
+                {
+                    IsStart = false;
+                    break;
+                }
+
             }
         }
         private void Recive(object obj)
         {
             Socket socket = (Socket)(obj);
-            while (true)
+            // while (true)
+            // {
+            ByteBuilder _recvBuilder = new ByteBuilder(socket.ReceiveBufferSize);
+            if (socket.Connected)
             {
-                ByteBuilder _recvBuilder = new ByteBuilder(socket.ReceiveBufferSize);
-                if (socket.Connected)
+                try
                 {
-                    try
+                    byte[] buffer = new byte[buffersize];
+                    int total = 0;
+                    while (true)
                     {
-                        byte[] buffer = new byte[buffersize];
-                        int total = 0;
-                        while (true)
-                        {
-                            int len = socket.ReceiveBufferSize;
-                            buffer = new byte[len];
-                            int l = socket.Receive(buffer);
-                            _recvBuilder.Add(buffer, 0, l);
-                            total = _recvBuilder.GetInt32(0);
-                            //Thread.Sleep(1);
-                            if (_recvBuilder.Count == total)
-                            { break; }
-                        }
-                        DataEventArgs e = DataEventArgs.Parse(_recvBuilder);
-
-                        Call(socket, e);
-
+                        int len = socket.ReceiveBufferSize;
+                        buffer = new byte[len];
+                        int l = socket.Receive(buffer);
+                        _recvBuilder.Add(buffer, 0, l);
+                        total = _recvBuilder.GetInt32(0);
+                        if (_recvBuilder.Count == total)
+                        { break; }
                     }
-                    catch (Exception ex)
-                    {
-                        _log.Error(ex);
-                        Console.WriteLine(socket.RemoteEndPoint + "断开服务");
+                    DataEventArgs e = DataEventArgs.Parse(_recvBuilder);
+                    Console.WriteLine(e.ActionCmd + e.ActionParam);
+                    Call(socket, e);
 
-                    }
-                    finally
-                    {
-                        socket.Dispose();
-                        Thread thread = Thread.CurrentThread;
-                        thread.Abort();
-                    }
+                }
+                catch (Exception ex)
+                {
+                    _log.Error(ex);
+                    Console.WriteLine(socket.RemoteEndPoint + "断开服务");
+
+                }
+                finally
+                {
+                    socket.Dispose();
+                    Thread thread = Thread.CurrentThread;
+                    thread.Abort();
                 }
             }
+            // }
 
 
         }

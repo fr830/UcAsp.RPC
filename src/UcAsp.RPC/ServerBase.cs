@@ -37,6 +37,7 @@ namespace UcAsp.RPC
         public virtual void StartListen(int port)
         {
             IsStart = true;
+
         }
         /// <summary>
         /// 纠正参数的值
@@ -83,81 +84,80 @@ namespace UcAsp.RPC
         {
 
             DataEventArgs e = (DataEventArgs)obj;
-            try
+
+            if (e.ActionCmd == CallActionCmd.Register.ToString())
             {
-                if (e.ActionCmd == CallActionCmd.Register.ToString())
-                {
-                    e.Binary = this._serializer.ToBinary(RegisterInfo);
-                }
-                else if (e.ActionCmd == CallActionCmd.Ping.ToString())
-                {
-                    e.ActionCmd = CallActionCmd.Pong.ToString();
-                    e.Binary = this._serializer.ToBinary("Pong");
-                }
-                else if (e.ActionCmd == CallActionCmd.Call.ToString())
-                {
-                    int p = e.ActionParam.LastIndexOf(".");
+                e.Binary = this._serializer.ToBinary(RegisterInfo);
+                e.StatusCode = StatusCode.Success;
+            }
+            else if (e.ActionCmd == CallActionCmd.Ping.ToString())
+            {
+                e.ActionCmd = CallActionCmd.Pong.ToString();
+                e.Binary = this._serializer.ToBinary("Pong");
+                e.StatusCode = StatusCode.Success;
+            }
+            else if (e.ActionCmd == CallActionCmd.Call.ToString())
+            {
+                int p = e.ActionParam.LastIndexOf(".");
 
-                    string code = e.ActionParam.Substring(p + 1);
-
+                string code = e.ActionParam.Substring(p + 1);
+                if (MemberInfos[code] != null)
+                {
                     string name = MemberInfos[code].Item1;
 
                     MethodInfo method = MemberInfos[code].Item2;
                     var parameters = this._serializer.ToEntity<List<object>>(e.Binary);
                     if (parameters == null) parameters = new List<object>();
                     parameters = this.CorrectParameters(method, parameters);
-
-                    Object bll = ApplicationContext.GetObject(name);
-
-                    var result = method.Invoke(bll, parameters.ToArray());
-                    if (!method.ReturnType.Equals(typeof(void)))
+                    try
                     {
+                        Object bll = ApplicationContext.GetObject(name);
 
-                        e.Binary = this._serializer.ToBinary(result);
+                        var result = method.Invoke(bll, parameters.ToArray());
+                        if (!method.ReturnType.Equals(typeof(void)))
+                        {
+                            e.Binary = this._serializer.ToBinary(result);
+                        }
+                        else
+                        {
+                            e.Binary = null;
+                        }
+
+                        e.StatusCode = StatusCode.Success;
+
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        e.Binary = null;
+                        _log.Error(ex);
+                        e.LastError = ex.Message + ex.InnerException.Message;
+                        e.StatusCode = StatusCode.Error;
+                        IsStart = false;
+
                     }
                 }
-                e.ActionCmd = CallActionCmd.Success.ToString();
-                Send(socket, e);
-                //Console.WriteLine(string.Format("ServerBase1:{0}{1}/{2}", e.ActionCmd, e.ActionParam, _bf.Length));
+                else
+                {
+                    _log.Error("服务不存在");
+                    e.StatusCode = StatusCode.NoExit;
 
-
-                //_log.Error(string.Format("ServerBase1:{0}{1}/{2}", e.ActionCmd, e.ActionParam, _bf.Length));
-                //int i = 0;
-                //while (true)
-                //{
-                //    int size = _bf.Length - i * buffersize > buffersize ? buffersize : _bf.Length - i * buffersize;
-                //    int offset = 0;
-                //    if (i > 0)
-                //    {
-                //        offset = i * buffersize;
-                //    }
-                //socket.Send(_bf, i * buffersize, size, SocketFlags.None);
-                //    if (size < buffersize)
-                //    {
-                //        break;
-                //    }
-                //    i++;
-                //}
+                }
             }
-            catch (Exception ex)
-            {
-                _log.Error(ex);
-                e.ActionCmd = CallActionCmd.Error.ToString();
-                IsStart = false;
-                Send(socket, e);
-            }
+            Send(socket, e);
         }
 
         public virtual void Send(Socket socket, DataEventArgs e)
         {
             byte[] _bf = e.ToByteArray();
-
-
-            socket.Send(_bf, 0, _bf.Length, SocketFlags.None);
+            int l = _bf.Count() / 5000;
+            for (int i = 0; i < l+1; i++)
+            {
+                int sl = 5000;
+                if (i == l)
+                {
+                    sl = _bf.Length - i * 5000;
+                }
+                socket.Send(_bf, 5000 * i, sl, SocketFlags.None);
+            }
         }
 
         public virtual void Stop()

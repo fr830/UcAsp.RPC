@@ -17,9 +17,11 @@ namespace UcAsp.RPC.Client.test
 
         string resut = string.Empty;
         static long d = DateTime.Now.Ticks;
+        static IFace.ITest clazz;
+        private object count = 0;
         static void Main(string[] args)
         {
-            
+
 
             Thread.Sleep(3000);
             context = new ApplicationContext();
@@ -34,13 +36,17 @@ namespace UcAsp.RPC.Client.test
             //// resut = resut + "\r\n" + m[0];
             //Console.WriteLine(m[0]);
             //  IFace.ITest clazz = context.GetProxyObject<IFace.ITest>();
-            d = DateTime.Now.Ticks;
-            for (int i = 0; i < 3000; i++)
+            //   d = DateTime.Now.Ticks;
+            Thread.Sleep(3000);
+            clazz = context.GetProxyObject<IFace.ITest>();
+           // Thread.Sleep(3000);
+           
+            for (int i = 0; i < 1000; i++)
             {
 
-                // new Program().Tasks(0);
+               //new Program().Tasks(i);
                Task task = new Task(new Program().Tasks, i);
-               task.Start();
+                task.Start();
                 // new Program().Tasks(0);
                 // Console.WriteLine(0);
                 //Task tas = new Task(() =>
@@ -54,40 +60,42 @@ namespace UcAsp.RPC.Client.test
                 // Thread thread = new Thread(new ParameterizedThreadStart(new Program().Tasks));
                 // thread.Start(i);
                 //Thread.Sleep(1000);
-           }
+
+
+            }
             Console.ReadKey();
         }
 
         private void Tasks(object i)
         {
 
-            
-           // UcAsp.RPC.IClient client = ApplicationContext._clients[0];
-           
-            
-            IFace.ITest clazz = context.GetProxyObject<IFace.ITest>();
-            
-           // IFace.ITest2 clazz2 = context.GetProxyObject<IFace.ITest2>();
-           // int imx= clazz2.GetMore(123);
-           // Console.WriteLine("omx"+ clazz2);
-           //Task t1 = new Task(() =>
-           //{
-           //Imodel im = new Imodel { Code = (int)i, Message = "厕所呢厕所呢厕所呢厕所呢厕所" };
-           // List<Imodel> il = new List<Imodel>();
-           // il.Add(im);
-           // string mesage = clazz.ToList(il);
-           // Console.WriteLine(mesage+"/"+ i);
-           //});
-           //t1.Start();
-           //Task t2 = new Task(() =>
-           //{
-           //string mx = clazz.Get("MM", (int)i);
-           // Console.WriteLine(mx + "/" + i);
-           //});
-           //t2.Start();
-           //Task t3 = new Task(() =>
-           //{
-           //int x = clazz.GetInt((int)i);
+
+            // UcAsp.RPC.IClient client = ApplicationContext._clients[0];
+
+
+
+
+            // IFace.ITest2 clazz2 = context.GetProxyObject<IFace.ITest2>();
+            // int imx= clazz2.GetMore(123);
+            // Console.WriteLine("omx"+ clazz2);
+            //Task t1 = new Task(() =>
+            //{
+            //Imodel im = new Imodel { Code = (int)i, Message = "厕所呢厕所呢厕所呢厕所呢厕所" };
+            // List<Imodel> il = new List<Imodel>();
+            // il.Add(im);
+            // string mesage = clazz.ToList(il);
+            // Console.WriteLine(mesage+"/"+ i);
+            //});
+            //t1.Start();
+            //Task t2 = new Task(() =>
+            //{
+            //string mx = clazz.Get("MM", (int)i);
+            // Console.WriteLine(mx + "/" + i);
+            //});
+            //t2.Start();
+            //Task t3 = new Task(() =>
+            //{
+            //int x = clazz.GetInt((int)i);
 
             // Console.WriteLine(x + "/" + i);
             //});
@@ -101,12 +109,15 @@ namespace UcAsp.RPC.Client.test
             //t4.Start();
             //Task t5 = new Task(() =>
             //{
-            List<string> m = clazz.Good(i.ToString(), "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM", "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM");
-            ////strig m=   
+           // lock (count)
+           // {
+                List<string> m = clazz.Good(i.ToString(), "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM", "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM");
+                count=((int)count)+1;
+          //  }
             Console.Write(".");
             if ((int)i == 2999)
             {
-                Console.WriteLine(DateTime.Now.Ticks-d);
+                Console.WriteLine(DateTime.Now.Ticks - d);
             }
             Console.WriteLine(i);
             //});

@@ -1,6 +1,6 @@
 ﻿/***************************************************
 *创建人:TecD02
-*创建时间:2016/9/2 20:16:44
+*创建时间:2016/11/11 17:51:29
 *功能说明:<Function>
 *版权所有:<Copyright>
 *Frameworkversion:4.0
@@ -10,20 +10,17 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Net;
-using System.Net.Sockets;
+
 namespace UcAsp.RPC
 {
-    public class ChannelPool
+    public enum StatusCode
     {
-        public bool Available { get; set; }
+        Normal = 100,
+        Success = 200,
+        TimeOut = 300,
+        Error = 500,
+        NoExit = 400,
 
-        public IPEndPoint IpAddress { get; set; }
 
-        public int RunTimes { get; set; }
-
-        public long PingActives { get; set; }
-
-        public Socket Client { get; set; }
     }
 }

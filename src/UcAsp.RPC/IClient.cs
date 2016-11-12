@@ -15,7 +15,7 @@ namespace UcAsp.RPC
 
         void Exit();
 
-        DataEventArgs CallServiceMethod(DataEventArgs e);
+        DataEventArgs CallServiceMethod(object e);
 
         string LastError { get; set; }
     }

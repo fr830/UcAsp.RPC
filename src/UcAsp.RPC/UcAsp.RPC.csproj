@@ -64,6 +64,7 @@
     <Compile Include="ByteBuilder.cs" />
     <Compile Include="CallActionCmd.cs" />
     <Compile Include="ChannelPool.cs" />
+    <Compile Include="ClientBase.cs" />
     <Compile Include="DataEventArgs.cs" />
     <Compile Include="HttpServer.cs" />
     <Compile Include="IClient.cs" />
@@ -75,6 +76,7 @@
     <Compile Include="ProxyObject.cs" />
     <Compile Include="RegisterInfo.cs" />
     <Compile Include="ServerBase.cs" />
+    <Compile Include="StatusCode.cs" />
     <Compile Include="TcpClient.cs" />
     <Compile Include="TcpServer.cs" />
   </ItemGroup>

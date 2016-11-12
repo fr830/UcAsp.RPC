@@ -23,8 +23,9 @@ using Newtonsoft.Json;
 using log4net;
 namespace UcAsp.RPC
 {
-    public class HttpServer : ServerBase,IDisposable
+    public class HttpServer : ServerBase, IDisposable
     {
+
         private readonly ILog _log = LogManager.GetLogger(typeof(HttpServer));
         private TcpListener _server;
         private string _httpversion;
@@ -104,7 +105,7 @@ namespace UcAsp.RPC
                     catch (Exception ex)
                     {
                         _log.Error(ex);
-                        HttpRespone.SendError(_httpversion,ex.Message, ref socket);
+                        HttpRespone.SendError(_httpversion, ex.Message, ref socket);
                         //Thread thread = Thread.CurrentThread;
                         // thread.Abort();
                     }
@@ -144,7 +145,7 @@ namespace UcAsp.RPC
             }
             catch (Exception ex)
             {
-                string message = ex.InnerException.Message+ ex.Message+ex.Source;
+                string message = ex.InnerException.Message + ex.Message + ex.Source;
                 HttpRespone.SendHeader(_httpversion, _mimetype, message.Length, " 500 OK", ref socket);
                 HttpRespone.SendToBrowser(message, ref socket);
             }
@@ -304,9 +305,9 @@ namespace UcAsp.RPC
                 SendHeader(sHttpVersion, "", OutMessage.Length, " 404 Not Found", ref mySocket);
                 SendToBrowser(OutMessage, ref mySocket);
             }
-            public static void SendError(string sHttpVersion, string errorMsg,ref Socket mySocket)
+            public static void SendError(string sHttpVersion, string errorMsg, ref Socket mySocket)
             {
-                string OutMessage = "<H2>Error!! 404 Not Found</H2><Br>"+ errorMsg;
+                string OutMessage = "<H2>Error!! 404 Not Found</H2><Br>" + errorMsg;
                 SendHeader(sHttpVersion, "", OutMessage.Length, " 404 Not Found", ref mySocket);
                 SendToBrowser(OutMessage, ref mySocket);
             }
@@ -322,7 +323,7 @@ namespace UcAsp.RPC
                 if (disposing)
                 {
                     _server.Stop();
-                    
+
                 }
 
                 // TODO: 释放未托管的资源(未托管的对象)并在以下内容中替代终结器。
