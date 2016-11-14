@@ -131,7 +131,7 @@ namespace UcAsp.RPC
         {
 
             string[] ipport = ((string)config.GetValue("server", "ip")).Split(';');
-            int pool = Convert.ToInt32(config.GetValue("server", "pool"));
+            int pool = Convert.ToInt32(config.GetValue("server", "pool",2));
             for (int i = 0; i < ipport.Length; i++)
             {
                 if (ipport[i].Split(':').Length > 1)
@@ -159,12 +159,12 @@ namespace UcAsp.RPC
                 }
             }
 
-            // Pong.Interval = 30000;
-            // Pong.Elapsed += Pong_Elapsed;
-            // Pong.Start();
-            // Thread thread = new Thread(new ThreadStart(GetBorad));
+           // Pong.Interval = 30000;
+          //  Pong.Elapsed += Pong_Elapsed;
+         //   Pong.Start();
+            Thread thread = new Thread(new ThreadStart(GetBorad));
 
-            // thread.Start();
+            thread.Start();
 
         }
 
@@ -179,6 +179,7 @@ namespace UcAsp.RPC
                     DataEventArgs ping = iclient.CallServiceMethod(callping);
                     string result = _serializer.ToEntity<string>(ping.Binary);
                     Console.WriteLine(result);
+                    _log.Info(result);
 
                 }
                 catch (Exception ex)
@@ -227,7 +228,16 @@ namespace UcAsp.RPC
                             _log.Info(string.Format("{0}.{1}", method, info.Name));
                             if (!_memberinfos.ContainsKey(method))
                             {
+                                //md5格式
                                 Tuple<string, MethodInfo> tuple = new Tuple<string, MethodInfo>(action, info);
+                                //方法类 重新方法无法实现
+                               /* Tuple<string, MethodInfo> tuplepath = new Tuple<string, MethodInfo>(action, info);
+                                string path = t.Namespace + "/" + t.Name + "/" + info.Name;
+                                if (!_memberinfos.ContainsKey(path))
+                                {
+                                    _memberinfos.Add(path, tuplepath);
+                                }
+                                */
                                 _memberinfos.Add(method, tuple);
                             }
                         }
@@ -239,18 +249,15 @@ namespace UcAsp.RPC
 
             int port = config.GetValue("server", "port", 9008);
             string protocol = (string)config.GetValue("server", "protocol");
-            // if (protocol.Equals("tcp"))
-            //{
             _server = new TcpServer();
             _httpserver = new HttpServer();
-            // }
 
             _server.MemberInfos = _httpserver.MemberInfos = _memberinfos;
             _server.RegisterInfo = _httpserver.RegisterInfo = _registerInfo;
             //_tcpServer.OnReceive += Server_OnReceive;
             _server.StartListen(port);
             _httpserver.StartListen(port + 1);
-            Broad.Interval = 10000;
+            Broad.Interval = 30000;
             Broad.Elapsed += Broad_Elapsed;
             Broad.Start();
 

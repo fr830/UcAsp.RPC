@@ -26,10 +26,6 @@ namespace UcAsp.RPC
         Validate,
 
         Register,
-        /// <summary>
-        /// 调用返回正确
-        /// </summary>
-        Success,
 
         /// <summary>
         /// 发送心跳
@@ -46,14 +42,5 @@ namespace UcAsp.RPC
         /// </summary>
         Exit,
 
-        /// <summary>
-        /// 超时
-        /// </summary>
-        Timeout,
-
-        /// <summary>
-        /// 获取http端口
-        /// </summary>
-        HttpPort
     }
 }

@@ -29,7 +29,7 @@ namespace UcAsp.RPC
         {
             this.IsStart = true;
             _server = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            _server.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
+            _server.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.NoDelay, true);
             this._server.Bind(new IPEndPoint(IPAddress.Any, port));
             this._server.Listen(3000);
             _log.Info("开启服务：" + port);

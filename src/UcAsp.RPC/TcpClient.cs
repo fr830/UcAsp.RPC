@@ -26,7 +26,7 @@ namespace UcAsp.RPC
         private ConcurrentQueue<DataEventArgs> _task = new ConcurrentQueue<DataEventArgs>();
         private ConcurrentQueue<DataEventArgs> _runtask = new ConcurrentQueue<DataEventArgs>();
         private const int buffersize = 1024 * 10;
-        private Socket socket;
+        private Socket _client;
         public List<ChannelPool> IpAddress { get; set; }
         private List<ChannelPool> DisAddress { get; set; }
 
@@ -53,6 +53,7 @@ namespace UcAsp.RPC
             while (ex.StatusCode != StatusCode.Success && ex.TryTimes < 5)
             {
                 e.ActionCmd = ex.ActionCmd.ToString();
+                e.LastError = "";
                 e.TryTimes++;
                 Thread.Sleep(10);
                 ex = Call(e);
@@ -65,10 +66,10 @@ namespace UcAsp.RPC
             DataEventArgs e = (DataEventArgs)obj;
 
             ByteBuilder _recvBuilder = new ByteBuilder(buffersize);
-            e.CallHashCode = Convert.ToInt32(e.TaskId);
+            e.CallHashCode = e.GetHashCode();
             try
             {
-                Socket _client;
+
                 if (e.ActionCmd == CallActionCmd.Ping.ToString())
                 {
                     _client = PingTcpConnect(IpAddress);
@@ -91,7 +92,6 @@ namespace UcAsp.RPC
                     int timeO = 0;
                     while (true)
                     {
-
                         int len = _client.ReceiveBufferSize;
                         buffer = new byte[len];
                         int l = _client.Receive(buffer);
@@ -107,13 +107,13 @@ namespace UcAsp.RPC
                         }
                         if (total == _recvBuilder.Count)
                             break;
-                        //else
-                        //{ break; }
                     }
                 }
+
                 if (_recvBuilder.Count == 0)
                 {
-                    Console.WriteLine("连接超市");
+                    Console.WriteLine("连接超时");
+
                 }
                 DataEventArgs dex = DataEventArgs.Parse(_recvBuilder);
                 dex.RemoteIpAddress = _client.RemoteEndPoint.ToString();
@@ -122,7 +122,7 @@ namespace UcAsp.RPC
             catch (Exception ex)
             {
                 _log.Error(ex);
-                e.LastError = ex.Message;
+                e.LastError = e.TaskId + ":" + e.ActionCmd + "." + e.ActionParam + ex.Message;
                 e.StatusCode = StatusCode.Error;
                 return e;
 
@@ -134,13 +134,22 @@ namespace UcAsp.RPC
         public override void Connect(string ip, int port, int pool)
         {
             IpAddress = new List<ChannelPool>();
+            if (pool > 5)
+                pool = 5;
             for (int i = 0; i < pool; i++)
             {
-                IPEndPoint ep = new IPEndPoint(IPAddress.Parse(ip), port);
-                Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);// TcpConnect(ep);
-                socket.Connect(ep);
-                ChannelPool channel = new ChannelPool() { Available = true, Client = socket, IpAddress = ep, PingActives = 0, RunTimes = 0 };
-                IpAddress.Add(channel);
+                try
+                {
+                    IPEndPoint ep = new IPEndPoint(IPAddress.Parse(ip), port);
+                    Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);// TcpConnect(ep);
+                    socket.Connect(ep);
+                    ChannelPool channel = new ChannelPool() { Available = true, Client = socket, IpAddress = ep, PingActives = 0, RunTimes = 0 };
+                    IpAddress.Add(channel);
+                }
+                catch (Exception ex)
+                {
+                    _log.Error(ex);
+                }
             }
 
         }
@@ -151,17 +160,17 @@ namespace UcAsp.RPC
             if (avblist.Count <= 0)
                 return null;
             int rad = new Random().Next(avblist.GetHashCode()) % list.Count;
-            ChannelPool pool = avblist[rad];
-            IPEndPoint ep = pool.IpAddress;
+            ChannelPool channel = avblist[rad];
+            IPEndPoint ep = channel.IpAddress;
             try
             {
-                if (!reconnect && pool.Client != null && pool.Client.Connected)
+                if (!reconnect && channel.Client != null && channel.Client.Connected)
                 {
-                    Socket client = pool.Client;
+                    Socket client = channel.Client;
                     //client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ExclusiveAddressUse, false);
                     //client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-                    pool.RunTimes++;
-                    pool.PingActives = DateTime.Now.Ticks;
+                    channel.RunTimes++;
+                    channel.PingActives = DateTime.Now.Ticks;
                     return client;
                 }
                 else
@@ -170,9 +179,9 @@ namespace UcAsp.RPC
                     client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ExclusiveAddressUse, false);
                     client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
                     client.Connect(ep);
-                    pool.RunTimes++;
-                    pool.PingActives = DateTime.Now.Ticks;
-                    pool.Client = client;
+                    channel.RunTimes++;
+                    channel.PingActives = DateTime.Now.Ticks;
+                    channel.Client = client;
                     IpAddress = list;
 
                     return client;
@@ -180,13 +189,13 @@ namespace UcAsp.RPC
             }
             catch (Exception ex)
             {
-                bool r = IpAddress.Remove(pool);
+                bool r = IpAddress.Remove(channel);
                 if (r)
                 {
                     if (DisAddress == null)
                     { DisAddress = new List<ChannelPool>(); }
 
-                    DisAddress.Add(pool);
+                    DisAddress.Add(channel);
                 }
                 _log.Error(ex);
                 return null;

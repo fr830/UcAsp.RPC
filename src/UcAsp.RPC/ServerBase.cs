@@ -96,6 +96,11 @@ namespace UcAsp.RPC
                 e.Binary = this._serializer.ToBinary("Pong");
                 e.StatusCode = StatusCode.Success;
             }
+            else if (e.ActionCmd == CallActionCmd.Validate.ToString())
+            {
+
+                e.HttpSessionId = "";
+            }
             else if (e.ActionCmd == CallActionCmd.Call.ToString())
             {
                 int p = e.ActionParam.LastIndexOf(".");

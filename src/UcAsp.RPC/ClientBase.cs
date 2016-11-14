@@ -23,9 +23,15 @@ namespace UcAsp.RPC
     public class ClientBase : IClient
     {
 
-        private Socket socket;
+       
         public List<ChannelPool> IpAddress { get; set; }
 
+        public bool IsStart
+        {
+            get;
+
+            set;
+        }
 
         public virtual string LastError
         {

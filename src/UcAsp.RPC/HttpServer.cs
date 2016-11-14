@@ -97,7 +97,27 @@ namespace UcAsp.RPC
                             {
                                 param = new List<object>();
                             }
-                            param.Add(sDirName.Replace("/", ""));
+                            if (Route[1].ToUpper() == "WEBAPI")
+                            {
+                                string method = string.Empty;
+                                for (int n = 2; n < Route.Length - 1; n++)
+                                {
+                                    if (string.IsNullOrEmpty(method))
+                                    {
+                                        method = Route[n];
+                                    }
+                                    else
+                                    {
+                                        method = method + "/" + Route[n];
+                                    }
+                                }
+                                param.Add(method);
+
+                            }
+                            else
+                            {
+                                param.Add(sDirName.Replace("/", ""));
+                            }
                             Call(socket, param);
                         }
 
@@ -145,8 +165,8 @@ namespace UcAsp.RPC
             }
             catch (Exception ex)
             {
-                string message = ex.InnerException.Message + ex.Message + ex.Source;
-                HttpRespone.SendHeader(_httpversion, _mimetype, message.Length, " 500 OK", ref socket);
+                string message = ex.InnerException != null ? ex.InnerException.Message : "" + ex.Message + ex.Source;
+                HttpRespone.SendHeader(_httpversion, _mimetype, Encoding.UTF8.GetByteCount(message), " 500 OK", ref socket);
                 HttpRespone.SendToBrowser(message, ref socket);
             }
         }
@@ -248,7 +268,8 @@ namespace UcAsp.RPC
                     sMIMEHeader = "text/html"; // 默认 text/html
                 }
                 sBuffer = sBuffer + sHttpVersion + sStatusCode + "\r\n";
-                sBuffer = sBuffer + "Server: ISCS\r\n";
+                sBuffer = sBuffer + "Author: Rixiang Yu \r\n";
+                sBuffer = sBuffer + "Server: UcAsp.Net \r\n";
                 sBuffer = sBuffer + "Content-Type: " + sMIMEHeader + "\r\n";
                 sBuffer = sBuffer + "Accept-Ranges: bytes\r\n";
                 sBuffer = sBuffer + "Accept-Encoding: gzip,deflate\r\n";
