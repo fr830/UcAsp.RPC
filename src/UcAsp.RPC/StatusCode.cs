@@ -15,11 +15,31 @@ namespace UcAsp.RPC
 {
     public enum StatusCode
     {
+        /// <summary>
+        /// 正常
+        /// </summary>
         Normal = 100,
+        /// <summary>
+        /// 完成
+        /// </summary>
         Success = 200,
+        /// <summary>
+        /// 超时
+        /// </summary>
         TimeOut = 300,
+
+        /// <summary>
+        /// 错误
+        /// </summary>
         Error = 500,
+        /// <summary>
+        /// 服务不存在
+        /// </summary>
         NoExit = 400,
+        /// <summary>
+        /// 严重错误
+        /// </summary>
+        Serious = 900
 
 
     }

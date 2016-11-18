@@ -24,6 +24,7 @@ namespace UcAsp.RPC
     {
         private readonly ILog _log = LogManager.GetLogger(typeof(TcpServer));
         private Socket _server;
+        private Thread[] _startThread = new Thread[20];
 
         public override void StartListen(int port)
         {
@@ -33,44 +34,49 @@ namespace UcAsp.RPC
             this._server.Bind(new IPEndPoint(IPAddress.Any, port));
             this._server.Listen(3000);
             _log.Info("开启服务：" + port);
-            int coreCount = 2;
-            foreach (var item in new System.Management.ManagementObjectSearcher("Select * from Win32_Processor").Get())
+            for (int i = 0; i < 20; i++)
             {
-                coreCount += int.Parse(item["NumberOfLogicalProcessors"].ToString());
+                _startThread[i] = new Thread(new ParameterizedThreadStart(Start));
+                _startThread[i].Start(null);
             }
-            for (int i = 0; i < coreCount; i++)
-            {
-                Thread th = new Thread(new ParameterizedThreadStart(Accept));
-                th.Start(_server);
-
-            }
-
+            // ThreadPool.QueueUserWorkItem(Start,null);
         }
-        private void Accept(object obj)
+
+        private void Start(object obj)
         {
             while (true)
             {
-                try
-                {
-                    Socket server = (Socket)obj;
-                    Socket socket = server.Accept();
-                    ThreadPool.QueueUserWorkItem(Recive, socket);
-                }
-                catch
-                {
-                    IsStart = false;
-                    break;
-                }
-
+                Socket client = _server.Accept();
+                ThreadPool.QueueUserWorkItem(Accept, client);
             }
+        }
+        private void Accept(object socket)
+        {
+            Socket client = (Socket)socket;
+            // while (true)
+            // {
+            try
+            {
+                Recive(client);
+                // thread.Start();
+            }
+            catch (Exception ex)
+            {
+                _log.Error(ex);
+                Console.WriteLine(ex);
+                IsStart = false;
+                // break;
+            }
+
+            // }
         }
         private void Recive(object obj)
         {
-            Socket socket = (Socket)(obj);
-            // while (true)
+            Socket client = (Socket)(obj);
+            //  while (true)
             // {
-            ByteBuilder _recvBuilder = new ByteBuilder(socket.ReceiveBufferSize);
-            if (socket.Connected)
+            ByteBuilder _recvBuilder = new ByteBuilder(client.ReceiveBufferSize);
+            if (client.Connected)
             {
                 try
                 {
@@ -78,9 +84,7 @@ namespace UcAsp.RPC
                     int total = 0;
                     while (true)
                     {
-                        int len = socket.ReceiveBufferSize;
-                        buffer = new byte[len];
-                        int l = socket.Receive(buffer);
+                        int l = client.Receive(buffer);
                         _recvBuilder.Add(buffer, 0, l);
                         total = _recvBuilder.GetInt32(0);
                         if (_recvBuilder.Count == total)
@@ -88,20 +92,21 @@ namespace UcAsp.RPC
                     }
                     DataEventArgs e = DataEventArgs.Parse(_recvBuilder);
                     Console.WriteLine(e.ActionCmd + e.ActionParam);
-                    Call(socket, e);
+                    Call(client, e);
 
                 }
-                catch (Exception ex)
+                catch (SocketException ex)
                 {
-                    _log.Error(ex);
-                    Console.WriteLine(socket.RemoteEndPoint + "断开服务");
-
+                    //IsStart = false;
+                    _log.Error(client.RemoteEndPoint + "断开服务" + ex.SocketErrorCode.ToString());
+                    Console.WriteLine(client.RemoteEndPoint + "断开服务" + ex.SocketErrorCode.ToString());
                 }
                 finally
                 {
-                    socket.Dispose();
-                    Thread thread = Thread.CurrentThread;
-                    thread.Abort();
+                    client.Dispose();
+                    // Thread thread = Thread.CurrentThread;
+                    // if (thread.IsAlive) { thread.Abort(); }
+
                 }
             }
             // }
@@ -110,6 +115,14 @@ namespace UcAsp.RPC
         }
         public override void Stop()
         {
+            IsStart = false;
+            for (int i = 0; i < 20; i++)
+            {
+                if (_startThread[i] != null && _startThread[i].IsAlive)
+                {
+                    _startThread[i].Abort();
+                }
+            }
             _server.Dispose();
             _log.Error("服务退出");
         }

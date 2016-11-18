@@ -17,13 +17,14 @@ using System.IO;
 using System.IO.Compression;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
+using System.Diagnostics;
 namespace UcAsp.RPC
 {
     public class ServerBase : IServer
     {
         private readonly ILog _log = LogManager.GetLogger(typeof(ServerBase));
         public ISerializer _serializer = new JsonSerializer();
-        public const int buffersize = 1024 * 50;
+        public const int buffersize = 1024;
         public virtual Dictionary<string, Tuple<string, MethodInfo>> MemberInfos
         { get; set; }
         public virtual List<RegisterInfo> RegisterInfo { get; set; }
@@ -84,7 +85,8 @@ namespace UcAsp.RPC
         {
 
             DataEventArgs e = (DataEventArgs)obj;
-
+            Stopwatch wath = new Stopwatch();
+            wath.Start();
             if (e.ActionCmd == CallActionCmd.Register.ToString())
             {
                 e.Binary = this._serializer.ToBinary(RegisterInfo);
@@ -148,20 +150,22 @@ namespace UcAsp.RPC
                 }
             }
             Send(socket, e);
+            wath.Stop();
+            _log.Info(e.TaskId + ":" + wath.ElapsedMilliseconds);
         }
 
         public virtual void Send(Socket socket, DataEventArgs e)
         {
             byte[] _bf = e.ToByteArray();
-            int l = _bf.Count() / 5000;
-            for (int i = 0; i < l+1; i++)
+            int l = _bf.Count() / buffersize;
+            for (int i = 0; i < l + 1; i++)
             {
-                int sl = 5000;
+                int sl = buffersize;
                 if (i == l)
                 {
-                    sl = _bf.Length - i * 5000;
+                    sl = _bf.Length - i * buffersize;
                 }
-                socket.Send(_bf, 5000 * i, sl, SocketFlags.None);
+                socket.Send(_bf, buffersize * i, sl, SocketFlags.None);
             }
         }
 

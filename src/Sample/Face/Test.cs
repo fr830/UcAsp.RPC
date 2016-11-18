@@ -43,7 +43,7 @@ namespace Face
             List<string> list = new List<string>();
             for (int i = 0; i < 10000; i++)
             {
-                list.Add(i.ToString());
+                list.Add(yun.ToString());
                 list.Add(mm);
                 list.Add(kkk);
                     //throw new Exception("错误");

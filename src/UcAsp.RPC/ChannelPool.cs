@@ -18,7 +18,7 @@ namespace UcAsp.RPC
     {
         public bool Available { get; set; }
 
-        public IPEndPoint IpAddress { get; set; }
+        public IPEndPoint IpPoint { get; set; }
 
         public int RunTimes { get; set; }
 

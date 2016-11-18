@@ -137,6 +137,7 @@ namespace UcAsp.RPC
                 int cmdLength = recvBuilder.ReadInt32();
                 int paramLength = recvBuilder.ReadInt32();
                 int idLength = recvBuilder.ReadInt32();
+
                 int errLength = recvBuilder.ReadInt32();
                 // 哈希值
                 int hashCode = recvBuilder.ReadInt32();
@@ -176,9 +177,7 @@ namespace UcAsp.RPC
                 else
                 {
 
-                    _log.Error("无效包 清除");
-                    Console.WriteLine(string.Format("{0}/{1}", totalLength, checkLength));
-                    Console.WriteLine("无效包 清除");
+                    _log.Error("无效包 包转换失败 清除");
                     // 无效包 清除
                     recvBuilder.Clear();
                     return new DataEventArgs() { Binary = null, LastError = "包转换失败", ActionCmd = CallActionCmd.Call.ToString(), StatusCode = StatusCode.Error, TaskId = 9999, CallHashCode = hashCode, ActionParam = param, HttpSessionId = id };
@@ -187,9 +186,7 @@ namespace UcAsp.RPC
             }
             else
             {
-                _log.Error("无效包 清除");
-                Console.WriteLine(string.Format("{0}/{1}", count, total));
-                Console.WriteLine("无效包 清除");
+                _log.Error("空包 网络丢失 清除");
                 recvBuilder.Clear();
                 return new DataEventArgs() { Binary = null, LastError = "网络丢失", StatusCode = StatusCode.Error, ActionCmd = CallActionCmd.Call.ToString() };
 

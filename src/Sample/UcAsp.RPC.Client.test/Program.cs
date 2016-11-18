@@ -9,6 +9,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using IFace;
 using Face;
+using ISCS.WMS2.IBLL;
+using ISCS.WMS2.Model;
 namespace UcAsp.RPC.Client.test
 {
     class Program
@@ -18,6 +20,7 @@ namespace UcAsp.RPC.Client.test
         string resut = string.Empty;
         static long d = DateTime.Now.Ticks;
         static IFace.ITest clazz;
+        static ISwExportBLL bll;
         private object count = 0;
         static void Main(string[] args)
         {
@@ -39,14 +42,17 @@ namespace UcAsp.RPC.Client.test
             //   d = DateTime.Now.Ticks;
             Thread.Sleep(3000);
             clazz = context.GetProxyObject<IFace.ITest>();
+           // bll = context.GetProxyObject<ISwExportBLL>();
            // Thread.Sleep(3000);
-           
-            for (int i = 0; i < 1000; i++)
-            {
 
-               //new Program().Tasks(i);
-               Task task = new Task(new Program().Tasks, i);
-                task.Start();
+            for (int i = 0; i < 5000; i++)
+            {
+              
+              new Program().Tasks(i);
+               // if (i % 3 == 0)
+               // {
+               //     Thread.Sleep(100);
+               // }
                 // new Program().Tasks(0);
                 // Console.WriteLine(0);
                 //Task tas = new Task(() =>
@@ -109,17 +115,27 @@ namespace UcAsp.RPC.Client.test
             //t4.Start();
             //Task t5 = new Task(() =>
             //{
-           // lock (count)
-           // {
-                List<string> m = clazz.Good(i.ToString(), "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM", "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM");
-                count=((int)count)+1;
-          //  }
-            Console.Write(".");
-            if ((int)i == 2999)
+            // lock (count)
+            // {
+            //List<SwExport> list = bll.Query();
+            // Console.WriteLine(list.Count);
+            try
             {
-                Console.WriteLine(DateTime.Now.Ticks - d);
+                List<string> m = clazz.Good(i.ToString(), "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM", "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM");
+               
+                //  }
+                //  }
+                Console.WriteLine(m[0]);
+                if ((int)i == 2999)
+                {
+                    Console.WriteLine(DateTime.Now.Ticks - d);
+                }
+                Console.WriteLine(i);
             }
-            Console.WriteLine(i);
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
             //});
             //t5.Start();
 

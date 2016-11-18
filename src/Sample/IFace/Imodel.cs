@@ -27,7 +27,7 @@ namespace IFace
             return m;
         }
     }
-
+    [Serializable]
     public class Nvr
     {
         public string nv_ip { get; set; }
