@@ -27,7 +27,7 @@ namespace UcAsp.RPC.Client.test
 
 
             Thread.Sleep(3000);
-            context = new ApplicationContext();
+
 
             //IFace.ITest clazz = context.GetProxyObject<IFace.ITest>();
             //Console.WriteLine(".");
@@ -40,19 +40,19 @@ namespace UcAsp.RPC.Client.test
             //Console.WriteLine(m[0]);
             //  IFace.ITest clazz = context.GetProxyObject<IFace.ITest>();
             //   d = DateTime.Now.Ticks;
-            Thread.Sleep(3000);
-            clazz = context.GetProxyObject<IFace.ITest>();
-           // bll = context.GetProxyObject<ISwExportBLL>();
-           // Thread.Sleep(3000);
+            // Thread.Sleep(3000);
+
+            // bll = context.GetProxyObject<ISwExportBLL>();
+            // Thread.Sleep(3000);
 
             for (int i = 0; i < 5000; i++)
             {
-              
-              new Program().Tasks(i);
-               // if (i % 3 == 0)
-               // {
-               //     Thread.Sleep(100);
-               // }
+
+                new Program().Tasks(i);
+                // if (i % 3 == 0)
+                // {
+                //     Thread.Sleep(100);
+                // }
                 // new Program().Tasks(0);
                 // Console.WriteLine(0);
                 //Task tas = new Task(() =>
@@ -82,7 +82,7 @@ namespace UcAsp.RPC.Client.test
 
 
             // IFace.ITest2 clazz2 = context.GetProxyObject<IFace.ITest2>();
-            // int imx= clazz2.GetMore(123);
+            // int imx = clazz2.GetMore(123);
             // Console.WriteLine("omx"+ clazz2);
             //Task t1 = new Task(() =>
             //{
@@ -108,9 +108,9 @@ namespace UcAsp.RPC.Client.test
             //t3.Start();
             //Task t4 = new Task(() =>
             //{
-            //Tuple<int> t = clazz.GetTuple((int)i);
-            //int mmmm = t.Item1;
-            //  Console.WriteLine(t.Item1 + "/" + i);
+            //    Tuple<int> t = clazz.GetTuple((int)i);
+            //    int mmmm = t.Item1;
+            //    Console.WriteLine(t.Item1 + "/" + i);
             //});
             //t4.Start();
             //Task t5 = new Task(() =>
@@ -121,16 +121,18 @@ namespace UcAsp.RPC.Client.test
             // Console.WriteLine(list.Count);
             try
             {
-                List<string> m = clazz.Good(i.ToString(), "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM", "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM");
-               
-                //  }
-                //  }
-                Console.WriteLine(m[0]);
-                if ((int)i == 2999)
+                using (ApplicationContext context = new ApplicationContext())
                 {
-                    Console.WriteLine(DateTime.Now.Ticks - d);
+                    clazz = context.GetProxyObject<IFace.ITest>();
+                    List<string> m = clazz.Good(i.ToString(), "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM", "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM");
+                    
+                    //  }
+                    //  }
+                    Console.WriteLine(m[0]);
+                    clazz.GetTuple(1000);
+                    clazz.GetModel(222);
+
                 }
-                Console.WriteLine(i);
             }
             catch (Exception ex)
             {

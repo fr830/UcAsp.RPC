@@ -23,7 +23,7 @@ namespace UcAsp.RPC
     public class ClientBase : IClient
     {
 
-       
+
         public List<ChannelPool> IpAddress { get; set; }
 
         public bool IsStart
@@ -34,6 +34,16 @@ namespace UcAsp.RPC
         }
 
         public virtual string LastError
+        {
+            get;
+
+            set;
+        }
+
+        /// <summary>
+        /// 秒 时间戳
+        /// </summary>
+        public long PingActives
         {
             get;
 

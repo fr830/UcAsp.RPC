@@ -75,7 +75,7 @@ namespace UcAsp.RPC
         {
 
             DataEventArgs e = (DataEventArgs)obj;
-
+            PingActives = (DateTime.Now.Ticks / 10000) / 1000;
             ByteBuilder _recvBuilder = new ByteBuilder(buffersize);
             e.CallHashCode = e.GetHashCode();
             try
@@ -141,7 +141,8 @@ namespace UcAsp.RPC
             }
             finally
             {
-                _client.Dispose();
+                if (_client != null)
+                    _client.Dispose();
             }
 
 

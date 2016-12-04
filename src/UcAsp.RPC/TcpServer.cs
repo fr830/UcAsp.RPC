@@ -103,7 +103,7 @@ namespace UcAsp.RPC
                 }
                 finally
                 {
-                    client.Dispose();
+                    //  client.Dispose();
                     // Thread thread = Thread.CurrentThread;
                     // if (thread.IsAlive) { thread.Abort(); }
 

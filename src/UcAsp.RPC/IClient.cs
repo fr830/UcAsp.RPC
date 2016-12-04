@@ -19,5 +19,7 @@ namespace UcAsp.RPC
         DataEventArgs CallServiceMethod(object e);
 
         string LastError { get; set; }
+
+        long PingActives { get; set; }
     }
 }

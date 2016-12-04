@@ -105,10 +105,13 @@ namespace UcAsp.RPC
             }
             else if (e.ActionCmd == CallActionCmd.Call.ToString())
             {
+                if (string.IsNullOrEmpty(e.ActionParam))
+                    return;
+
                 int p = e.ActionParam.LastIndexOf(".");
 
                 string code = e.ActionParam.Substring(p + 1);
-                if (MemberInfos[code] != null)
+                if (MemberInfos.ContainsKey(code) != null)
                 {
                     string name = MemberInfos[code].Item1;
 
@@ -135,7 +138,7 @@ namespace UcAsp.RPC
                     }
                     catch (Exception ex)
                     {
-                        _log.Error(ex);
+                        _log.Error(e.ActionParam + ex);
                         e.LastError = ex.Message + ex.InnerException.Message;
                         e.StatusCode = StatusCode.Error;
                         IsStart = false;
@@ -144,7 +147,7 @@ namespace UcAsp.RPC
                 }
                 else
                 {
-                    _log.Error("服务不存在");
+                    _log.Error(e.ActionParam+"服务不存在");
                     e.StatusCode = StatusCode.NoExit;
 
                 }
@@ -170,6 +173,8 @@ namespace UcAsp.RPC
         }
 
         public virtual void Stop()
-        { }
+        {
+
+        }
     }
 }

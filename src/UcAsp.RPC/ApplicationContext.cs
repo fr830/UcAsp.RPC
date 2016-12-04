@@ -11,7 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 namespace UcAsp.RPC
 {
-    public class ApplicationContext
+    public class ApplicationContext:IDisposable
     {
         private readonly ILog _log = LogManager.GetLogger(typeof(ApplicationContext));
         private static ServerBase _server = null;
@@ -31,6 +31,7 @@ namespace UcAsp.RPC
         private Timer Broad;// = new Timer();
         Thread getBoardthread;
         Socket clientBoard;
+
         /// <summary>
         /// 客户端获取创建对象
         /// </summary>
@@ -108,13 +109,13 @@ namespace UcAsp.RPC
         {
             _config = configpath;
             _rootpath = AppDomain.CurrentDomain.BaseDirectory;
-            Start(_rootpath + _config, _rootpath);
+            Start();
         }
         public ApplicationContext(string configpath, string rootpath)
         {
             _rootpath = rootpath;
             _config = configpath;
-            Start(_rootpath + _config, _rootpath);
+            Start();
 
         }
 
@@ -123,9 +124,9 @@ namespace UcAsp.RPC
         {
             _rootpath = AppDomain.CurrentDomain.BaseDirectory;
             _config = _rootpath + "Application.config";
-            Start(_rootpath + _config, _rootpath);
+            Start();
         }
-        private void Start(string configpath, string rootpath)
+        private void Start()
         {
             Config config = new Config(_config) { GroupName = "service" };
 
@@ -202,12 +203,15 @@ namespace UcAsp.RPC
             {
                 try
                 {
-
-                    DataEventArgs callping = new DataEventArgs() { ActionCmd = CallActionCmd.Ping.ToString(), ActionParam = "PING" };
-                    DataEventArgs ping = iclient.CallServiceMethod(callping);
-                    string result = _serializer.ToEntity<string>(ping.Binary);
-                    Console.WriteLine(result);
-                    _log.Info(result);
+                    long actives = DateTime.Now.Ticks / 10000000;
+                    if (actives - iclient.PingActives > 30)
+                    {
+                        DataEventArgs callping = new DataEventArgs() { ActionCmd = CallActionCmd.Ping.ToString(), ActionParam = "PING" };
+                        DataEventArgs ping = iclient.CallServiceMethod(callping);
+                        string result = _serializer.ToEntity<string>(ping.Binary);
+                        Console.WriteLine(result);
+                        _log.Info(result);
+                    }
 
                 }
                 catch (Exception ex)
@@ -283,7 +287,6 @@ namespace UcAsp.RPC
 
             _server.MemberInfos = _httpserver.MemberInfos = _memberinfos;
             _server.RegisterInfo = _httpserver.RegisterInfo = _registerInfo;
-            //_tcpServer.OnReceive += Server_OnReceive;
             _server.StartListen(port);
             _httpserver.StartListen(port + 1);
             Broad.Interval = 30000;
@@ -441,6 +444,15 @@ namespace UcAsp.RPC
         public void Dispose()
         {
             _log.Info("停止 服务");
+            if (_httpserver != null)
+            {
+                try
+                {
+                    _httpserver.Stop();
+                }
+                catch (Exception ex)
+                { }
+            }
             if (clientBoard != null)
             {
                 try

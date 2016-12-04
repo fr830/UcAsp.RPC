@@ -28,6 +28,7 @@ namespace UcAsp.RPC
 
         private readonly ILog _log = LogManager.GetLogger(typeof(HttpServer));
         private TcpListener _server;
+        private bool isstop = false;
         private string _httpversion;
         private string _url = string.Empty;
         private string _mimetype = string.Empty;
@@ -52,6 +53,8 @@ namespace UcAsp.RPC
             String OutMessage = string.Empty;
             while (true)
             {
+                if (isstop)
+                    break;
                 Socket socket = _server.AcceptSocket();
                 socket.ReceiveTimeout = 10000;
                 socket.SendTimeout = 10000;
@@ -332,6 +335,14 @@ namespace UcAsp.RPC
                 SendHeader(sHttpVersion, "", OutMessage.Length, " 404 Not Found", ref mySocket);
                 SendToBrowser(OutMessage, ref mySocket);
             }
+        }
+        public override void Stop()
+        {
+            base.Stop();
+            isstop = true;
+            _server.Stop();
+
+
         }
 
         #region IDisposable Support

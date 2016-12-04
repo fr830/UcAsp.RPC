@@ -30,7 +30,12 @@ namespace UcAsp.RPC
             lock (_obj)
             {
                 Type type = typeof(T);
+                string rootpath = AppDomain.CurrentDomain.BaseDirectory;
 
+                if (!rootpath.EndsWith("\\"))
+                {
+                    rootpath = rootpath + "\\";
+                }
 
                 if (_nameSpaceList.ContainsKey(nameSpace + nameClass))
                 {
@@ -44,16 +49,16 @@ namespace UcAsp.RPC
 
                 CompilerParameters paras = new CompilerParameters();
                 paras.ReferencedAssemblies.Add("System.dll");
-                paras.ReferencedAssemblies.Add("UcAsp.RPC.dll");
-                paras.ReferencedAssemblies.Add("log4net.dll");
+                paras.ReferencedAssemblies.Add(rootpath + "UcAsp.RPC.dll");
+                paras.ReferencedAssemblies.Add(rootpath + "log4net.dll");
                 if (RelationDll != null)
                 {
                     foreach (var vdll in RelationDll)
                     {
-                        paras.ReferencedAssemblies.Add(vdll.Value);
+                        paras.ReferencedAssemblies.Add(rootpath + vdll.Value);
                     }
                 }
-                paras.ReferencedAssemblies.Add(assembly.ManifestModule.Name);
+                paras.ReferencedAssemblies.Add(rootpath + assembly.ManifestModule.Name);
                 paras.GenerateExecutable = false;
                 paras.GenerateInMemory = true;
                 CompilerResults cr = complier.CompileAssemblyFromSource(paras, GetCodeString(type, type.Namespace, nameSpace, nameClass));
