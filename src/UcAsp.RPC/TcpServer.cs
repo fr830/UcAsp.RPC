@@ -25,6 +25,7 @@ namespace UcAsp.RPC
         private readonly ILog _log = LogManager.GetLogger(typeof(TcpServer));
         private Socket _server;
         private Thread[] _startThread = new Thread[20];
+        private bool stop = false;
 
         public override void StartListen(int port)
         {
@@ -34,6 +35,10 @@ namespace UcAsp.RPC
             this._server.Bind(new IPEndPoint(IPAddress.Any, port));
             this._server.Listen(3000);
             _log.Info("开启服务：" + port);
+            #region 异步
+            //this._server.BeginAccept(new AsyncCallback(Accept), this._server);
+
+            #endregion
             for (int i = 0; i < 20; i++)
             {
                 _startThread[i] = new Thread(new ParameterizedThreadStart(Start));
@@ -41,13 +46,22 @@ namespace UcAsp.RPC
             }
             // ThreadPool.QueueUserWorkItem(Start,null);
         }
+        #region  同步
 
         private void Start(object obj)
         {
             while (true)
             {
                 Socket client = _server.Accept();
-                ThreadPool.QueueUserWorkItem(Accept, client);
+                //  client.ReceiveAsync(SocketAsyncEventArgs
+
+                // ThreadPool.SetMaxThreads(10, 10);
+
+                Thread t = new Thread(new ParameterizedThreadStart(Accept));
+                t.Start(client);
+                // ThreadPool.QueueUserWorkItem(Accept, client);
+                if (stop)
+                    break;
             }
         }
         private void Accept(object socket)
@@ -57,7 +71,9 @@ namespace UcAsp.RPC
             // {
             try
             {
-                Recive(client);
+                Thread t = new Thread(new ParameterizedThreadStart(Recive));
+                t.Start(client);
+                // Recive(client);
                 // thread.Start();
             }
             catch (Exception ex)
@@ -73,49 +89,74 @@ namespace UcAsp.RPC
         private void Recive(object obj)
         {
             Socket client = (Socket)(obj);
-            //  while (true)
-            // {
-            ByteBuilder _recvBuilder = new ByteBuilder(client.ReceiveBufferSize);
-            if (client.Connected)
+            while (true)
             {
-                try
+                if (stop)
+                    break;
+
+                if (client.Connected)
                 {
-                    byte[] buffer = new byte[buffersize];
-                    int total = 0;
-                    while (true)
+                    try
                     {
-                        int l = client.Receive(buffer);
-                        _recvBuilder.Add(buffer, 0, l);
-                        total = _recvBuilder.GetInt32(0);
-                        if (_recvBuilder.Count == total)
-                        { break; }
+                        Console.WriteLine(client.LocalEndPoint);
+                        ByteBuilder _recvBuilder = new ByteBuilder(client.ReceiveBufferSize);
+                        byte[] buffer = new byte[buffersize];
+                        int total = 0;
+                        while (true)
+                        {
+                            int l = client.Receive(buffer, SocketFlags.None);
+                            _recvBuilder.Add(buffer, 0, l);
+                            total = _recvBuilder.GetInt32(0);
+                            if (_recvBuilder.Count == total)
+                            { break; }
+                        }
+                        DataEventArgs e = DataEventArgs.Parse(_recvBuilder);
+                        Console.WriteLine(e.ActionCmd + e.ActionParam);
+                        Call(client, e);
+
+
+
                     }
-                    DataEventArgs e = DataEventArgs.Parse(_recvBuilder);
-                    Console.WriteLine(e.ActionCmd + e.ActionParam);
-                    Call(client, e);
+                    catch (SocketException ex)
+                    {
+                        _log.Error(client.RemoteEndPoint + "断开服务" + ex.SocketErrorCode.ToString());
+                        Console.WriteLine(client.RemoteEndPoint + "断开服务" + ex.SocketErrorCode.ToString());
+                        client.Dispose();
+                        Thread thread = Thread.CurrentThread;
+                        if (thread.IsAlive) { thread.Abort(); }
+                    }
+                    finally
+                    {
+                        //client.Dispose();
+                        // Thread thread = Thread.CurrentThread;
+                        // if (thread.IsAlive) { thread.Abort(); }
 
+                    }
                 }
-                catch (SocketException ex)
+                else
                 {
-                    //IsStart = false;
-                    _log.Error(client.RemoteEndPoint + "断开服务" + ex.SocketErrorCode.ToString());
-                    Console.WriteLine(client.RemoteEndPoint + "断开服务" + ex.SocketErrorCode.ToString());
+                    break;
                 }
-                finally
-                {
-                    //  client.Dispose();
-                    // Thread thread = Thread.CurrentThread;
-                    // if (thread.IsAlive) { thread.Abort(); }
 
-                }
             }
-            // }
 
 
         }
+        #endregion
+        #region  异步
+        void Accept(IAsyncResult iar)
+        {
+            //还原传入的原始套接字
+            Socket client = (Socket)iar.AsyncState;
+
+            //在原始套接字上调用EndAccept方法，返回新的套接字
+            // Socket service = MyServer.EndAccept(iar);
+        }
+        #endregion
         public override void Stop()
         {
             IsStart = false;
+            stop = true;
             for (int i = 0; i < 20; i++)
             {
                 if (_startThread[i] != null && _startThread[i].IsAlive)
@@ -123,7 +164,9 @@ namespace UcAsp.RPC
                     _startThread[i].Abort();
                 }
             }
+            GC.SuppressFinalize(this);
             _server.Dispose();
+            Console.WriteLine("服务退出");
             _log.Error("服务退出");
         }
 

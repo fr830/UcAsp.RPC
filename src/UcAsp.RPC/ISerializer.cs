@@ -37,6 +37,6 @@ namespace UcAsp.RPC
         /// <returns></returns>
         Binary ToBinary(object entity);
 
-        //string ToString(object entity);
+        string ToString(object entity);
     }
 }

@@ -186,6 +186,7 @@ namespace UcAsp.RPC
             }
             else
             {
+
                 _log.Error("空包 网络丢失 清除");
                 recvBuilder.Clear();
                 return new DataEventArgs() { Binary = null, LastError = "网络丢失", StatusCode = StatusCode.Error, ActionCmd = CallActionCmd.Call.ToString() };

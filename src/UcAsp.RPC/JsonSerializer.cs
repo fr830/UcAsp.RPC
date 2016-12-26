@@ -46,7 +46,7 @@ namespace UcAsp.RPC
                 ms.Write(binary.Buffer, 0, binary.Buffer.Length);
                 return formater.Deserialize(ms);
             }
-            
+
             //String s = Encoding.UTF8.GetString(binary.Buffer, 0, binary.Buffer.Length);
             //return JsonConvert.DeserializeObject(s, type);
 
@@ -70,5 +70,11 @@ namespace UcAsp.RPC
                 return new Binary(ms.ToArray());
             }
         }
+
+        public string ToString(object entity)
+        {
+            return JsonConvert.SerializeObject(entity);
+        }
+
     }
 }

@@ -11,27 +11,27 @@ using System.Threading;
 using System.Threading.Tasks;
 namespace UcAsp.RPC
 {
-    public class ApplicationContext:IDisposable
+    [Serializable]
+    public class ApplicationContext : IDisposable
     {
         private readonly ILog _log = LogManager.GetLogger(typeof(ApplicationContext));
         private static ServerBase _server = null;
         private static ServerBase _httpserver = null;
-        public static List<IClient> _clients = null;
+        public static IClient _clients = null;
         private static string _rootpath = string.Empty;
         private static ISerializer _serializer = new JsonSerializer();
         public static int _taskId = 0;
-
+        private static bool _run = false;
         private static Dictionary<string, Type> _obj = new Dictionary<string, Type>();
         private static Dictionary<string, Tuple<string, MethodInfo>> _memberinfos = new Dictionary<string, Tuple<string, MethodInfo>>();
-        private static Dictionary<string, Tuple<string, List<IClient>>> _proxobj = new Dictionary<string, Tuple<string, List<IClient>>>();
+        private static Dictionary<string, Tuple<string, List<ChannelPool>>> _proxobj = new Dictionary<string, Tuple<string, List<ChannelPool>>>();
         private static List<RegisterInfo> _registerInfo = new List<RegisterInfo>();
         private static string _config;
-
+        CancellationTokenSource cts = new CancellationTokenSource();
         private Timer Pong;//= new Timer();
         private Timer Broad;// = new Timer();
         Thread getBoardthread;
         Socket clientBoard;
-
         /// <summary>
         /// 客户端获取创建对象
         /// </summary>
@@ -53,7 +53,7 @@ namespace UcAsp.RPC
                 PropertyInfo property = type.GetProperty("Clients");
                 if (property != null && property.CanWrite)
                 {
-                    property.SetValue(clazz, _proxobj[name].Item2, null);
+                    property.SetValue(clazz, _clients, null);
                 }
                 return (T)clazz;
             }
@@ -65,9 +65,69 @@ namespace UcAsp.RPC
             }
         }
 
+        public DateTime LastRunTime()
+        {
+            if (_server != null)
+            {
+                return _server.LastRunTime;
+            }
+            else
+            {
+                return DateTime.Parse("0001/01/01 00:00");
+            }
+        }
+        public string LastError()
+        {
+            if (_server != null)
+            {
+                return _server.LastError;
+            }
+            else
+            {
+                return "服务不存在";
+            }
+        }
+
+        public string LastMethod()
+        {
+            if (_server != null)
+            {
+                return _server.LastMethod;
+            }
+            else
+            {
+                return "服务不存在";
+            }
+
+        }
+        public string LastParam()
+        {
+
+            if (_server != null)
+            {
+                return _server.LastParam;
+            }
+            else
+            {
+                return "服务不存在";
+            }
+        }
+
+        public int Timer()
+        {
+            if (_server != null)
+            {
+                return _server.Timer;
+            }
+            else
+            {
+                return 0;
+            }
+        }
+
         public T GetProxyObject<T>(IPEndPoint ep)
         {
-            IClient client = null;
+
             Type asssembly = typeof(T);
             string name = asssembly.FullName;
             if (_proxobj.ContainsKey(name))
@@ -80,17 +140,17 @@ namespace UcAsp.RPC
                 PropertyInfo property = type.GetProperty("Client");
                 if (property != null && property.CanWrite)
                 {
-                    foreach (IClient _c in _clients)
-                    {
-                        foreach (ChannelPool _p in _c.IpAddress)
-                        {
-                            if (_p.IpPoint.Port == ep.Port && _p.IpPoint.Address.Equals(ep.Address))
-                                break;
-                        }
-                        client = _c;
-                    }
+                    // foreach (IClient _c in _clients)
+                    // {
+                    //foreach (ChannelPool _p in _clients.IpAddress)
+                    //{
+                    //    if (_p.IpPoint.Port == ep.Port && _p.IpPoint.Address.Equals(ep.Address))
+                    //        break;
+                    //}
+                    //client = _clients;
+                    //  }
 
-                    property.SetValue(clazz, client, null);
+                    property.SetValue(clazz, _clients, null);
                 }
                 return (T)clazz;
             }
@@ -109,39 +169,58 @@ namespace UcAsp.RPC
         {
             _config = configpath;
             _rootpath = AppDomain.CurrentDomain.BaseDirectory;
-            Start();
+            if (!_rootpath.EndsWith("\\"))
+            {
+                _rootpath = _rootpath + "\\";
+            }
+            Start(_rootpath + _config, _rootpath);
         }
-        public ApplicationContext(string configpath, string rootpath)
+        public ApplicationContext(string config, string rootpath)
         {
             _rootpath = rootpath;
-            _config = configpath;
-            Start();
+            if (!_rootpath.EndsWith("\\"))
+            {
+                _rootpath = _rootpath + "\\";
+            }
+            _config = _rootpath + config;
+            Start(_config, _rootpath);
 
         }
 
-
+        ~ApplicationContext()
+        {
+            Dispose();
+        }
         public ApplicationContext()
         {
             _rootpath = AppDomain.CurrentDomain.BaseDirectory;
+            if (!_rootpath.EndsWith("\\"))
+            {
+                _rootpath = _rootpath + "\\";
+            }
             _config = _rootpath + "Application.config";
-            Start();
+            // Start(_config, _rootpath);
         }
-        private void Start()
+        public void Start(string configpath, string rootpath)
         {
-            Config config = new Config(_config) { GroupName = "service" };
-
+            _config = configpath;
+            _rootpath = rootpath;
+            Config config = new Config(configpath) { GroupName = "service" };
+            _log.Info(configpath);
             object server = config.GetValue("server", "port");
             if (server != null)
             {
                 InitializeServer(config);
+                _log.Error("服务器端初始成功");
             }
             config.GroupName = "client";
             object client = config.GetValue("server", "ip");
             if (client != null)
             {
                 InitializeClient(config);
+                _log.Error("客户端初始成功");
             }
-            _log.Error("系统初始");
+
         }
 
         private void InitializeClient(Config config)
@@ -151,10 +230,14 @@ namespace UcAsp.RPC
             int pool = Convert.ToInt32(config.GetValue("server", "pool", 2));
             for (int i = 0; i < ipport.Length; i++)
             {
+
                 if (ipport[i].Split(':').Length > 1)
                 {
+
                     string[] ip = ipport[i].Split(':');
-                    AddClient(ip[0], int.Parse(ip[1]), pool);
+                    ServerPort port = new ServerPort() { Ip = ip[0], Port = int.Parse(ip[1]), Pool = pool };
+                    AddClient(port);
+
                 }
             }
             string[] relation = config.GetEntryNames("relation");
@@ -199,34 +282,31 @@ namespace UcAsp.RPC
                 getBoardthread = new Thread(new ThreadStart(GetBorad));
                 getBoardthread.Start();
             }
-            foreach (IClient iclient in _clients)
-            {
-                try
-                {
-                    long actives = DateTime.Now.Ticks / 10000000;
-                    if (actives - iclient.PingActives > 30)
-                    {
-                        DataEventArgs callping = new DataEventArgs() { ActionCmd = CallActionCmd.Ping.ToString(), ActionParam = "PING" };
-                        DataEventArgs ping = iclient.CallServiceMethod(callping);
-                        string result = _serializer.ToEntity<string>(ping.Binary);
-                        Console.WriteLine(result);
-                        _log.Info(result);
-                    }
+            //foreach (IClient iclient in _clients.i)
+            //{
+            //    try
+            //    {
 
-                }
-                catch (Exception ex)
-                {
-                    try
-                    {
-                        Config config = new Config(_config) { GroupName = "service" };
-                        config.GroupName = "client";
-                        InitializeClient(config);
-                    }
-                    catch (Exception e0) { _log.Error(e0); }
-                    _log.Error(ex);
-                }
+            //        DataEventArgs callping = new DataEventArgs() { ActionCmd = CallActionCmd.Ping.ToString(), ActionParam = "PING" };
+            //        DataEventArgs ping = iclient.CallServiceMethod(callping);
+            //        string result = _serializer.ToEntity<string>(ping.Binary);
+            //        Console.WriteLine(result);
+            //        _log.Info(result);
 
-            }
+            //    }
+            //    catch (Exception ex)
+            //    {
+            //        try
+            //        {
+            //            Config config = new Config(_config) { GroupName = "service" };
+            //            config.GroupName = "client";
+            //            InitializeClient(config);
+            //        }
+            //        catch (Exception e0) { _log.Error(e0); }
+            //        _log.Error(ex);
+            //    }
+
+            //}
 
         }
         private void InitializeServer(Config config)
@@ -287,6 +367,7 @@ namespace UcAsp.RPC
 
             _server.MemberInfos = _httpserver.MemberInfos = _memberinfos;
             _server.RegisterInfo = _httpserver.RegisterInfo = _registerInfo;
+            //_tcpServer.OnReceive += Server_OnReceive;
             _server.StartListen(port);
             _httpserver.StartListen(port + 1);
             Broad.Interval = 30000;
@@ -346,23 +427,24 @@ namespace UcAsp.RPC
                     int port = int.Parse(Encoding.Default.GetString(buf, 0, l));
                     IPAddress ip = ((IPEndPoint)endpoint).Address;
                     bool flag = false;
-                    foreach (TcpClient tp in _clients)
-                    {
-                        foreach (ChannelPool cp in tp.IpAddress)
-                        {
-                            if (cp.IpPoint.Address.ToString() == ip.ToString() && cp.IpPoint.Port == port)
-                            {
-                                flag = true;
-                                continue;
-                            }
+                    //foreach (TcpClient tp in _clients)
+                    //{
+                    //    foreach (ChannelPool cp in tp.IpAddress)
+                    //    {
+                    //        if (cp.IpPoint.Address.ToString() == ip.ToString() && cp.IpPoint.Port == port)
+                    //        {
+                    //            flag = true;
+                    //            continue;
+                    //        }
 
-                        }
+                    //    }
 
-                    }
-                    if (!flag)
-                    {
-                        AddClient(ip.ToString(), port, 10);
-                    }
+                    //}
+                    //if (!flag)
+                    //{
+                    //    ServerPort sport = new ServerPort() { Ip = ip.ToString(), Port = port, Pool = 10 };
+                    //    AddClient(sport);
+                    //}
 
 
                 }
@@ -374,35 +456,57 @@ namespace UcAsp.RPC
             }
         }
 
-        private void AddClient(string ip, int port, int pool)
+        private void AddClient(object serverport)
         {
-            IClient _client = new TcpClient() { };
+            ServerPort sport = (ServerPort)serverport;
+            string ip = sport.Ip;
+            int port = sport.Port;
+            int pool = sport.Pool;
+            ChannelPool channel = new ChannelPool { IpPoint = new IPEndPoint(IPAddress.Parse(ip), port) };
+
             if (_clients == null)
             {
-                _clients = new List<IClient>();
+                _clients = new TcpClient();
+                _clients.ClientTask = new Queue<DataEventArgs>();
+                _clients.ResultTask = new Dictionary<int, DataEventArgs>();
+                _clients.IpAddress = new List<ChannelPool>();
             }
             bool iccon = false;
-
-            foreach (TcpClient ic in _clients)
+            if (_clients.IpAddress.Count <= 0)
             {
-                if (ic.IpAddress == null || ic.IpAddress.Count <= 0)
-                    continue;
-                if (ic.IpAddress[0].IpPoint.Address.ToString() == ip && ic.IpAddress[0].IpPoint.Port == port)
+                _clients.IpAddress.Add(channel);
+                //
+                _clients.Connect(ip, port, pool);
+                ///
+
+            };
+
+
+
+            foreach (ChannelPool ic in _clients.IpAddress)
+            {
+
+                if (ic.IpPoint.Address.ToString() == ip && ic.IpPoint.Port == port)
                 {
                     iccon = true;
-                    _client = ic;
                     break;
                 }
             }
             if (!iccon)
             {
+                _clients.IpAddress.Add(channel);
+                _clients.Connect(ip, port, pool);
 
-                _client.Connect(ip, port, pool);
-                _clients.Add(_client);
             }
-
+            if (!_run)
+            {
+                _clients.Run();
+                _run = true;
+            }
             DataEventArgs callreg = new DataEventArgs() { ActionCmd = CallActionCmd.Register.ToString(), ActionParam = "Register" };
-            DataEventArgs reg = _client.CallServiceMethod(callreg);
+            _clients.CallServiceMethod(callreg);
+            DataEventArgs reg = _clients.GetResult(callreg);
+
             List<RegisterInfo> registerInfos = _serializer.ToEntity<List<RegisterInfo>>(reg.Binary);
             if (registerInfos != null)
             {
@@ -414,16 +518,16 @@ namespace UcAsp.RPC
                         string ass = string.Format("{0},{1}", info.NameSpace, info.ClassName);
                         if (!_proxobj.ContainsKey(assname))
                         {
-                            List<IClient> _listIClient = new List<IClient>();
-                            _listIClient.Add(_client);
-                            Tuple<string, List<IClient>> tuple = new Tuple<string, List<IClient>>(ass, _listIClient);
+                            List<ChannelPool> _listIClient = new List<ChannelPool>();
+                            _listIClient.Add(channel);
+                            Tuple<string, List<ChannelPool>> tuple = new Tuple<string, List<ChannelPool>>(ass, _listIClient);
                             _proxobj.Add(assname, tuple);
                         }
                         else
                         {
-                            List<IClient> client = _proxobj[assname].Item2;
-                            client.Add(_client);
-                            Tuple<string, List<IClient>> tuple = new Tuple<string, List<IClient>>(_proxobj[assname].Item1, client);
+                            List<ChannelPool> client = _proxobj[assname].Item2;
+                            client.Add(channel);
+                            Tuple<string, List<ChannelPool>> tuple = new Tuple<string, List<ChannelPool>>(_proxobj[assname].Item1, client);
                             _proxobj[assname] = tuple;
                         }
                     }
@@ -443,16 +547,9 @@ namespace UcAsp.RPC
 
         public void Dispose()
         {
+
+
             _log.Info("停止 服务");
-            if (_httpserver != null)
-            {
-                try
-                {
-                    _httpserver.Stop();
-                }
-                catch (Exception ex)
-                { }
-            }
             if (clientBoard != null)
             {
                 try
@@ -471,14 +568,17 @@ namespace UcAsp.RPC
             }
             if (_clients != null)
             {
-                foreach (IClient client in _clients)
-                {
-                    client.Exit();
-                }
+
+                _clients.Exit();
+
             }
             if (_server != null)
             {
                 _server.Stop();
+            }
+            if (_httpserver != null)
+            {
+                _httpserver.Stop();
             }
             if (Pong != null)
             {
@@ -490,6 +590,12 @@ namespace UcAsp.RPC
                 Broad.Stop();
                 Broad.Dispose();
             }
+            GC.SuppressFinalize(this);
+            cts.Cancel();
+            cts.Token.Register(() =>
+            {
+                Console.WriteLine("停止 服务");
+            });
 
         }
     }

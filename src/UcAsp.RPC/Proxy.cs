@@ -93,13 +93,14 @@ namespace UcAsp.RPC
             PropertyInfo[] pi = type.GetProperties();
 
             StringBuilder sb = new StringBuilder();
-            sb.Append("using System;\r\n");
-            sb.Append("using System.Collections;\r\n");
-            sb.Append("using System.Collections.Generic;\r\n");
-            sb.Append("using System.Reflection;\r\n");
-            sb.Append("using System.Threading.Tasks;\r\n");
-            sb.Append("using UcAsp.RPC;\r\n");
-            sb.Append("using log4net;\r\n");
+            sb.AppendLine("using System;\r\n");
+            sb.AppendLine("using System.Collections;\r\n");
+            sb.AppendLine("using System.Collections.Generic;\r\n");
+            sb.AppendLine("using System.Reflection;\r\n");
+            sb.AppendLine("using System.Threading.Tasks;\r\n");
+            sb.AppendLine("using UcAsp.RPC;\r\n");
+            sb.AppendLine("using log4net;\r\n");
+            sb.AppendLine("using System.Diagnostics;\r\n");
             if (RelationDll != null)
             {
                 foreach (var rassmbly in RelationDll)
@@ -109,11 +110,11 @@ namespace UcAsp.RPC
             }
             sb.AppendFormat("using {0};\r\n", assmbly);
             sb.AppendFormat("namespace {0}\r\n", nameSpace);
-            sb.Append("{\r\n");
+            sb.AppendLine("{\r\n");
 
             sb.AppendFormat("    public class {0}:ProxyObject,{1}\r\n", nameClass, interFaceName);
-            sb.Append("    {\r\n");
-
+            sb.AppendLine("    {\r\n");
+            sb.AppendLine("public delegate DataEventArgs GetHandler(DataEventArgs e);");
             sb.AppendFormat("private readonly ILog _log = LogManager.GetLogger(typeof({0}));\r\n", nameClass);
 
             foreach (PropertyInfo p in pi)
@@ -123,11 +124,9 @@ namespace UcAsp.RPC
 
             foreach (MethodInfo method in m)
             {
-
-                //MethodBase method = mi;// type.GetMethod(mi);
                 ParameterInfo[] para = method.GetParameters();
 
-                sb.Append(Environment.NewLine);
+                sb.AppendLine(Environment.NewLine);
                 sb.AppendFormat("        public {0} {1}(", GetTypeName(method.ReturnType), method.Name);
                 for (int x = 0; x < para.Length; x++)
                 {
@@ -137,13 +136,14 @@ namespace UcAsp.RPC
                         sb.Append(",");
                     }
                 }
-                sb.Append("     )\r\n");
-                sb.Append(Environment.NewLine);
-                sb.Append("        {\r\n");
+                sb.AppendLine("     )\r\n");
+                sb.AppendLine(Environment.NewLine);
+                sb.AppendLine("        {\r\n");
 
 
 
-
+                sb.AppendLine(" Stopwatch wath = new Stopwatch();");
+                sb.AppendLine("wath.Start();");
                 sb.AppendLine("            List<object> entity = new List<object>();\r\n");
                 foreach (var pa in para)
                 {
@@ -156,19 +156,27 @@ namespace UcAsp.RPC
                 string action = string.Format("{0}.{1}.{2}", method.DeclaringType.FullName, method.Name, GetMethodMd5Code(method));
                 sb.AppendLine(string.Format("            e.ActionParam = \"{0}\";\r\n", action));
                 sb.AppendLine("            e.ActionCmd = CallActionCmd.Call.ToString();\r\n");
-                sb.Append("       DataEventArgs data=new DataEventArgs();");
-                sb.Append("        try{\r\n");
-                sb.AppendLine("              Task<DataEventArgs> task = new Task<DataEventArgs>(Run.CallServiceMethod,e);\r\n");
-                sb.AppendLine("             task.Start();\r\n");
-                sb.AppendLine("             data = task.Result;\r\n");
-                sb.Append("       }catch (Exception ex)\r\n");
-                sb.Append("       { _log.Error(ex);}\r\n");
+
+                sb.AppendLine("       DataEventArgs data=new DataEventArgs();");
+                sb.AppendLine("        try{\r\n");
+                // sb.AppendLine("              Task  task = new Task(Run.CallServiceMethod,e);\r\n");
+                // sb.AppendLine("             task.Start();\r\n");
+                sb.AppendLine("       Run.CallServiceMethod(e);");
+                //  sb.AppendLine("             GetHandler handler=new  GetHandler(Run.GetResult);");
+                //  sb.AppendLine("             IAsyncResult result = handler.BeginInvoke(e, null, null);");
+
+                //  sb.AppendLine("             data = handler.EndInvoke(result);");
+                sb.AppendLine("             data = Run.GetResult(e);\r\n");
+                // sb.AppendLine("             data = Run.CallServiceMethod(e);\r\n");
+                sb.AppendLine("       }catch (Exception ex)\r\n");
+                sb.AppendLine("       { _log.Error(ex);}\r\n");
                 sb.AppendLine("            if (data.StatusCode != StatusCode.Success) {\r\n ");
                 sb.AppendLine("           _log.Error(data.ActionCmd + \": \" + data.ActionParam+ \": \" +data.StatusCode+ \": \" +data.LastError);");
                 sb.AppendLine("                Exception ex = new Exception(\"Call Service Method \" + data.ActionCmd + \": \" + data.ActionParam+ \": \" +data.StatusCode+ \": \" +data.LastError);\r\n");
                 sb.AppendLine("                throw (ex);\r\n");
                 sb.AppendLine("            }\r\n");
-
+                sb.AppendLine("wath.Stop();");
+                sb.AppendLine("_log.Info(e.ActionParam + \":\" + e.CallHashCode + \":\" + e.TaskId + \":\" + wath.ElapsedMilliseconds);");
                 if (IsVoid(method.ReturnType) == false)
                 {
 
@@ -176,7 +184,7 @@ namespace UcAsp.RPC
 
                 }
 
-                sb.Append("        }\r\n");
+                sb.AppendLine("        }\r\n");
 
             }
             sb.Append("    }\r\n");

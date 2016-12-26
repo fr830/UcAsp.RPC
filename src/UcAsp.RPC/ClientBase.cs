@@ -20,12 +20,14 @@ using log4net;
 
 namespace UcAsp.RPC
 {
-    public class ClientBase : IClient
+    public abstract class ClientBase : IClient
     {
-
-
+        public Queue<DataEventArgs> ClientTask { get; set; }
+        public Dictionary<int, DataEventArgs> ResultTask { get; set; }
+        private Socket socket;
         public List<ChannelPool> IpAddress { get; set; }
-
+        public int TaskId { get; set; }
+        public abstract void Run();
         public bool IsStart
         {
             get;
@@ -33,16 +35,20 @@ namespace UcAsp.RPC
             set;
         }
 
-        public virtual string LastError
+        public string LastError
         {
             get;
 
             set;
         }
 
-        /// <summary>
-        /// 秒 时间戳
-        /// </summary>
+        public bool IsRun
+        {
+            get;
+
+            set;
+        }
+
         public long PingActives
         {
             get;
@@ -50,26 +56,14 @@ namespace UcAsp.RPC
             set;
         }
 
-        public virtual DataEventArgs CallServiceMethod(object e)
-        {
+        public abstract void CallServiceMethod(object e);
+        public abstract DataEventArgs GetResult(DataEventArgs e);
 
-            return (DataEventArgs)e;
-        }
-
-
-        public virtual void Connect(string ip, int port, int pool)
-        {
-
-
-        }
+        public abstract void Connect(string ip, int port, int pool);
 
 
 
 
-        public virtual void Exit()
-        {
-            // Dispose();
-        }
-
+        public abstract void Exit();
     }
 }

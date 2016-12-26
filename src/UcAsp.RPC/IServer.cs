@@ -18,9 +18,9 @@ namespace UcAsp.RPC
         List<RegisterInfo> RegisterInfo { get; set; }
         // event EventHandler<DataEventArgs> OnReceive;
         void StartListen(int port);
-        // void Close(object socket);
         bool IsStart { get; set; }
 
         void Stop();
+        // void Close(object socket);
     }
 }

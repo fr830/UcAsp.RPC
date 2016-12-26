@@ -10,6 +10,7 @@ namespace UcAsp.RPC.Server.Test
         static void Main(string[] args)
         {
             ApplicationContext context = new ApplicationContext();
+            context.Start(AppDomain.CurrentDomain.BaseDirectory+ "Application.config", AppDomain.CurrentDomain.BaseDirectory);
             Console.ReadKey();
         }
     }
