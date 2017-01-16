@@ -26,40 +26,46 @@ namespace UcAsp.RPC
         private static CancellationTokenSource cancelTokenSource = new CancellationTokenSource();
         private readonly ILog _log = LogManager.GetLogger(typeof(TcpClient));
         private const int buffersize = 1024 * 5;
+        private Dictionary<int, ChannelPool> runpool = new Dictionary<int, ChannelPool>();
 
         public override void CallServiceMethod(object de)
         {
-            DataEventArgs e = (DataEventArgs)de;
-            if (ApplicationContext._taskId < int.MaxValue)
+            lock (ClientTask)
             {
-                ApplicationContext._taskId++;
+                DataEventArgs e = (DataEventArgs)de;
+                if (ApplicationContext._taskId < int.MaxValue)
+                {
+                    ApplicationContext._taskId++;
+                }
+                else
+                {
+                    ApplicationContext._taskId = 0;
+                }
+                while (RuningTask.Count + 2 > IpAddress.Count)
+                {
+                    Thread.Sleep(10);
+                }
+                e.TaskId = ApplicationContext._taskId;
+                ClientTask.Enqueue(e);
             }
-            else
-            {
-                ApplicationContext._taskId = 0;
-            }
-            e.TaskId = ApplicationContext._taskId;
-            ClientTask.Enqueue(e);
         }
 
         public override void Connect(string ip, int port, int pool)
         {
 
-            // if (pool > 5)
-            //    pool = 5;
             for (int i = 0; i < pool; i++)
             {
                 try
                 {
                     IPEndPoint ep = new IPEndPoint(IPAddress.Parse(ip), port);
-                    Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);// TcpConnect(ep);
-                    socket.Connect(ep);
-                    ChannelPool channel = new ChannelPool() { Available = true, Client = socket, IpPoint = ep, PingActives = 0, RunTimes = 0 };
-                    IpAddress.Add(channel);
-
-
-                    Thread thgetResult = new Thread(new ParameterizedThreadStart(GetData));
-                    thgetResult.Start(channel);
+                    Socket socket = Connect(ep);
+                    if (socket != null)
+                    {
+                        ChannelPool channel = new ChannelPool() { Available = true, Client = socket, IpPoint = ep, PingActives = 0, RunTimes = 0 };
+                        IpAddress.Add(channel);
+                        Thread thgetResult = new Thread(new ParameterizedThreadStart(GetData));
+                        thgetResult.Start(channel);
+                    }
 
                 }
                 catch (Exception ex)
@@ -69,6 +75,19 @@ namespace UcAsp.RPC
             }
         }
 
+        private Socket Connect(IPEndPoint ip)
+        {
+            try
+            {
+                Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);// TcpConnect(ep);
+                socket.Connect(ip);
+                return socket;
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
+        }
         public override void Exit()
         {
             cancelTokenSource.Cancel();
@@ -90,13 +109,22 @@ namespace UcAsp.RPC
                     bool result = ResultTask.TryGetValue(e.TaskId, out er);
                     if (result)
                     {
-                        ResultTask.Remove(e.TaskId);
+                        //  ResultTask.Remove(e.CallHashCode);
+
                         return er;
                     }
-                    if (time > 1500)
+                    if (time > 2000)
                     {
-                        e.StatusCode = StatusCode.TimeOut;
-                        return e;
+                        if (e.TryTimes < 3)
+                        {
+                            e.TryTimes++;
+                            ClientTask.Enqueue(e);
+                        }
+                        else
+                        {
+                            e.StatusCode = StatusCode.TimeOut;
+                            return e;
+                        }
                     }
                     time++;
                     TaskId = e.TaskId;
@@ -104,25 +132,55 @@ namespace UcAsp.RPC
                 }
             }, cancelTokenSource.Token);
             chektask.Start();
-            return chektask.Result;
+            DataEventArgs data = chektask.Result;
+            RemovePool(data);
+            return data;
         }
-
         public override void Run()
         {
             Task sendtask = new Task(() =>
             {
+
                 while (!cancelTokenSource.IsCancellationRequested)
                 {
                     Thread.Sleep(10);
 
-                    if (ClientTask.Count > 0)
+                    List<ChannelPool> avipool = IpAddress.Where(o => o.ActiveHash == 0 && o.Client != null).ToList();
+                    if (avipool.Count < 2 && IpAddress.Count < 5)
                     {
-                        try
+                        Socket socket = Connect(IpAddress[0].IpPoint);
+                        if (socket != null)
                         {
-                            DataEventArgs e = ClientTask.Dequeue();
-                            Call(e);
+                            ChannelPool channel = new ChannelPool() { Available = true, Client = socket, IpPoint = IpAddress[0].IpPoint, PingActives = 0, RunTimes = 0, ActiveHash = 0 };
+                            IpAddress.Add(channel);
+                            Thread thgetResult = new Thread(new ParameterizedThreadStart(GetData));
+                            thgetResult.Start(channel);
                         }
-                        catch (Exception ex) { _log.Error(ex); }
+                    }
+                    if (RuningTask.Count + 1 < IpAddress.Count)
+                    {
+                        if (ClientTask.Count > 0)
+                        {
+                            try
+                            {
+                                DataEventArgs e = ClientTask.Dequeue();
+                                int len = e.TaskId % IpAddress.Count;
+                                while (IpAddress[len].ActiveHash != 0)
+                                {
+                                    len++;
+                                    if (len > IpAddress.Count)
+                                    {
+                                        len = 0;
+                                    }
+                                }
+                                IpAddress[len].ActiveHash = e.TaskId;
+                                IpAddress[len].RunTimes++;
+                                IpAddress[len].PingActives = DateTime.Now.Ticks;
+                                Call(e, len);
+                            }
+                            catch (Exception ex) { _log.Error(ex); }
+
+                        }
 
                     }
 
@@ -132,6 +190,22 @@ namespace UcAsp.RPC
 
         }
 
+        private void RemovePool(DataEventArgs hash)
+        {
+            if (RuningTask.ContainsKey(hash.TaskId))
+            {
+                Console.WriteLine("RemovePool:" + hash.TaskId + "x");
+                RuningTask.Remove(hash.TaskId);
+            }
+            for (int i = 0; i < IpAddress.Count; i++)
+            {
+                if (IpAddress[i].ActiveHash == hash.TaskId)
+                {
+                    Console.WriteLine("RemovePool:" + hash.TaskId + "X");
+                    IpAddress[i].ActiveHash = 0;
+                }
+            }
+        }
 
         private void GetData(object client)
         {
@@ -139,39 +213,43 @@ namespace UcAsp.RPC
             {
                 try
                 {
-                    ChannelPool channcel = (ChannelPool)client;
-                    Socket _client = channcel.Client;
-                    ByteBuilder _recvBuilder = new ByteBuilder(buffersize);
-                    byte[] buffer = new byte[buffersize];
-                    int total = 0;
-                    int timeO = 0;
-                    while (true)
+                    lock (client)
                     {
-
-                        int l = _client.Receive(buffer, SocketFlags.None);
-                        _recvBuilder.Add(buffer, 0, l);
-                        total = _recvBuilder.GetInt32(0);
-
-                        if (l == 0 && total == 0)
+                        ChannelPool channcel = (ChannelPool)client;
+                        Socket _client = channcel.Client;
+                        ByteBuilder _recvBuilder = new ByteBuilder(buffersize);
+                        byte[] buffer = new byte[buffersize];
+                        int total = 0;
+                        int timeO = 0;
+                        while (true)
                         {
-                            timeO++;
-                            Thread.Sleep(5);
-                            if (timeO > 1000)
+
+                            int l = _client.Receive(buffer, SocketFlags.None);
+                            _recvBuilder.Add(buffer, 0, l);
+                            total = _recvBuilder.GetInt32(0);
+
+                            if (l == 0 && total == 0)
+                            {
+                                timeO++;
+                                Thread.Sleep(5);
+                                if (timeO > 1000)
+                                    break;
+                            }
+                            if (total == _recvBuilder.Count)
                                 break;
                         }
-                        if (total == _recvBuilder.Count)
-                            break;
-                    }
-                    if (_recvBuilder.Count == 0)
-                    {
-                        Console.WriteLine("连接超时");
+                        if (_recvBuilder.Count == 0)
+                        {
+                            Console.WriteLine("连接超时");
 
+                        }
+                        DataEventArgs dex = DataEventArgs.Parse(_recvBuilder);
+                        dex.RemoteIpAddress = _client.RemoteEndPoint.ToString();
+                        _log.Info(dex.ActionCmd + dex.ActionParam + ":" + dex.TaskId);
+                        _client.ReceiveTimeout = int.MaxValue;
+                        ResultTask.Add(dex.TaskId, dex);
                     }
-                    DataEventArgs dex = DataEventArgs.Parse(_recvBuilder);
-                    dex.RemoteIpAddress = _client.RemoteEndPoint.ToString();
-                    _log.Info(dex.ActionCmd + dex.ActionParam + ":" + dex.TaskId);
-                    _client.ReceiveTimeout = int.MaxValue;
-                    ResultTask.Add(dex.TaskId, dex);
+
                 }
                 catch (Exception ex)
                 {
@@ -180,34 +258,24 @@ namespace UcAsp.RPC
                 }
             }
         }
-        private void Call(object obj)
+        private void Call(object obj, int len)
         {
             DataEventArgs e = (DataEventArgs)obj;
-            e.CallHashCode = e.GetHashCode();
             try
             {
-                int len = e.TaskId % IpAddress.Count;
-                Socket _client = IpAddress[len].Client;
-                while (_client == null)
+                if (RuningTask == null)
                 {
-                    if (len + 1 < IpAddress.Count)
-                    {
-                        _client = IpAddress[len + 1].Client;
-                        len = len + 1;
-                    }
-                    else
-                    {
-                        len = 0;
-                    }
+                    RuningTask = new Dictionary<int, DataEventArgs>();
                 }
-                //if (_client.Poll(100, SelectMode.SelectError))
-                //{
-                //    Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);// TcpConnect(ep);
-                //    socket.Connect(IpAddress[e.TaskId % IpAddress.Count].IpPoint);
-                //    IpAddress[e.TaskId % IpAddress.Count].Client = socket;
-                //}
+                RuningTask.Add(e.TaskId, e);
+
+                Socket _client = IpAddress[len].Client;
+
                 byte[] _bf = e.ToByteArray();
-                _client.Send(_bf, 0, _bf.Length, SocketFlags.None);
+                // Console.WriteLine(e.TaskId + ".");
+
+                int sendlen = _client.Send(_bf, 0, _bf.Length, SocketFlags.None);
+                //   Console.WriteLine(e.TaskId + "." + sendlen + "==" + _bf.Length);
             }
             catch (Exception ex)
             {
@@ -216,14 +284,14 @@ namespace UcAsp.RPC
                 e.TryTimes++;
                 if (e.TryTimes < 3)
                 {
-                    Thread.Sleep(50);
-                    Call(e);
+                    ClientTask.Enqueue(e);
                     return;
                 }
                 ResultTask.Add(e.TaskId, e);
                 return;
             }
         }
+
 
     }
 

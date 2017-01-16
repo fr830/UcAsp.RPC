@@ -24,6 +24,8 @@ namespace UcAsp.RPC
     {
         public Queue<DataEventArgs> ClientTask { get; set; }
         public Dictionary<int, DataEventArgs> ResultTask { get; set; }
+
+        public Dictionary<int, DataEventArgs> RuningTask { get; set; }
         private Socket socket;
         public List<ChannelPool> IpAddress { get; set; }
         public int TaskId { get; set; }

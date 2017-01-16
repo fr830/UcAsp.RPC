@@ -23,7 +23,7 @@ namespace UcAsp.RPC
         public static int _taskId = 0;
         private static bool _run = false;
         private static Dictionary<string, Type> _obj = new Dictionary<string, Type>();
-        private static Dictionary<string, Tuple<string, MethodInfo>> _memberinfos = new Dictionary<string, Tuple<string, MethodInfo>>();
+        private static Dictionary<string, Tuple<string, MethodInfo, int>> _memberinfos = new Dictionary<string, Tuple<string, MethodInfo, int>>();
         private static Dictionary<string, Tuple<string, List<ChannelPool>>> _proxobj = new Dictionary<string, Tuple<string, List<ChannelPool>>>();
         private static List<RegisterInfo> _registerInfo = new List<RegisterInfo>();
         private static string _config;
@@ -342,7 +342,7 @@ namespace UcAsp.RPC
                             if (!_memberinfos.ContainsKey(method))
                             {
                                 //md5格式
-                                Tuple<string, MethodInfo> tuple = new Tuple<string, MethodInfo>(action, info);
+                                Tuple<string, MethodInfo, int> tuple = new Tuple<string, MethodInfo, int>(action, info, 0);
                                 //方法类 重新方法无法实现
                                 /* Tuple<string, MethodInfo> tuplepath = new Tuple<string, MethodInfo>(action, info);
                                  string path = t.Namespace + "/" + t.Name + "/" + info.Name;
@@ -462,19 +462,18 @@ namespace UcAsp.RPC
             string ip = sport.Ip;
             int port = sport.Port;
             int pool = sport.Pool;
-            ChannelPool channel = new ChannelPool { IpPoint = new IPEndPoint(IPAddress.Parse(ip), port) };
 
             if (_clients == null)
             {
                 _clients = new TcpClient();
                 _clients.ClientTask = new Queue<DataEventArgs>();
                 _clients.ResultTask = new Dictionary<int, DataEventArgs>();
+                _clients.RuningTask = new Dictionary<int, DataEventArgs>();
                 _clients.IpAddress = new List<ChannelPool>();
             }
             bool iccon = false;
             if (_clients.IpAddress.Count <= 0)
             {
-                _clients.IpAddress.Add(channel);
                 //
                 _clients.Connect(ip, port, pool);
                 ///
@@ -494,7 +493,6 @@ namespace UcAsp.RPC
             }
             if (!iccon)
             {
-                _clients.IpAddress.Add(channel);
                 _clients.Connect(ip, port, pool);
 
             }
@@ -504,6 +502,7 @@ namespace UcAsp.RPC
                 _run = true;
             }
             DataEventArgs callreg = new DataEventArgs() { ActionCmd = CallActionCmd.Register.ToString(), ActionParam = "Register" };
+            callreg.CallHashCode = callreg.GetHashCode();
             _clients.CallServiceMethod(callreg);
             DataEventArgs reg = _clients.GetResult(callreg);
 
@@ -519,14 +518,14 @@ namespace UcAsp.RPC
                         if (!_proxobj.ContainsKey(assname))
                         {
                             List<ChannelPool> _listIClient = new List<ChannelPool>();
-                            _listIClient.Add(channel);
+                           // _listIClient.Add(channel);
                             Tuple<string, List<ChannelPool>> tuple = new Tuple<string, List<ChannelPool>>(ass, _listIClient);
                             _proxobj.Add(assname, tuple);
                         }
                         else
                         {
                             List<ChannelPool> client = _proxobj[assname].Item2;
-                            client.Add(channel);
+                          //  client.Add(channel);
                             Tuple<string, List<ChannelPool>> tuple = new Tuple<string, List<ChannelPool>>(_proxobj[assname].Item1, client);
                             _proxobj[assname] = tuple;
                         }

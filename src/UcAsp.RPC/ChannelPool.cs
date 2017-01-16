@@ -25,5 +25,7 @@ namespace UcAsp.RPC
         public long PingActives { get; set; }
 
         public Socket Client { get; set; }
+
+        public int ActiveHash { get; set; }
     }
 }

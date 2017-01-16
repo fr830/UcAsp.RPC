@@ -152,11 +152,10 @@ namespace UcAsp.RPC
 
                 sb.AppendLine("            DataEventArgs e = new DataEventArgs();");
                 sb.AppendLine("            e.Binary = this.Serializer.ToBinary(entity);");
-
+                sb.AppendLine("            e.CallHashCode = e.GetHashCode();");
                 string action = string.Format("{0}.{1}.{2}", method.DeclaringType.FullName, method.Name, GetMethodMd5Code(method));
                 sb.AppendLine(string.Format("            e.ActionParam = \"{0}\";\r\n", action));
                 sb.AppendLine("            e.ActionCmd = CallActionCmd.Call.ToString();\r\n");
-
                 sb.AppendLine("       DataEventArgs data=new DataEventArgs();");
                 sb.AppendLine("        try{\r\n");
                 // sb.AppendLine("              Task  task = new Task(Run.CallServiceMethod,e);\r\n");

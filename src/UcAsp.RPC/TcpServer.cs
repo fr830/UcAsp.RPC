@@ -98,7 +98,7 @@ namespace UcAsp.RPC
                 {
                     try
                     {
-                        Console.WriteLine(client.LocalEndPoint);
+                      //  Console.WriteLine(client.LocalEndPoint);
                         ByteBuilder _recvBuilder = new ByteBuilder(client.ReceiveBufferSize);
                         byte[] buffer = new byte[buffersize];
                         int total = 0;
@@ -111,7 +111,7 @@ namespace UcAsp.RPC
                             { break; }
                         }
                         DataEventArgs e = DataEventArgs.Parse(_recvBuilder);
-                        Console.WriteLine(e.ActionCmd + e.ActionParam);
+                        Console.WriteLine(e.TaskId+".");
                         Call(client, e);
 
 

@@ -33,7 +33,7 @@ namespace UcAsp.RPC
         public string LastParam = "";
         public int Timer = 0;
         private long _endsend = DateTime.Now.Ticks;
-        public virtual Dictionary<string, Tuple<string, MethodInfo>> MemberInfos
+        public virtual Dictionary<string, Tuple<string, MethodInfo, int>> MemberInfos
         { get; set; }
         public virtual List<RegisterInfo> RegisterInfo { get; set; }
 
@@ -131,7 +131,7 @@ namespace UcAsp.RPC
                         try
                         {
                             string name = MemberInfos[code].Item1;
-
+                            MemberInfos[code] = new Tuple<string, MethodInfo, int>(MemberInfos[code].Item1, MemberInfos[code].Item2, MemberInfos[code].Item3 + 1);
                             MethodInfo method = MemberInfos[code].Item2;
                             var parameters = this._serializer.ToEntity<List<object>>(e.Binary);
                             if (parameters == null) parameters = new List<object>();

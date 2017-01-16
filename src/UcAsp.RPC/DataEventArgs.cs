@@ -21,6 +21,7 @@ namespace UcAsp.RPC
         /// 二进制数据
         /// </summary>
         public Binary Binary { get; set; }
+        private int _hash = 0;
 
         public int CallHashCode { get; set; }
 
@@ -54,6 +55,7 @@ namespace UcAsp.RPC
             this.TaskId = 0;
             this.LastError = "";
             this.RemoteIpAddress = null;
+
 
         }
 
@@ -176,7 +178,7 @@ namespace UcAsp.RPC
                 }
                 else
                 {
-
+                    Console.WriteLine("无效包 包转换失败 清除");
                     _log.Error("无效包 包转换失败 清除");
                     // 无效包 清除
                     recvBuilder.Clear();
@@ -186,7 +188,7 @@ namespace UcAsp.RPC
             }
             else
             {
-
+                Console.WriteLine("空包 网络丢失 清除");
                 _log.Error("空包 网络丢失 清除");
                 recvBuilder.Clear();
                 return new DataEventArgs() { Binary = null, LastError = "网络丢失", StatusCode = StatusCode.Error, ActionCmd = CallActionCmd.Call.ToString() };

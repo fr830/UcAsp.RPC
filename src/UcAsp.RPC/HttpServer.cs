@@ -32,7 +32,7 @@ namespace UcAsp.RPC
         private string _httpversion;
         private string _url = string.Empty;
         private string _mimetype = string.Empty;
-        public override Dictionary<string, Tuple<string, MethodInfo>> MemberInfos { get; set; }
+        public override Dictionary<string, Tuple<string, MethodInfo, int>> MemberInfos { get; set; }
 
         public override void StartListen(int port)
         {
@@ -40,7 +40,7 @@ namespace UcAsp.RPC
             _server = new TcpListener(IPAddress.Any, port);
             _server.Start();
             _log.Info("启动WEB服务" + port);
-            for (int i = 0; i < 10; i++)
+            for (int i = 0; i < Environment.ProcessorCount; i++)
             {
                 ThreadPool.QueueUserWorkItem(Listen, null);
             }
@@ -64,25 +64,33 @@ namespace UcAsp.RPC
                 {
                     try
                     {
-                        Byte[] bReceive = new Byte[buffersize];
-                        int i = socket.Receive(bReceive, bReceive.Length, 0);
-                        //转换成字符串类型
-                        string sBuffer = Encoding.ASCII.GetString(bReceive).Substring(0, i);
+                        string sBuffer = string.Empty;
+                        while (true)
+                        {
+                            Byte[] bReceive = new Byte[buffersize];
+                            int i = socket.Receive(bReceive, bReceive.Length, 0);
+                            sBuffer = sBuffer + Encoding.ASCII.GetString(bReceive).Substring(0, i);
+                            if (i - buffersize < 0)
+                            {
+                                break;
+                            }
+                        }
+                        if (string.IsNullOrEmpty(sBuffer))
+                        {
+
+                            return;
+                        }
+                        Dictionary<string, string> header = Header(sBuffer).Item1;
+                        Dictionary<string, string> request = Header(sBuffer).Item2;
+                        _url = header["Host"];
+
                         // 查找 "HTTP" 的位置
-                        iStartPos = sBuffer.IndexOf("HTTP", 1);
-                        _httpversion = sBuffer.Substring(iStartPos, 8);
+
+                        _httpversion = request["version"];
                         // 得到请求类型和文件目录文件名
-                        sRequest = sBuffer.Substring(0, iStartPos - 1);
-                        if (!sRequest.EndsWith("/")) sRequest = sRequest + "/";
-                        //得到请求文件目录
-                        if (sBuffer.Substring(0, 4) != "POST")
-                        {
-                            sDirName = sRequest.Substring(sRequest.IndexOf("/"), sRequest.LastIndexOf("/") - 3);
-                        }
-                        else
-                        {
-                            sDirName = sRequest.Substring(sRequest.IndexOf("/"), sRequest.LastIndexOf("/") - 4);
-                        }
+                        sDirName = request["path"];
+                        if (!sDirName.EndsWith("/")) sDirName = sDirName + "/";
+
                         string[] Route = sDirName.Split('/');
                         if (Route.Length < 2 || Route[1].ToUpper() == "HLEP" || Route[1].ToUpper() == "API" || Route[1].ToUpper() == "")
                         {
@@ -223,7 +231,7 @@ namespace UcAsp.RPC
             sb.Append(@" </head><body>");
             sb.Append(@"<div class=""navbar navbar-default"" role=""navigation"" id=""head""> <div class=""container""><div class=""navbar - header"">UCAsp.NET</div></div></div>");
             sb.Append(@"<div class=""container-fluid"">");
-            foreach (KeyValuePair<string, Tuple<string, MethodInfo>> kv in MemberInfos)
+            foreach (KeyValuePair<string, Tuple<string, MethodInfo, int>> kv in MemberInfos)
             {
 
                 sb.Append(@"<div class=""list-group"">");
@@ -238,7 +246,7 @@ namespace UcAsp.RPC
                         sb.Append(",");
                     }
                 }
-                sb.AppendFormat("     )  Method:POST   返回类型：{0}</a>", Proxy.GetTypeName(kv.Value.Item2.ReturnType).Replace("<", "&lt;").Replace(">", " &gt;"));
+                sb.AppendFormat("     )  Method:POST   返回类型：{0}[自启动运行{1}次]</a>", Proxy.GetTypeName(kv.Value.Item2.ReturnType).Replace("<", "&lt;").Replace(">", " &gt;"), kv.Value.Item3);
                 sb.Append(@"<div class=""list-group-item"">Example:Request Body JSON [");
                 for (int xx = 0; xx < para.Length; xx++)
                 {
@@ -335,6 +343,33 @@ namespace UcAsp.RPC
                 SendHeader(sHttpVersion, "", OutMessage.Length, " 404 Not Found", ref mySocket);
                 SendToBrowser(OutMessage, ref mySocket);
             }
+        }
+
+        private Tuple<Dictionary<string, string>, Dictionary<string, string>> Header(string header)
+        {
+            Dictionary<string, string> dic = new Dictionary<string, string>();
+
+            string[] h = Regex.Split(header, "\r\n");
+            Dictionary<string, string> r = Request(h[0]);
+            for (int i = 1; i < h.Length; i++)
+            {
+                string[] d = Regex.Split(h[i], ": ");
+                if (d.Length == 2)
+                {
+                    dic.Add(d[0], d[1]);
+                }
+            }
+            return new Tuple<Dictionary<string, string>, Dictionary<string, string>>(dic, r);
+        }
+
+        private Dictionary<string, string> Request(string request)
+        {
+            Dictionary<string, string> dic = new Dictionary<string, string>();
+            string[] r = Regex.Split(request, " ");
+            dic.Add("method", r[0]);
+            dic.Add("path", r[1]);
+            dic.Add("version", r[2]);
+            return dic;
         }
         public override void Stop()
         {

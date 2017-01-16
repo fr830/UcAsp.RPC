@@ -9,8 +9,10 @@ namespace UcAsp.RPC
     public interface IClient
     {
         bool IsStart { get; set; }
-         Queue<DataEventArgs> ClientTask { get; set; }
-         Dictionary<int, DataEventArgs> ResultTask { get; set; }
+        Queue<DataEventArgs> ClientTask { get; set; }
+        Dictionary<int, DataEventArgs> ResultTask { get; set; }
+        Dictionary<int, DataEventArgs> RuningTask { get; set; }
+
         List<ChannelPool> IpAddress { get; set; }
         bool IsRun { get; set; }
 
