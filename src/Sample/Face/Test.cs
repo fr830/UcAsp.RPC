@@ -41,15 +41,15 @@ namespace Face
         public List<string> Good(string yun, string mm, string kkk)
         {
             List<string> list = new List<string>();
-            for (int i = 0; i < 2; i++)
+            for (int i = 0; i <200; i++)
             {
                 list.Add(yun.ToString());
                 list.Add(mm);
                 list.Add(kkk);
-                 Thread.Sleep(new Random().Next(999));
+                 //Thread.Sleep(new Random().Next(200));
                 // throw new Exception("错误");
             }
-           // Thread.Sleep(new Random().Next(999));
+            //Thread.Sleep(200);
             return list;
         }
 

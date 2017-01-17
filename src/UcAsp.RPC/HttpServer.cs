@@ -82,7 +82,7 @@ namespace UcAsp.RPC
                         }
                         Dictionary<string, string> header = Header(sBuffer).Item1;
                         Dictionary<string, string> request = Header(sBuffer).Item2;
-                        _url = header["Host"];
+                        _url = "http://" + header["Host"];
 
                         // 查找 "HTTP" 的位置
 

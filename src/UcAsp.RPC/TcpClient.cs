@@ -43,7 +43,7 @@ namespace UcAsp.RPC
                 }
                 while (RuningTask.Count + 2 > IpAddress.Count)
                 {
-                    Thread.Sleep(10);
+                    Thread.Sleep(2);
                 }
                 e.TaskId = ApplicationContext._taskId;
                 ClientTask.Enqueue(e);
@@ -104,18 +104,17 @@ namespace UcAsp.RPC
                     {
                         return null;
                     }
-                    Thread.Sleep(10);
+                    Thread.Sleep(2);
                     DataEventArgs er = new DataEventArgs();
                     bool result = ResultTask.TryGetValue(e.TaskId, out er);
+                   // Console.WriteLine(RuningTask.Count + "." + ClientTask.Count);
                     if (result)
                     {
-                        //  ResultTask.Remove(e.CallHashCode);
-
                         return er;
                     }
                     if (time > 2000)
                     {
-                        if (e.TryTimes < 3)
+                        if (e.TryTimes < 6)
                         {
                             e.TryTimes++;
                             ClientTask.Enqueue(e);
@@ -134,6 +133,7 @@ namespace UcAsp.RPC
             chektask.Start();
             DataEventArgs data = chektask.Result;
             RemovePool(data);
+
             return data;
         }
         public override void Run()
@@ -143,7 +143,7 @@ namespace UcAsp.RPC
 
                 while (!cancelTokenSource.IsCancellationRequested)
                 {
-                    Thread.Sleep(10);
+                    Thread.Sleep(2);
 
                     List<ChannelPool> avipool = IpAddress.Where(o => o.ActiveHash == 0 && o.Client != null).ToList();
                     if (avipool.Count < 2 && IpAddress.Count < 5)
@@ -192,16 +192,21 @@ namespace UcAsp.RPC
 
         private void RemovePool(DataEventArgs hash)
         {
+            if (ResultTask.ContainsKey(hash.CallHashCode))
+            {
+                ResultTask.Remove(hash.CallHashCode);
+            }
+
             if (RuningTask.ContainsKey(hash.TaskId))
             {
-                Console.WriteLine("RemovePool:" + hash.TaskId + "x");
+
                 RuningTask.Remove(hash.TaskId);
             }
             for (int i = 0; i < IpAddress.Count; i++)
             {
                 if (IpAddress[i].ActiveHash == hash.TaskId)
                 {
-                    Console.WriteLine("RemovePool:" + hash.TaskId + "X");
+                    //  Console.WriteLine("RemovePool:" + hash.TaskId + "X");
                     IpAddress[i].ActiveHash = 0;
                 }
             }

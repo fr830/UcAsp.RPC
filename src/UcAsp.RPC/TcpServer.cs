@@ -39,7 +39,7 @@ namespace UcAsp.RPC
             //this._server.BeginAccept(new AsyncCallback(Accept), this._server);
 
             #endregion
-            for (int i = 0; i < 20; i++)
+            for (int i = 0; i < Environment.ProcessorCount*2; i++)
             {
                 _startThread[i] = new Thread(new ParameterizedThreadStart(Start));
                 _startThread[i].Start(null);
