@@ -361,13 +361,14 @@ namespace UcAsp.RPC
 
 
             int port = config.GetValue("server", "port", 9008);
-            string protocol = (string)config.GetValue("server", "protocol");
+            string password = (string)config.GetValue("server", "password");
+            string username = (string)config.GetValue("server", "username");
             _server = new TcpServer();
             _httpserver = new HttpServer();
 
             _server.MemberInfos = _httpserver.MemberInfos = _memberinfos;
             _server.RegisterInfo = _httpserver.RegisterInfo = _registerInfo;
-            //_tcpServer.OnReceive += Server_OnReceive;
+            _httpserver.Authorization=_server.Authorization = Convert.ToBase64String(Encoding.ASCII.GetBytes(username +":"+ password));
             _server.StartListen(port);
             _httpserver.StartListen(port + 1);
             Broad.Interval = 30000;
@@ -518,14 +519,14 @@ namespace UcAsp.RPC
                         if (!_proxobj.ContainsKey(assname))
                         {
                             List<ChannelPool> _listIClient = new List<ChannelPool>();
-                           // _listIClient.Add(channel);
+                            // _listIClient.Add(channel);
                             Tuple<string, List<ChannelPool>> tuple = new Tuple<string, List<ChannelPool>>(ass, _listIClient);
                             _proxobj.Add(assname, tuple);
                         }
                         else
                         {
                             List<ChannelPool> client = _proxobj[assname].Item2;
-                          //  client.Add(channel);
+                            //  client.Add(channel);
                             Tuple<string, List<ChannelPool>> tuple = new Tuple<string, List<ChannelPool>>(_proxobj[assname].Item1, client);
                             _proxobj[assname] = tuple;
                         }

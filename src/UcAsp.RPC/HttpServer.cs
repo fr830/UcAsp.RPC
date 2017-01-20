@@ -32,6 +32,7 @@ namespace UcAsp.RPC
         private string _httpversion;
         private string _url = string.Empty;
         private string _mimetype = string.Empty;
+
         public override Dictionary<string, Tuple<string, MethodInfo, int>> MemberInfos { get; set; }
 
         public override void StartListen(int port)
@@ -40,7 +41,7 @@ namespace UcAsp.RPC
             _server = new TcpListener(IPAddress.Any, port);
             _server.Start();
             _log.Info("启动WEB服务" + port);
-            for (int i = 0; i < Environment.ProcessorCount*2; i++)
+            for (int i = 0; i < Environment.ProcessorCount * 2; i++)
             {
                 ThreadPool.QueueUserWorkItem(Listen, null);
             }
@@ -103,6 +104,31 @@ namespace UcAsp.RPC
                             Regex r = new Regex("\r\n\r\n");
                             string[] Code = r.Split(sBuffer);
                             content = Code[1];
+                            if (header.ContainsKey("Authorization"))
+                            {
+                                string[] auth = header["Authorization"].Split(' ');
+                                if (auth.Length == 2)
+                                {
+                                    if (auth[1] != Authorization)
+                                    {
+                                        HttpRespone.SendAuthError(_httpversion, "认证失败", ref socket);
+                                        socket.Close();
+                                        return;
+                                    }
+                                }
+                                else
+                                {
+                                    HttpRespone.SendAuthError(_httpversion, "认证失败", ref socket);
+                                    socket.Close();
+                                    return;
+                                }
+                            }
+                            else
+                            {
+                                HttpRespone.SendAuthError(_httpversion, "认证失败", ref socket);
+                                socket.Close();
+                                return;
+                            }
                             if (header.ContainsKey("Content-Length"))
                             {
 
@@ -150,8 +176,7 @@ namespace UcAsp.RPC
                     {
                         _log.Error(ex);
                         HttpRespone.SendError(_httpversion, ex.Message, ref socket);
-                        //Thread thread = Thread.CurrentThread;
-                        // thread.Abort();
+
                     }
                     finally
                     {
@@ -391,13 +416,19 @@ namespace UcAsp.RPC
             public static void SendError(string sHttpVersion, ref Socket mySocket)
             {
                 string OutMessage = "<H2>Error!! 404 Not Found</H2><Br>";
-                SendHeader(sHttpVersion, "", OutMessage.Length, " 404 Not Found", ref mySocket);
+                SendHeader(sHttpVersion, "", Encoding.UTF8.GetBytes(OutMessage).Length, " 404 Not Found", ref mySocket);
                 SendToBrowser(OutMessage, ref mySocket);
             }
             public static void SendError(string sHttpVersion, string errorMsg, ref Socket mySocket)
             {
                 string OutMessage = "<H2>Error!! 404 Not Found</H2><Br>" + errorMsg;
-                SendHeader(sHttpVersion, "", OutMessage.Length, " 404 Not Found", ref mySocket);
+                SendHeader(sHttpVersion, "", Encoding.UTF8.GetBytes(OutMessage).Length, " 404 Not Found", ref mySocket);
+                SendToBrowser(OutMessage, ref mySocket);
+            }
+            public static void SendAuthError(string sHttpVersion, string errorMsg, ref Socket mySocket)
+            {
+                string OutMessage = errorMsg;
+                SendHeader(sHttpVersion, "",Encoding.UTF8.GetBytes(OutMessage).Length, " 401 Unauthorized", ref mySocket);
                 SendToBrowser(OutMessage, ref mySocket);
             }
         }

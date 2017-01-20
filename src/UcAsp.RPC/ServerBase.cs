@@ -33,6 +33,7 @@ namespace UcAsp.RPC
         public string LastParam = "";
         public int Timer = 0;
         private long _endsend = DateTime.Now.Ticks;
+        public string Authorization { get; set; }
         public virtual Dictionary<string, Tuple<string, MethodInfo, int>> MemberInfos
         { get; set; }
         public virtual List<RegisterInfo> RegisterInfo { get; set; }
