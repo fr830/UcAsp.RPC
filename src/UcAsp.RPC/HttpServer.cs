@@ -40,7 +40,7 @@ namespace UcAsp.RPC
             _server = new TcpListener(IPAddress.Any, port);
             _server.Start();
             _log.Info("启动WEB服务" + port);
-            for (int i = 0; i < Environment.ProcessorCount; i++)
+            for (int i = 0; i < Environment.ProcessorCount*2; i++)
             {
                 ThreadPool.QueueUserWorkItem(Listen, null);
             }
@@ -103,6 +103,19 @@ namespace UcAsp.RPC
                             Regex r = new Regex("\r\n\r\n");
                             string[] Code = r.Split(sBuffer);
                             content = Code[1];
+                            if (header.ContainsKey("Content-Length"))
+                            {
+
+                                int len = int.Parse(header["Content-Length"]);
+                                while (content.Length < len)
+                                {
+                                    Byte[] bReceive = new Byte[len];
+                                    int i = socket.Receive(bReceive, bReceive.Length, 0);
+                                    sBuffer = sBuffer + Encoding.ASCII.GetString(bReceive).Substring(0, i);
+                                    LastParam = content = sBuffer;
+                                }
+
+                            }
                             List<object> param = JsonConvert.DeserializeObject<List<object>>(content);
                             if (param == null)
                             {
@@ -122,7 +135,7 @@ namespace UcAsp.RPC
                                         method = method + "/" + Route[n];
                                     }
                                 }
-                                param.Add(method);
+                                param.Add(method + ",webapi");
 
                             }
                             else
@@ -154,13 +167,57 @@ namespace UcAsp.RPC
             try
             {
                 List<object> e = (List<object>)obj;
-
+                MethodInfo method = null;
+                string name = string.Empty;
                 string code = e[e.Count - 1].ToString();
-
-                string name = MemberInfos[code].Item1;
-
-                MethodInfo method = MemberInfos[code].Item2;
                 var parameters = e;
+                if (code.IndexOf(",webapi") > -1)
+                {
+                    string[] n = code.Replace(",webapi", "").Split('/');
+                    name = n[0];
+                    string methodname = n[1];
+
+                    foreach (KeyValuePair<string, Tuple<string, MethodInfo, int>> kv in MemberInfos)
+                    {
+                        if (kv.Value.Item2.Name.ToLower() == methodname.ToLower())
+                        {
+                            int i = 0;
+                            foreach (ParameterInfo para in kv.Value.Item2.GetParameters())
+                            {
+                                object o = e[i];
+                                if (para.ParameterType.Name != o.GetType().Name)
+                                    break;
+                                i++;
+                            }
+                            if (name.ToString() == kv.Value.Item1.ToString() && (kv.Value.Item2.GetParameters().Length == e.Count - 1))
+                            {
+                                name = kv.Value.Item1;
+                                method = kv.Value.Item2;
+                                MemberInfos[kv.Key] = new Tuple<string, MethodInfo, int>(MemberInfos[kv.Key].Item1, MemberInfos[kv.Key].Item2, MemberInfos[kv.Key].Item3 + 1);
+                                break;
+                            }
+                        }
+                    }
+
+
+                }
+                else
+                {
+                    name = MemberInfos[code].Item1;
+                    method = MemberInfos[code].Item2;
+                }
+                if (string.IsNullOrEmpty(name))
+                {
+                    string message = "空间名不存在";
+                    HttpRespone.SendHeader(_httpversion, _mimetype, Encoding.UTF8.GetByteCount(message), " 500 OK", ref socket);
+                    HttpRespone.SendToBrowser(message, ref socket);
+                }
+                if (method == null)
+                {
+                    string message = "方法不存在";
+                    HttpRespone.SendHeader(_httpversion, _mimetype, Encoding.UTF8.GetByteCount(message), " 500 OK", ref socket);
+                    HttpRespone.SendToBrowser(message, ref socket);
+                }
                 parameters.RemoveAt(e.Count - 1);
                 if (parameters == null) parameters = new List<object>();
                 parameters = this.CorrectParameters(method, parameters);
@@ -257,7 +314,7 @@ namespace UcAsp.RPC
                     }
                 }
                 sb.Append(@"]</div>");
-                sb.AppendFormat(@"<div class=""list-group-item"">API URL：{0}/{1}  </div> ", _url, kv.Key);
+                sb.AppendFormat(@"<div class=""list-group-item"">API URL<br />[1]:{0}/{1}<br />[2]:{0}/WEBAPI/{2}/{3} </div> ", _url, kv.Key, kv.Value.Item1, kv.Value.Item2.Name);
                 sb.Append(@" </div>");
             }
             sb.Append("</div>");

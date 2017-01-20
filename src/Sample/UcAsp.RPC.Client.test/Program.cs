@@ -46,7 +46,7 @@ namespace UcAsp.RPC.Client.test
             // bll = context.GetProxyObject<ISwExportBLL>();
             // Thread.Sleep(3000);
 
-            for (int i = 0; i < 5000; i++)
+            for (int i = 0; i < 3; i++)
             {
                 // new Program().Tasks(i);
 
@@ -59,11 +59,11 @@ namespace UcAsp.RPC.Client.test
                 //Task tas = new Task(() =>
                 // {
                 // new Program().Tasks(i);
-                Thread t = new Thread(new ParameterizedThreadStart(new Program().Tasks));
-                t.Start(i);
-                Thread.Sleep(100);
+               // Thread t = new Thread(new ParameterizedThreadStart(new Program().Tasks));
+              // t.Start(i);
+               // Thread.Sleep(100);
 
-                Console.WriteLine(i);
+               // Console.WriteLine(i);
 
                 // new Program().Tasks(i);
 
