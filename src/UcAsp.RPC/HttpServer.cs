@@ -52,8 +52,7 @@ namespace UcAsp.RPC
         }
         public void Listen(object obj)
         {
-            int iStartPos = 0;
-            String sRequest;
+
             String sDirName;
             String OutMessage = string.Empty;
             while (!token.IsCancellationRequested)
@@ -71,24 +70,24 @@ namespace UcAsp.RPC
                         Watch.Start();
                         try
                         {
-                            string sBuffer = string.Empty;
+                            StringBuilder reqstr = new StringBuilder();
                             while (true)
                             {
                                 Byte[] bReceive = new Byte[buffersize];
                                 int i = socket.Receive(bReceive, bReceive.Length, SocketFlags.None);
-                                sBuffer = sBuffer + Encoding.UTF8.GetString(bReceive).Trim('\0');
+                                reqstr.Append(Encoding.UTF8.GetString(bReceive).Trim('\0'));
                                 if (i - buffersize <= 0)
                                 {
                                     break;
                                 }
                             }
-                            if (string.IsNullOrEmpty(sBuffer))
+                            if (string.IsNullOrEmpty(reqstr.ToString()))
                             {
 
                                 return;
                             }
-                            Dictionary<string, string> header = Header(sBuffer).Item1;
-                            Dictionary<string, string> request = Header(sBuffer).Item2;
+                            Dictionary<string, string> header = Header(reqstr.ToString()).Item1;
+                            Dictionary<string, string> request = Header(reqstr.ToString()).Item2;
                             _url = "http://" + header["Host"];
 
                             // 查找 "HTTP" 的位置
@@ -109,7 +108,7 @@ namespace UcAsp.RPC
                             if (sDirName != null)
                             {
                                 Regex r = new Regex("\r\n\r\n");
-                                string[] Code = r.Split(sBuffer);
+                                string[] Code = r.Split(reqstr.ToString());
                                 content = Code[1];
                                 if (header.ContainsKey("Content-Length"))
                                 {
@@ -192,7 +191,7 @@ namespace UcAsp.RPC
                         finally
                         {
                             Watch.Stop();
-                          //  Console.WriteLine("耗时：" + Watch.ElapsedMilliseconds);
+                            //  Console.WriteLine("耗时：" + Watch.ElapsedMilliseconds);
                             socket.Close();
                         }
                     }
@@ -299,7 +298,7 @@ namespace UcAsp.RPC
             {
 
                 Watch.Stop();
-               // Console.WriteLine("Call：" + Watch.ElapsedMilliseconds);
+                // Console.WriteLine("Call：" + Watch.ElapsedMilliseconds);
             }
         }
         public override List<object> CorrectParameters(MethodInfo method, List<object> parameterValues)

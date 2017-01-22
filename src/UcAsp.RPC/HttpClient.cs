@@ -254,8 +254,9 @@ namespace UcAsp.RPC
                 RuningTask.Remove(ea.TaskId);
             }
         }
-        public override void Connect(string ip, int port, int pool)
+        public override bool Connect(string ip, int port, int pool)
         {
+            bool flag = true;
             for (int i = 0; i < pool; i++)
             {
                 try
@@ -267,9 +268,11 @@ namespace UcAsp.RPC
                 }
                 catch (Exception ex)
                 {
+                    flag = false;
                     _log.Error(ex);
                 }
             }
+            return flag;
         }
         public override void CheckServer()
         {

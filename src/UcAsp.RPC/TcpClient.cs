@@ -24,10 +24,12 @@ namespace UcAsp.RPC
     public class TcpClient : ClientBase
     {
         private static CancellationTokenSource cancelTokenSource = new CancellationTokenSource();
+        private static CancellationTokenSource runtoken = new CancellationTokenSource();
         private readonly ILog _log = LogManager.GetLogger(typeof(TcpClient));
         private const int buffersize = 1024 * 5;
-        private Dictionary<int, ChannelPool> runpool = new Dictionary<int, ChannelPool>();
         private System.Timers.Timer heatbeat = new System.Timers.Timer();
+        private long prevtick = DateTime.Now.Ticks;
+        private Task sendtask;
         public override void CallServiceMethod(object de)
         {
             lock (ClientTask)
@@ -50,9 +52,9 @@ namespace UcAsp.RPC
             }
         }
 
-        public override void Connect(string ip, int port, int pool)
+        public override bool Connect(string ip, int port, int pool)
         {
-
+            bool flag = true;
             for (int i = 0; i < pool; i++)
             {
                 try
@@ -70,14 +72,18 @@ namespace UcAsp.RPC
                     {
                         ChannelPool channel = new ChannelPool() { Available = false, Client = socket, IpPoint = ep, PingActives = 0, RunTimes = 0 };
                         IpAddress.Add(channel);
+                        flag = false;
+
                     }
 
                 }
                 catch (Exception ex)
                 {
+                    flag = false;
                     _log.Error(ex);
                 }
             }
+            return flag;
         }
 
         private Socket Connect(IPEndPoint ip)
@@ -152,15 +158,15 @@ namespace UcAsp.RPC
             heatbeat.Elapsed -= Heatbeat_Elapsed;
             heatbeat.Elapsed += Heatbeat_Elapsed;
             heatbeat.Start();
-            Task sendtask = new Task(() =>
+            sendtask = new Task(() =>
             {
-
+                
                 while (!cancelTokenSource.IsCancellationRequested)
                 {
+                    prevtick = DateTime.Now.Ticks;
                     Thread.Sleep(2);
-
                     List<ChannelPool> avipool = IpAddress.Where(o => o.ActiveHash == 0 && o.Client != null && o.Available == true).ToList();
-                    if (avipool.Count < 3 && IpAddress.Count < 5)
+                    if (avipool.Count < 3 || IpAddress.Count < 5)
                     {
                         Socket socket = Connect(avipool[0].IpPoint);
                         if (socket != null)
@@ -199,7 +205,7 @@ namespace UcAsp.RPC
                     }
 
                 }
-            }, cancelTokenSource.Token);
+            }, runtoken.Token);
             sendtask.Start();
 
         }
@@ -341,7 +347,7 @@ namespace UcAsp.RPC
                                     thgetResult.Start(channel);
                                 }
                             }
-                            if (IpAddress[i].Client.Poll(100, SelectMode.SelectError))
+                            if (IpAddress[i].Available && IpAddress[i].Client.Poll(100, SelectMode.SelectError))
                             {
                                 for (int m = 0; m < IpAddress.Count; m++)
                                 {
@@ -375,6 +381,17 @@ namespace UcAsp.RPC
                                         thgetResult.Start(channel);
                                     }
                                 }
+                            }
+                        }
+                        if ((DateTime.Now.Ticks - prevtick) > 10000 * 1000 * 20)
+                        {
+                            if (sendtask != null)
+                            {
+                                Console.WriteLine(sendtask.Status);
+                                runtoken.Cancel();
+                                runtoken = new CancellationTokenSource();
+                                //sendtask.Dispose();
+                                Run();
                             }
                         }
                     }

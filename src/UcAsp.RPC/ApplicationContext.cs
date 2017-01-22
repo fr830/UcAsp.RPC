@@ -477,10 +477,11 @@ namespace UcAsp.RPC
                 _clients.IpAddress = new List<ChannelPool>();
             }
             bool iccon = false;
+            bool conn = false;
             if (_clients.IpAddress.Count <= 0)
             {
                 //
-                _clients.Connect(ip, port, pool);
+                conn = _clients.Connect(ip, port, pool);
                 ///
 
             };
@@ -498,7 +499,7 @@ namespace UcAsp.RPC
             }
             if (!iccon)
             {
-                _clients.Connect(ip, port, pool);
+                conn = _clients.Connect(ip, port, pool);
 
             }
             if (!_run)
@@ -506,6 +507,8 @@ namespace UcAsp.RPC
                 _clients.Run();
                 _run = true;
             }
+            if (!conn)
+                return;
             DataEventArgs callreg = new DataEventArgs() { ActionCmd = CallActionCmd.Register.ToString(), ActionParam = "Register", T = typeof(List<RegisterInfo>) };
             callreg.CallHashCode = callreg.GetHashCode();
             _clients.CallServiceMethod(callreg);

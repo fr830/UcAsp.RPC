@@ -61,7 +61,7 @@ namespace UcAsp.RPC
         public abstract void CallServiceMethod(object e);
         public abstract DataEventArgs GetResult(DataEventArgs e);
 
-        public abstract void Connect(string ip, int port, int pool);
+        public abstract bool Connect(string ip, int port, int pool);
 
 
         public void RemovePool(DataEventArgs hash)

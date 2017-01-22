@@ -20,7 +20,7 @@ namespace UcAsp.RPC
         DataEventArgs GetResult(DataEventArgs e);
         int TaskId { get; set; }
 
-        void Connect(String ip, int port, int pool);
+        bool Connect(String ip, int port, int pool);
 
         void Exit();
 
