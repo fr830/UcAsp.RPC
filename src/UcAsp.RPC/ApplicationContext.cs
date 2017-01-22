@@ -282,13 +282,15 @@ namespace UcAsp.RPC
                 getBoardthread = new Thread(new ThreadStart(GetBorad));
                 getBoardthread.Start();
             }
-            //foreach (IClient iclient in _clients.i)
+
+            //foreach (ChannelPool iclient in _clients.IpAddress.Where(o=>o.Available==false))
             //{
             //    try
             //    {
 
             //        DataEventArgs callping = new DataEventArgs() { ActionCmd = CallActionCmd.Ping.ToString(), ActionParam = "PING" };
-            //        DataEventArgs ping = iclient.CallServiceMethod(callping);
+            //        _clients.CallServiceMethod(callping);
+            //        DataEventArgs ping = _clients.GetResult(callping);
             //        string result = _serializer.ToEntity<string>(ping.Binary);
             //        Console.WriteLine(result);
             //        _log.Info(result);
@@ -296,14 +298,7 @@ namespace UcAsp.RPC
             //    }
             //    catch (Exception ex)
             //    {
-            //        try
-            //        {
-            //            Config config = new Config(_config) { GroupName = "service" };
-            //            config.GroupName = "client";
-            //            InitializeClient(config);
-            //        }
-            //        catch (Exception e0) { _log.Error(e0); }
-            //        _log.Error(ex);
+
             //    }
 
             //}
@@ -368,7 +363,7 @@ namespace UcAsp.RPC
 
             _server.MemberInfos = _httpserver.MemberInfos = _memberinfos;
             _server.RegisterInfo = _httpserver.RegisterInfo = _registerInfo;
-            _httpserver.Authorization=_server.Authorization = Convert.ToBase64String(Encoding.ASCII.GetBytes(username +":"+ password));
+            _httpserver.Authorization = _server.Authorization = Convert.ToBase64String(Encoding.ASCII.GetBytes(username + ":" + password));
             _server.StartListen(port);
             _httpserver.StartListen(port + 1);
             Broad.Interval = 30000;
@@ -462,11 +457,22 @@ namespace UcAsp.RPC
             ServerPort sport = (ServerPort)serverport;
             string ip = sport.Ip;
             int port = sport.Port;
-            int pool = sport.Pool;
-
+            int pool = sport.Pool + 2;
+            Config config = new Config(_config) { GroupName = "client" };
             if (_clients == null)
             {
-                _clients = new TcpClient();
+                string mode = config.GetValue("server", "mode", "tcp");
+                string password = (string)config.GetValue("server", "password");
+                string username = (string)config.GetValue("server", "username");
+                if (mode.ToLower() == "tcp")
+                {
+                    _clients = new TcpClient();
+                }
+                else
+                {
+                    _clients = new HttpClient();
+                }
+                _clients.Authorization = Convert.ToBase64String(Encoding.ASCII.GetBytes(username + ":" + password));
                 _clients.ClientTask = new Queue<DataEventArgs>();
                 _clients.ResultTask = new Dictionary<int, DataEventArgs>();
                 _clients.RuningTask = new Dictionary<int, DataEventArgs>();
@@ -502,12 +508,21 @@ namespace UcAsp.RPC
                 _clients.Run();
                 _run = true;
             }
-            DataEventArgs callreg = new DataEventArgs() { ActionCmd = CallActionCmd.Register.ToString(), ActionParam = "Register" };
+            DataEventArgs callreg = new DataEventArgs() { ActionCmd = CallActionCmd.Register.ToString(), ActionParam = "Register", T = typeof(List<RegisterInfo>) };
             callreg.CallHashCode = callreg.GetHashCode();
             _clients.CallServiceMethod(callreg);
             DataEventArgs reg = _clients.GetResult(callreg);
-
-            List<RegisterInfo> registerInfos = _serializer.ToEntity<List<RegisterInfo>>(reg.Binary);
+            if (reg.StatusCode != StatusCode.Success)
+                return;
+            List<RegisterInfo> registerInfos = new List<RegisterInfo>();
+            if (!string.IsNullOrEmpty(reg.Json))
+            {
+                registerInfos = _serializer.ToEntity<List<RegisterInfo>>(reg.Json);
+            }
+            else
+            {
+                registerInfos = _serializer.ToEntity<List<RegisterInfo>>(reg.Binary);
+            }
             if (registerInfos != null)
             {
                 foreach (RegisterInfo info in registerInfos)
@@ -550,6 +565,17 @@ namespace UcAsp.RPC
 
 
             _log.Info("停止 服务");
+            
+            if (Pong != null)
+            {
+                Pong.Stop();
+                Pong.Dispose();
+            }
+            if (Broad != null)
+            {
+                Broad.Stop();
+                Broad.Dispose();
+            }
             if (clientBoard != null)
             {
                 try
@@ -579,16 +605,6 @@ namespace UcAsp.RPC
             if (_httpserver != null)
             {
                 _httpserver.Stop();
-            }
-            if (Pong != null)
-            {
-                Pong.Stop();
-                Pong.Dispose();
-            }
-            if (Broad != null)
-            {
-                Broad.Stop();
-                Broad.Dispose();
             }
             GC.SuppressFinalize(this);
             cts.Cancel();

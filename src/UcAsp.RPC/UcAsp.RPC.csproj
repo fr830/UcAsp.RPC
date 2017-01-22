@@ -66,6 +66,7 @@
     <Compile Include="ChannelPool.cs" />
     <Compile Include="ClientBase.cs" />
     <Compile Include="DataEventArgs.cs" />
+    <Compile Include="HttpClient.cs" />
     <Compile Include="HttpServer.cs" />
     <Compile Include="IClient.cs" />
     <Compile Include="ISerializer.cs" />

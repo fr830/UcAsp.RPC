@@ -64,8 +64,30 @@ namespace UcAsp.RPC
         public abstract void Connect(string ip, int port, int pool);
 
 
+        public void RemovePool(DataEventArgs hash)
+        {
+            if (ResultTask.ContainsKey(hash.TaskId))
+            {
+                ResultTask.Remove(hash.TaskId);
+            }
 
+            if (RuningTask.ContainsKey(hash.TaskId))
+            {
+
+                RuningTask.Remove(hash.TaskId);
+            }
+            for (int i = 0; i < IpAddress.Count; i++)
+            {
+                if (IpAddress[i].ActiveHash == hash.TaskId)
+                {
+                    IpAddress[i].ActiveHash = 0;
+                }
+            }
+        }
+        public string Authorization { get; set; }
 
         public abstract void Exit();
+
+        public abstract void CheckServer();
     }
 }

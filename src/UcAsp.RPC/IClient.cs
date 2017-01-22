@@ -29,5 +29,8 @@ namespace UcAsp.RPC
         string LastError { get; set; }
 
         long PingActives { get; set; }
+
+        string Authorization { get; set; }
+        void CheckServer();
     }
 }

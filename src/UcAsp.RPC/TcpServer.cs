@@ -25,7 +25,9 @@ namespace UcAsp.RPC
         private readonly ILog _log = LogManager.GetLogger(typeof(TcpServer));
         private Socket _server;
         private Thread[] _startThread = new Thread[20];
-        private bool stop = false;
+        private Dictionary<string, Socket> connection = new Dictionary<string, Socket>();
+
+        private CancellationTokenSource token = new CancellationTokenSource();
 
         public override void StartListen(int port)
         {
@@ -39,8 +41,9 @@ namespace UcAsp.RPC
             //this._server.BeginAccept(new AsyncCallback(Accept), this._server);
 
             #endregion
-            for (int i = 0; i < Environment.ProcessorCount*2; i++)
+            for (int i = 0; i < Environment.ProcessorCount * 2; i++)
             {
+                //ThreadPool.QueueUserWorkItem(Start, null);
                 _startThread[i] = new Thread(new ParameterizedThreadStart(Start));
                 _startThread[i].Start(null);
             }
@@ -50,59 +53,53 @@ namespace UcAsp.RPC
 
         private void Start(object obj)
         {
-            while (true)
+            while (!token.IsCancellationRequested)
             {
-                Socket client = _server.Accept();
-                //  client.ReceiveAsync(SocketAsyncEventArgs
+                try
+                {
+                    Socket client = _server.Accept();
+                    connection.Add(client.RemoteEndPoint.ToString(), client);
+                    Console.WriteLine(client.RemoteEndPoint.ToString());
+                    Thread t = new Thread(new ParameterizedThreadStart(Accept));
+                    t.Start(client);
+                }
+                catch (Exception ex)
+                {
+                    _log.Error(ex);
+                }
 
-                // ThreadPool.SetMaxThreads(10, 10);
-
-                Thread t = new Thread(new ParameterizedThreadStart(Accept));
-                t.Start(client);
-                // ThreadPool.QueueUserWorkItem(Accept, client);
-                if (stop)
-                    break;
             }
         }
         private void Accept(object socket)
         {
             Socket client = (Socket)socket;
-            // while (true)
-            // {
+
             try
             {
                 Thread t = new Thread(new ParameterizedThreadStart(Recive));
                 t.Start(client);
-                // Recive(client);
-                // thread.Start();
+
             }
             catch (Exception ex)
             {
                 _log.Error(ex);
                 Console.WriteLine(ex);
                 IsStart = false;
-                // break;
             }
-
-            // }
         }
         private void Recive(object obj)
         {
             Socket client = (Socket)(obj);
-            while (true)
+            while (!token.IsCancellationRequested)
             {
-                if (stop)
-                    break;
-
                 if (client.Connected)
                 {
                     try
                     {
-                      //  Console.WriteLine(client.LocalEndPoint);
                         ByteBuilder _recvBuilder = new ByteBuilder(client.ReceiveBufferSize);
                         byte[] buffer = new byte[buffersize];
                         int total = 0;
-                        while (true)
+                        while (!token.IsCancellationRequested)
                         {
                             int l = client.Receive(buffer, SocketFlags.None);
                             _recvBuilder.Add(buffer, 0, l);
@@ -111,7 +108,7 @@ namespace UcAsp.RPC
                             { break; }
                         }
                         DataEventArgs e = DataEventArgs.Parse(_recvBuilder);
-                        Console.WriteLine(e.TaskId+".");
+                        Console.WriteLine(e.TaskId + ".");
                         Call(client, e);
 
 
@@ -119,17 +116,12 @@ namespace UcAsp.RPC
                     }
                     catch (SocketException ex)
                     {
-                        _log.Error(client.RemoteEndPoint + "断开服务" + ex.SocketErrorCode.ToString());
-                        Console.WriteLine(client.RemoteEndPoint + "断开服务" + ex.SocketErrorCode.ToString());
-                        client.Dispose();
-                        Thread thread = Thread.CurrentThread;
-                        if (thread.IsAlive) { thread.Abort(); }
+                        _log.Error(ex.SocketErrorCode.ToString());
+                        Console.WriteLine(ex.Message + ex.SocketErrorCode.ToString());
+                        break;
                     }
                     finally
                     {
-                        //client.Dispose();
-                        // Thread thread = Thread.CurrentThread;
-                        // if (thread.IsAlive) { thread.Abort(); }
 
                     }
                 }
@@ -139,33 +131,47 @@ namespace UcAsp.RPC
                 }
 
             }
+            try { Console.WriteLine("断开连接..........................................."); } catch (Exception ex) { Console.WriteLine(ex); }
 
 
-        }
-        #endregion
-        #region  异步
-        void Accept(IAsyncResult iar)
-        {
-            //还原传入的原始套接字
-            Socket client = (Socket)iar.AsyncState;
-
-            //在原始套接字上调用EndAccept方法，返回新的套接字
-            // Socket service = MyServer.EndAccept(iar);
         }
         #endregion
         public override void Stop()
         {
             IsStart = false;
-            stop = true;
-            for (int i = 0; i < 20; i++)
+            try
             {
-                if (_startThread[i] != null && _startThread[i].IsAlive)
+
+                _server.Close();
+                _server.Dispose();
+            }
+            catch (Exception ex)
+            { }
+            foreach (KeyValuePair<string, Socket> kv in connection)
+            {
+                try
                 {
-                    _startThread[i].Abort();
+                    kv.Value.Shutdown(SocketShutdown.Both); kv.Value.BeginDisconnect(true,null,null); kv.Value.Close(); kv.Value.Dispose();
+
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex);
                 }
             }
+           
+            try
+            {
+                token.Cancel();
+                for (int i = 0; i < Environment.ProcessorCount * 2; i++)
+                {
+                    _startThread[i].Abort();
+
+                }
+            }
+            catch (Exception ex)
+            { }
             GC.SuppressFinalize(this);
-            _server.Dispose();
             Console.WriteLine("服务退出");
             _log.Error("服务退出");
         }

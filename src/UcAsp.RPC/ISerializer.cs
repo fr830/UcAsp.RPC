@@ -38,5 +38,9 @@ namespace UcAsp.RPC
         Binary ToBinary(object entity);
 
         string ToString(object entity);
+
+        object ToEntity(string json, Type type);
+
+        T ToEntity<T>(string json);
     }
 }

@@ -18,11 +18,16 @@ namespace UcAsp.RPC
     public class DataEventArgs : EventArgs
     {
         private readonly static ILog _log = LogManager.GetLogger(typeof(DataEventArgs));
-        /// 二进制数据
+        /// tcp传输 二进制数据
         /// </summary>
         public Binary Binary { get; set; }
+        /// <summary>
+        /// http传输采用json
+        /// </summary>
+        public string Json { get; set; }
         private int _hash = 0;
 
+        public Type T { get; set; }
         public int CallHashCode { get; set; }
 
         public StatusCode StatusCode { get; set; }

@@ -76,5 +76,14 @@ namespace UcAsp.RPC
             return JsonConvert.SerializeObject(entity);
         }
 
+        public T ToEntity<T>(string json)
+        {
+            return JsonConvert.DeserializeObject<T>(json);
+        }
+        public object ToEntity(string json, Type type)
+        {
+            return JsonConvert.DeserializeObject(json, type);
+        }
+
     }
 }

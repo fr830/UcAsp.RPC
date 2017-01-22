@@ -13,11 +13,11 @@ using System.Linq;
 using System.Text;
 using System.Net;
 using System.Net.Sockets;
+using System.Diagnostics;
 using System.Threading;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Web;
-using System.Text;
 using System.Reflection;
 using Newtonsoft.Json;
 using log4net;
@@ -27,6 +27,7 @@ namespace UcAsp.RPC
     {
 
         private readonly ILog _log = LogManager.GetLogger(typeof(HttpServer));
+        CancellationTokenSource token = new CancellationTokenSource();
         private TcpListener _server;
         private bool isstop = false;
         private string _httpversion;
@@ -37,11 +38,14 @@ namespace UcAsp.RPC
 
         public override void StartListen(int port)
         {
+
             _url = string.Format("http://{0}:{1}", Dns.GetHostName(), port);
             _server = new TcpListener(IPAddress.Any, port);
             _server.Start();
+
             _log.Info("启动WEB服务" + port);
-            for (int i = 0; i < Environment.ProcessorCount * 2; i++)
+
+            for (int i = 0; i < 40 * 2; i++)
             {
                 ThreadPool.QueueUserWorkItem(Listen, null);
             }
@@ -52,64 +56,90 @@ namespace UcAsp.RPC
             String sRequest;
             String sDirName;
             String OutMessage = string.Empty;
-            while (true)
+            while (!token.IsCancellationRequested)
             {
-                if (isstop)
-                    break;
-                Socket socket = _server.AcceptSocket();
-                socket.ReceiveTimeout = 10000;
-                socket.SendTimeout = 10000;
-                string content = string.Empty;
-                _mimetype = "text/html";
-                if (socket.Connected)
+                try
                 {
-                    try
+                    Socket socket = _server.AcceptSocket();
+                    socket.ReceiveTimeout = 10000;
+                    socket.SendTimeout = 10000;
+                    string content = string.Empty;
+                    _mimetype = "text/html";
+                    if (socket.Connected)
                     {
-                        string sBuffer = string.Empty;
-                        while (true)
+                        Stopwatch Watch = new Stopwatch();
+                        Watch.Start();
+                        try
                         {
-                            Byte[] bReceive = new Byte[buffersize];
-                            int i = socket.Receive(bReceive, bReceive.Length, 0);
-                            sBuffer = sBuffer + Encoding.ASCII.GetString(bReceive).Substring(0, i);
-                            if (i - buffersize < 0)
+                            string sBuffer = string.Empty;
+                            while (true)
                             {
-                                break;
-                            }
-                        }
-                        if (string.IsNullOrEmpty(sBuffer))
-                        {
-
-                            return;
-                        }
-                        Dictionary<string, string> header = Header(sBuffer).Item1;
-                        Dictionary<string, string> request = Header(sBuffer).Item2;
-                        _url = "http://" + header["Host"];
-
-                        // 查找 "HTTP" 的位置
-
-                        _httpversion = request["version"];
-                        // 得到请求类型和文件目录文件名
-                        sDirName = request["path"];
-                        if (!sDirName.EndsWith("/")) sDirName = sDirName + "/";
-
-                        string[] Route = sDirName.Split('/');
-                        if (Route.Length < 2 || Route[1].ToUpper() == "HLEP" || Route[1].ToUpper() == "API" || Route[1].ToUpper() == "")
-                        {
-                            SendAPI(socket);
-                            socket.Close();
-                            continue;
-                        }
-                        if (sDirName != null)
-                        {
-                            Regex r = new Regex("\r\n\r\n");
-                            string[] Code = r.Split(sBuffer);
-                            content = Code[1];
-                            if (header.ContainsKey("Authorization"))
-                            {
-                                string[] auth = header["Authorization"].Split(' ');
-                                if (auth.Length == 2)
+                                Byte[] bReceive = new Byte[buffersize];
+                                int i = socket.Receive(bReceive, bReceive.Length, SocketFlags.None);
+                                sBuffer = sBuffer + Encoding.UTF8.GetString(bReceive).Trim('\0');
+                                if (i - buffersize <= 0)
                                 {
-                                    if (auth[1] != Authorization)
+                                    break;
+                                }
+                            }
+                            if (string.IsNullOrEmpty(sBuffer))
+                            {
+
+                                return;
+                            }
+                            Dictionary<string, string> header = Header(sBuffer).Item1;
+                            Dictionary<string, string> request = Header(sBuffer).Item2;
+                            _url = "http://" + header["Host"];
+
+                            // 查找 "HTTP" 的位置
+
+                            _httpversion = request["version"];
+                            // 得到请求类型和文件目录文件名
+                            sDirName = request["path"];
+                            if (!sDirName.EndsWith("/")) sDirName = sDirName + "/";
+
+                            string[] Route = sDirName.Split('/');
+                            if (Route.Length < 2 || Route[1].ToUpper() == "HLEP" || Route[1].ToUpper() == "API" || Route[1].ToUpper() == "")
+                            {
+                                SendAPI(socket);
+                                socket.Close();
+                                continue;
+                            }
+
+                            if (sDirName != null)
+                            {
+                                Regex r = new Regex("\r\n\r\n");
+                                string[] Code = r.Split(sBuffer);
+                                content = Code[1];
+                                if (header.ContainsKey("Content-Length"))
+                                {
+                                    int len = int.Parse(header["Content-Length"]);
+                                    while (Encoding.UTF8.GetBytes(content).Length < len)
+                                    {
+                                        Byte[] bReceive = new Byte[len];
+
+                                        int i = socket.Receive(bReceive, bReceive.Length, 0);
+                                        content = content + Encoding.UTF8.GetString(bReceive).Trim('\0');
+                                        LastParam = content;
+                                        if (Encoding.UTF8.GetBytes(content).Length - len == 0)
+                                        { break; }
+
+                                    }
+
+                                }
+                                if (header.ContainsKey("Authorization"))
+                                {
+                                    string[] auth = header["Authorization"].Split(' ');
+                                    if (auth.Length == 2)
+                                    {
+                                        if (auth[1] != Authorization)
+                                        {
+                                            HttpRespone.SendAuthError(_httpversion, "认证失败", ref socket);
+                                            socket.Close();
+                                            return;
+                                        }
+                                    }
+                                    else
                                     {
                                         HttpRespone.SendAuthError(_httpversion, "认证失败", ref socket);
                                         socket.Close();
@@ -122,66 +152,54 @@ namespace UcAsp.RPC
                                     socket.Close();
                                     return;
                                 }
-                            }
-                            else
-                            {
-                                HttpRespone.SendAuthError(_httpversion, "认证失败", ref socket);
-                                socket.Close();
-                                return;
-                            }
-                            if (header.ContainsKey("Content-Length"))
-                            {
 
-                                int len = int.Parse(header["Content-Length"]);
-                                while (content.Length < len)
+                                List<object> param = JsonConvert.DeserializeObject<List<object>>(content);
+                                if (param == null)
                                 {
-                                    Byte[] bReceive = new Byte[len];
-                                    int i = socket.Receive(bReceive, bReceive.Length, 0);
-                                    sBuffer = sBuffer + Encoding.ASCII.GetString(bReceive).Substring(0, i);
-                                    LastParam = content = sBuffer;
+                                    param = new List<object>();
                                 }
-
-                            }
-                            List<object> param = JsonConvert.DeserializeObject<List<object>>(content);
-                            if (param == null)
-                            {
-                                param = new List<object>();
-                            }
-                            if (Route[1].ToUpper() == "WEBAPI")
-                            {
-                                string method = string.Empty;
-                                for (int n = 2; n < Route.Length - 1; n++)
+                                if (Route[1].ToUpper() == "WEBAPI")
                                 {
-                                    if (string.IsNullOrEmpty(method))
+                                    string method = string.Empty;
+                                    for (int n = 2; n < Route.Length - 1; n++)
                                     {
-                                        method = Route[n];
+                                        if (string.IsNullOrEmpty(method))
+                                        {
+                                            method = Route[n];
+                                        }
+                                        else
+                                        {
+                                            method = method + "/" + Route[n];
+                                        }
                                     }
-                                    else
-                                    {
-                                        method = method + "/" + Route[n];
-                                    }
-                                }
-                                param.Add(method + ",webapi");
+                                    param.Add(method + ",webapi");
 
+                                }
+                                else
+                                {
+                                    param.Add(sDirName.Replace("/", ""));
+                                }
+                                Call(socket, param);
                             }
-                            else
-                            {
-                                param.Add(sDirName.Replace("/", ""));
-                            }
-                            Call(socket, param);
+
                         }
-
+                        catch (Exception ex)
+                        {
+                            _log.Error(ex);
+                            HttpRespone.SendError(_httpversion, ex.Message, ref socket);
+                            Console.WriteLine(ex);
+                        }
+                        finally
+                        {
+                            Watch.Stop();
+                          //  Console.WriteLine("耗时：" + Watch.ElapsedMilliseconds);
+                            socket.Close();
+                        }
                     }
-                    catch (Exception ex)
-                    {
-                        _log.Error(ex);
-                        HttpRespone.SendError(_httpversion, ex.Message, ref socket);
-
-                    }
-                    finally
-                    {
-                        socket.Close();
-                    }
+                }
+                catch (Exception ex)
+                {
+                    _log.Error(ex);
                 }
             }
 
@@ -189,15 +207,25 @@ namespace UcAsp.RPC
 
         public override void Call(Socket socket, object obj)
         {
+            Stopwatch Watch = new Stopwatch();
+            Watch.Start();
             try
             {
                 List<object> e = (List<object>)obj;
                 MethodInfo method = null;
                 string name = string.Empty;
                 string code = e[e.Count - 1].ToString();
+                if (code.ToLower() == "register")
+                {
+                    string reginfo = JsonConvert.SerializeObject(RegisterInfo);
+                    HttpRespone.SendHeader(_httpversion, _mimetype, Encoding.UTF8.GetBytes(reginfo).Length, " 200 OK", ref socket);
+                    HttpRespone.SendToBrowser(reginfo, ref socket);
+                    return;
+                }
                 var parameters = e;
                 if (code.IndexOf(",webapi") > -1)
                 {
+
                     string[] n = code.Replace(",webapi", "").Split('/');
                     name = n[0];
                     string methodname = n[1];
@@ -231,18 +259,23 @@ namespace UcAsp.RPC
                     name = MemberInfos[code].Item1;
                     method = MemberInfos[code].Item2;
                 }
+
                 if (string.IsNullOrEmpty(name))
                 {
                     string message = "空间名不存在";
                     HttpRespone.SendHeader(_httpversion, _mimetype, Encoding.UTF8.GetByteCount(message), " 500 OK", ref socket);
                     HttpRespone.SendToBrowser(message, ref socket);
+                    return;
                 }
+
                 if (method == null)
                 {
                     string message = "方法不存在";
                     HttpRespone.SendHeader(_httpversion, _mimetype, Encoding.UTF8.GetByteCount(message), " 500 OK", ref socket);
                     HttpRespone.SendToBrowser(message, ref socket);
+                    return;
                 }
+
                 parameters.RemoveAt(e.Count - 1);
                 if (parameters == null) parameters = new List<object>();
                 parameters = this.CorrectParameters(method, parameters);
@@ -261,6 +294,12 @@ namespace UcAsp.RPC
                 string message = ex.InnerException != null ? ex.InnerException.Message : "" + ex.Message + ex.Source;
                 HttpRespone.SendHeader(_httpversion, _mimetype, Encoding.UTF8.GetByteCount(message), " 500 OK", ref socket);
                 HttpRespone.SendToBrowser(message, ref socket);
+            }
+            finally
+            {
+
+                Watch.Stop();
+               // Console.WriteLine("Call：" + Watch.ElapsedMilliseconds);
             }
         }
         public override List<object> CorrectParameters(MethodInfo method, List<object> parameterValues)
@@ -428,7 +467,7 @@ namespace UcAsp.RPC
             public static void SendAuthError(string sHttpVersion, string errorMsg, ref Socket mySocket)
             {
                 string OutMessage = errorMsg;
-                SendHeader(sHttpVersion, "",Encoding.UTF8.GetBytes(OutMessage).Length, " 401 Unauthorized", ref mySocket);
+                SendHeader(sHttpVersion, "", Encoding.UTF8.GetBytes(OutMessage).Length, " 401 Unauthorized", ref mySocket);
                 SendToBrowser(OutMessage, ref mySocket);
             }
         }
@@ -461,10 +500,17 @@ namespace UcAsp.RPC
         }
         public override void Stop()
         {
-            base.Stop();
-            isstop = true;
-            _server.Stop();
-
+            try
+            {
+                base.Stop();
+                _server.Server.Close();
+                _server.Stop();
+                token.Cancel();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
 
         }
 

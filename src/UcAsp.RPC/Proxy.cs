@@ -153,6 +153,7 @@ namespace UcAsp.RPC
                 sb.AppendLine("            DataEventArgs e = new DataEventArgs();");
                 sb.AppendLine("            e.Binary = this.Serializer.ToBinary(entity);");
                 sb.AppendLine("            e.CallHashCode = e.GetHashCode();");
+                sb.AppendLine("            e.T = typeof(" + GetTypeName(method.ReturnType) + ");");
                 string action = string.Format("{0}.{1}.{2}", method.DeclaringType.FullName, method.Name, GetMethodMd5Code(method));
                 sb.AppendLine(string.Format("            e.ActionParam = \"{0}\";\r\n", action));
                 sb.AppendLine("            e.ActionCmd = CallActionCmd.Call.ToString();\r\n");
@@ -178,8 +179,17 @@ namespace UcAsp.RPC
                 sb.AppendLine("_log.Info(e.ActionParam + \":\" + e.CallHashCode + \":\" + e.TaskId + \":\" + wath.ElapsedMilliseconds);");
                 if (IsVoid(method.ReturnType) == false)
                 {
+                    sb.AppendLine(" if (!string.IsNullOrEmpty(e.Json))");
+                    sb.AppendLine("{");
+                    sb.AppendLine(string.Format("            return this.Serializer.ToEntity<{0}>(e.Json);\r\n", GetTypeName(method.ReturnType)));
 
+                    sb.AppendLine("}");
+                    sb.AppendLine(" else");
+                    sb.AppendLine("{");
                     sb.AppendLine(string.Format("            return this.Serializer.ToEntity<{0}>(data.Binary);\r\n", GetTypeName(method.ReturnType)));
+
+                    sb.AppendLine(" }");
+
 
                 }
 

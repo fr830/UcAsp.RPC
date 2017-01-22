@@ -41,7 +41,7 @@ namespace Face
         public List<string> Good(string yun, string mm, string kkk)
         {
             List<string> list = new List<string>();
-            for (int i = 0; i <200; i++)
+            for (int i = 0; i <2000; i++)
             {
                 list.Add(yun.ToString());
                 list.Add(mm);
