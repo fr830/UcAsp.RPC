@@ -329,6 +329,18 @@ namespace UcAsp.RPC
                         for (int i = IpAddress.Count - 1; i >= 0; i--)
                         {
                             IPEndPoint address = IpAddress[i].IpPoint;
+                            if (IpAddress[i].Client == null)
+                            {
+                                Socket client = Connect(address);
+                                if (client != null)
+                                {
+                                    IpAddress.RemoveAt(i);
+                                    ChannelPool channel = new ChannelPool() { Available = true, Client = client, IpPoint = address, PingActives = 0, RunTimes = 0, ActiveHash = 0 };
+                                    IpAddress.Add(channel);
+                                    Thread thgetResult = new Thread(new ParameterizedThreadStart(GetData));
+                                    thgetResult.Start(channel);
+                                }
+                            }
                             if (IpAddress[i].Client.Poll(100, SelectMode.SelectError))
                             {
                                 for (int m = 0; m < IpAddress.Count; m++)
