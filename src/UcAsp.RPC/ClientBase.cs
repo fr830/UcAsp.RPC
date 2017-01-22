@@ -73,7 +73,13 @@ namespace UcAsp.RPC
 
             if (RuningTask.ContainsKey(hash.TaskId))
             {
-
+                for (int i = 0; i < IpAddress.Count; i++)
+                {
+                    if (IpAddress[i].ActiveHash == hash.TaskId)
+                    {
+                        IpAddress[i].ActiveHash = 0;
+                    }
+                }
                 RuningTask.Remove(hash.TaskId);
             }
             for (int i = 0; i < IpAddress.Count; i++)

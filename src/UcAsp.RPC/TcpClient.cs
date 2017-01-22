@@ -259,9 +259,11 @@ namespace UcAsp.RPC
                     {
                         ClientTask.Enqueue(RuningTask[channcel.ActiveHash]);
                         RuningTask.Remove(channcel.ActiveHash);
+
                     }
                     Console.WriteLine("GetData" + ex);
                     channcel.Available = false;
+                    channcel.ActiveHash = 0;
                     Thread.Sleep(100);
                     _log.Error(ex);
                     break;
@@ -299,6 +301,13 @@ namespace UcAsp.RPC
                 if (e.TryTimes < 3)
                 {
                     RuningTask.Remove(e.TaskId);
+                    for (int i = 0; i < IpAddress.Count; i++)
+                    {
+                        if (IpAddress[i].ActiveHash == e.TaskId)
+                        {
+                            IpAddress[i].ActiveHash = 0;
+                        }
+                    }
                     ClientTask.Enqueue(e);
                     return;
                 }
@@ -320,24 +329,7 @@ namespace UcAsp.RPC
                         for (int i = IpAddress.Count - 1; i >= 0; i--)
                         {
                             IPEndPoint address = IpAddress[i].IpPoint;
-                            Socket client = Connect(address);
-                            if (client != null)
-                            {
-                                if (!IpAddress[i].Available)
-                                {
-                                    IpAddress.RemoveAt(i);
-                                    ChannelPool channel = new ChannelPool() { Available = true, Client = client, IpPoint = address, PingActives = 0, RunTimes = 0, ActiveHash = 0 };
-                                    IpAddress.Add(channel);
-
-                                    Thread thgetResult = new Thread(new ParameterizedThreadStart(GetData));
-                                    thgetResult.Start(channel);
-                                }
-                                else
-                                {
-                                    client.Close();
-                                }
-                            }
-                            else
+                            if (IpAddress[i].Client.Poll(100, SelectMode.SelectError))
                             {
                                 for (int m = 0; m < IpAddress.Count; m++)
                                 {
@@ -356,7 +348,21 @@ namespace UcAsp.RPC
                                         }
                                     }
                                 }
-
+                            }
+                            else
+                            {
+                                if (!IpAddress[i].Available)
+                                {
+                                    Socket client = Connect(address);
+                                    if (client != null)
+                                    {
+                                        IpAddress.RemoveAt(i);
+                                        ChannelPool channel = new ChannelPool() { Available = true, Client = client, IpPoint = address, PingActives = 0, RunTimes = 0, ActiveHash = 0 };
+                                        IpAddress.Add(channel);
+                                        Thread thgetResult = new Thread(new ParameterizedThreadStart(GetData));
+                                        thgetResult.Start(channel);
+                                    }
+                                }
                             }
                         }
                     }
@@ -373,3 +379,43 @@ namespace UcAsp.RPC
 
 
 }
+
+//IPEndPoint address = IpAddress[i].IpPoint;
+//Socket client = Connect(address);
+//if (client != null)
+//{
+//    if (!IpAddress[i].Available)
+//    {
+//        IpAddress.RemoveAt(i);
+//        ChannelPool channel = new ChannelPool() { Available = true, Client = client, IpPoint = address, PingActives = 0, RunTimes = 0, ActiveHash = 0 };
+//        IpAddress.Add(channel);
+
+//        Thread thgetResult = new Thread(new ParameterizedThreadStart(GetData));
+//        thgetResult.Start(channel);
+//    }
+//    else
+//    {
+//        client.Close();
+//    }
+//}
+//else
+//{
+//    for (int m = 0; m < IpAddress.Count; m++)
+//    {
+//        IpAddress[i].Available = false;
+//        if (IpAddress[m].IpPoint.Address.ToString() == IpAddress[i].IpPoint.Address.ToString() && IpAddress[m].IpPoint.Port == IpAddress[i].IpPoint.Port)
+//        {
+//            IpAddress[m].Available = false;
+//            if (IpAddress[m].ActiveHash != 0)
+//            {
+//                if (RuningTask.ContainsKey(IpAddress[m].ActiveHash) && !ResultTask.ContainsKey(IpAddress[m].ActiveHash))
+//                {
+//                    ClientTask.Enqueue(RuningTask[IpAddress[m].ActiveHash]);
+//                    RuningTask.Remove(IpAddress[m].ActiveHash);
+//                }
+//                IpAddress[m].ActiveHash = 0;
+//            }
+//        }
+//    }
+
+//}

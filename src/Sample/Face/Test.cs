@@ -49,7 +49,7 @@ namespace Face
                  //Thread.Sleep(new Random().Next(200));
                 // throw new Exception("错误");
             }
-            //Thread.Sleep(200);
+            Thread.Sleep(200);
             return list;
         }
 

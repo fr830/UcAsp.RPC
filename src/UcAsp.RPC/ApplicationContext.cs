@@ -418,24 +418,22 @@ namespace UcAsp.RPC
                 while (true)
                 {
 
-                    byte[] buf = new byte[1024];
-                    int l = clientBoard.ReceiveFrom(buf, ref endpoint);
-                    int port = int.Parse(Encoding.Default.GetString(buf, 0, l));
-                    IPAddress ip = ((IPEndPoint)endpoint).Address;
-                    bool flag = false;
-                    //foreach (TcpClient tp in _clients)
-                    //{
-                    //    foreach (ChannelPool cp in tp.IpAddress)
-                    //    {
-                    //        if (cp.IpPoint.Address.ToString() == ip.ToString() && cp.IpPoint.Port == port)
-                    //        {
-                    //            flag = true;
-                    //            continue;
-                    //        }
+                    //byte[] buf = new byte[1024];
+                    //int l = clientBoard.ReceiveFrom(buf, ref endpoint);
+                    //int port = int.Parse(Encoding.Default.GetString(buf, 0, l));
+                    //IPAddress ip = ((IPEndPoint)endpoint).Address;
+                    //bool flag = false;
 
+                    //foreach (ChannelPool cp in _clients.IpAddress)
+                    //{
+                    //    if (cp.IpPoint.Address.ToString() == ip.ToString() && cp.IpPoint.Port == port)
+                    //    {
+                    //        flag = true;
+                    //        continue;
                     //    }
 
                     //}
+
                     //if (!flag)
                     //{
                     //    ServerPort sport = new ServerPort() { Ip = ip.ToString(), Port = port, Pool = 10 };
@@ -565,7 +563,7 @@ namespace UcAsp.RPC
 
 
             _log.Info("停止 服务");
-            
+
             if (Pong != null)
             {
                 Pong.Stop();
