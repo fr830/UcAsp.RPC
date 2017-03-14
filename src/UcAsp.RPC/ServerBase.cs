@@ -71,7 +71,12 @@ namespace UcAsp.RPC
                     Type[] ParameterTypes = new Type[method.GetParameters().Length];
                     for (int x = 0; x < method.GetParameters().Length; x++)
                     {
-                        ParameterTypes[x] = method.GetParameters()[x].ParameterType;
+                        string paratype = method.GetParameters()[x].ParameterType.FullName;
+                        if (paratype.EndsWith("&"))
+                        {
+                            paratype = paratype.Replace("&", "");
+                        }
+                        ParameterTypes[x] = Type.GetType(paratype);// method.GetParameters()[x].ParameterType;
                     }
                     // 目标方法参数类型
                     Type pType = ParameterTypes[i];

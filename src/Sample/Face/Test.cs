@@ -41,12 +41,12 @@ namespace Face
         public List<string> Good(string yun, string mm, string kkk)
         {
             List<string> list = new List<string>();
-            for (int i = 0; i <2000; i++)
+            for (int i = 0; i < 2000; i++)
             {
                 list.Add(yun.ToString());
                 list.Add(mm);
                 list.Add(kkk);
-                 //Thread.Sleep(new Random().Next(200));
+                //Thread.Sleep(new Random().Next(200));
                 // throw new Exception("错误");
             }
             Thread.Sleep(200);
@@ -91,6 +91,16 @@ namespace Face
             return m;
         }
 
+        public string R(ref int o)
+        {
+            o = 111;
+            return "mm";
+        }
 
+        public string M(ref bool o,string code)
+        {
+            o = true;
+            return "s";
+        }
     }
 }

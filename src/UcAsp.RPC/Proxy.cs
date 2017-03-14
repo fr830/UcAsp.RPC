@@ -130,7 +130,12 @@ namespace UcAsp.RPC
                 sb.AppendFormat("        public {0} {1}(", GetTypeName(method.ReturnType), method.Name);
                 for (int x = 0; x < para.Length; x++)
                 {
-                    sb.AppendFormat("{0} {1}", GetTypeName(para[x].ParameterType), para[x].Name);
+                    string param = GetTypeName(para[x].ParameterType);
+                    if (param.EndsWith("&"))
+                    {
+                        param = "ref " + param.Replace("&", "");
+                    }
+                    sb.AppendFormat("{0} {1}", param, para[x].Name);
                     if (x != para.Length - 1)
                     {
                         sb.Append(",");
