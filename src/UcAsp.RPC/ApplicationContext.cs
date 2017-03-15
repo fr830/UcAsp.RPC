@@ -464,7 +464,7 @@ namespace UcAsp.RPC
                 string username = (string)config.GetValue("server", "username");
                 if (mode.ToLower() == "tcp")
                 {
-                    _clients = new TcpClient();
+                    _clients = new SocketClient();
                 }
                 else
                 {

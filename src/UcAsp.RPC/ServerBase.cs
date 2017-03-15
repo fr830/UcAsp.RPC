@@ -194,17 +194,8 @@ namespace UcAsp.RPC
             {
 
                 byte[] _bf = e.ToByteArray();
-                int l = _bf.Count() / buffersize;
-                for (int i = 0; i < l + 1; i++)
-                {
-                    int sl = buffersize;
-                    if (i == l)
-                    {
-                        sl = _bf.Length - i * buffersize;
-                    }
-                    socket.Send(_bf, buffersize * i, sl, SocketFlags.None);
-                }
-                _endsend = DateTime.Now.Ticks;
+                socket.BeginSend(_bf, 0, _bf.Length, SocketFlags.None, null, null);
+
             }
             catch (Exception ex)
             {

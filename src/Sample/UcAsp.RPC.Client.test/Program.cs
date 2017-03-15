@@ -46,37 +46,39 @@ namespace UcAsp.RPC.Client.test
             // bll = context.GetProxyObject<ISwExportBLL>();
             // Thread.Sleep(3000);
 
-            for (int i = 0; i < 15000; i++)
+
+            // new Program().Tasks(i);
+
+            // if (i % 3 == 0)
+            // {
+            //     Thread.Sleep(100);
+            // }
+            // new Program().Tasks(0);
+            // Console.WriteLine(0);
+            for (int i = 0; i < 1000; i++)
             {
-                // new Program().Tasks(i);
+                Task tas = new Task(() =>
+                {
+                    new Program().Tasks(0);
 
-                // if (i % 3 == 0)
-                // {
-                //     Thread.Sleep(100);
-                // }
-                // new Program().Tasks(0);
-                // Console.WriteLine(0);
-                //Task tas = new Task(() =>
-                // {
-                new Program().Tasks(i);
-                // Thread t = new Thread(new ParameterizedThreadStart(new Program().Tasks));
-                // t.Start(i);
-                // Thread.Sleep(100);
+                    // Thread t = new Thread(new ParameterizedThreadStart(new Program().Tasks));
+                    // t.Start(i);
+                    // Thread.Sleep(100);
 
-                // Console.WriteLine(i);
+                    // Console.WriteLine(i);
 
-                // new Program().Tasks(i);
+                    // new Program().Tasks(i);
 
-                // });
-                // tas.Start();
-
-                // Console.WriteLine(task.Result);
-                // Thread thread = new Thread(new ParameterizedThreadStart(new Program().Tasks));
-                // thread.Start(i);
-                //Thread.Sleep(1000);
-
-
+                });
+                tas.Start();
             }
+            // Console.WriteLine(task.Result);
+            // Thread thread = new Thread(new ParameterizedThreadStart(new Program().Tasks));
+            // thread.Start(i);
+            //Thread.Sleep(1000);
+
+
+
             Console.ReadKey();
         }
         // ApplicationContext context = new ApplicationContext()
@@ -132,18 +134,20 @@ namespace UcAsp.RPC.Client.test
                 //// Task t = new Task(() =>
                 // {
                 clazz = context.GetProxyObject<IFace.ITest>();
-              //  List<string> m = clazz.Good(i.ToString(), "contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番", "contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番");
-                int o = 0;
+
+                List<string> m = clazz.Good(i.ToString(), "contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番", "contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番contentsadfasd阿斯顿发送到法索多番");
+                Console.WriteLine("Gods:" + m[0]);
+
+                int o = (int)i;
                 string x = clazz.R(ref o);
-                Console.WriteLine(x+"."+o);
-                //Console.WriteLine("Gods:" + m[0]);
+                Console.WriteLine(x + "." + o);
+
                 Tuple<int> t = clazz.GetTuple(1000);
                 Console.WriteLine("tuple:" + t.Item1);
+
                 List<Nvr> n = clazz.GetModel(222);
                 Console.WriteLine("nvr:" + n.Count);
-                //});
 
-                // t.Start();
 
 
 

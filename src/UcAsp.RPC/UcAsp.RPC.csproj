@@ -78,8 +78,9 @@
     <Compile Include="RegisterInfo.cs" />
     <Compile Include="ServerBase.cs" />
     <Compile Include="ServerPort.cs" />
+    <Compile Include="SocketClient.cs" />
+    <Compile Include="StateObject.cs" />
     <Compile Include="StatusCode.cs" />
-    <Compile Include="TcpClient.cs" />
     <Compile Include="TcpServer.cs" />
   </ItemGroup>
   <ItemGroup>

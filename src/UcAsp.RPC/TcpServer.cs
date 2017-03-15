@@ -76,8 +76,11 @@ namespace UcAsp.RPC
 
             try
             {
-                Thread t = new Thread(new ParameterizedThreadStart(Recive));
-                t.Start(client);
+                StateObject state = new StateObject();
+                state.workSocket = client;
+                client.BeginReceive(state.buffer, 0, StateObject.BufferSize, SocketFlags.None, ReceiveCallback, state);
+                // Thread t = new Thread(new ParameterizedThreadStart(Recive));
+                // t.Start(client);
 
             }
             catch (Exception ex)
@@ -151,7 +154,7 @@ namespace UcAsp.RPC
             {
                 try
                 {
-                    kv.Value.Shutdown(SocketShutdown.Both); kv.Value.BeginDisconnect(true,null,null); kv.Value.Close(); kv.Value.Dispose();
+                    kv.Value.Shutdown(SocketShutdown.Both); kv.Value.BeginDisconnect(true, null, null); kv.Value.Close(); kv.Value.Dispose();
 
                 }
                 catch (Exception ex)
@@ -159,7 +162,7 @@ namespace UcAsp.RPC
                     Console.WriteLine(ex);
                 }
             }
-           
+
             try
             {
                 token.Cancel();
@@ -175,7 +178,33 @@ namespace UcAsp.RPC
             Console.WriteLine("服务退出");
             _log.Error("服务退出");
         }
+        private void ReceiveCallback(IAsyncResult result)
+        {
+            StateObject state = (StateObject)result.AsyncState;
+            Socket handler = state.workSocket;
+            int bytesRead = handler.EndReceive(result);
 
+            if (bytesRead > 0)
+            {
+                state.Builder.Add(state.buffer, 0, bytesRead);
+                int total = state.Builder.GetInt32(0);
+
+                if (total == state.Builder.Count)
+                {
+                    DataEventArgs dex = DataEventArgs.Parse(state.Builder);
+                    Call(handler, dex);
+
+                    StateObject runstate = new StateObject();
+
+                    runstate.workSocket = handler;
+                    handler.BeginReceive(runstate.buffer, 0, StateObject.BufferSize, SocketFlags.None, ReceiveCallback, runstate);
+                }
+                else
+                {
+                    handler.BeginReceive(state.buffer, 0, StateObject.BufferSize, 0, new AsyncCallback(ReceiveCallback), state);
+                }
+            }
+        }
     }
 
 }
