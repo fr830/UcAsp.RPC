@@ -21,10 +21,7 @@ namespace UcAsp.RPC
     {
         private static CancellationTokenSource cancelTokenSource = new CancellationTokenSource();
         private readonly ILog _log = LogManager.GetLogger(typeof(SocketClient));
-        private const int buffersize = 1024 * 5;
         private System.Timers.Timer heatbeat = new System.Timers.Timer();
-        private long prevtick = DateTime.Now.Ticks;
-        private byte[] buffer = new byte[buffersize];
 
         public override void CallServiceMethod(object de)
         {
@@ -91,7 +88,15 @@ namespace UcAsp.RPC
         public override void Exit()
         {
             cancelTokenSource.Cancel();
-
+            RuningTask.Clear();
+            ResultTask.Clear();
+            foreach (ChannelPool pool in IpAddress)
+            {
+                if (pool.Client != null && pool.Client.Connected)
+                {
+                    pool.Client.Close();
+                }
+            }
         }
         private void ReceiveCallback(IAsyncResult result)
         {
@@ -132,21 +137,25 @@ namespace UcAsp.RPC
                     {
                         return null;
                     }
-                    Thread.Sleep(2);
+                    Thread.Sleep(5);
                     DataEventArgs er = new DataEventArgs();
                     bool result = ResultTask.TryGetValue(e.TaskId, out er);
                     if (result)
                     {
                         return er;
                     }
-                    if (time > 2000)
+
+                    if (time > 15000)
                     {
                         if (e.TryTimes < 6)
                         {
                             e.TryTimes++;
-                            if (RuningTask.ContainsKey(e.TaskId) && !ResultTask.ContainsKey(e.TaskId))
+                            lock (RuningTask)
                             {
-                                RuningTask.Remove(e.TaskId);
+                                if (RuningTask.ContainsKey(e.TaskId) && !ResultTask.ContainsKey(e.TaskId))
+                                {
+                                    RuningTask.Remove(e.TaskId);
+                                }
                             }
 
                             ClientTask.Enqueue(e);
@@ -176,7 +185,6 @@ namespace UcAsp.RPC
             {
                 while (!cancelTokenSource.IsCancellationRequested)
                 {
-                    // int len = new Random(unchecked(Convert.ToInt32((int)DateTime.Now.Ticks))).Next(IpAddress.Count);
 
                     List<ChannelPool> avipool = IpAddress.Where(o => o.ActiveHash == 0 && o.Client != null && o.Available == true).ToList();
                     if (RuningTask.Count + 1 < avipool.Count)
@@ -195,21 +203,42 @@ namespace UcAsp.RPC
                                         len = 0;
                                     }
                                 }
-                               // Console.WriteLine(len);
                                 IpAddress[len].ActiveHash = e.TaskId;
                                 IpAddress[len].RunTimes++;
                                 IpAddress[len].PingActives = DateTime.Now.Ticks;
                                 Call(e, len);
                             }
-                            catch (Exception ex) { _log.Error(ex); }
+                            catch (Exception ex)
+                            {
+                                _log.Error(ex);
+                            }
 
                         }
 
                     }
+                    Thread.Sleep(5);
                 }
 
             }, cancelTokenSource.Token);
             run.Start();
+        }
+        public override void Run(DataEventArgs e, ChannelPool channel)
+        {
+            try
+            {
+                for (int i = 0; i < IpAddress.Count; i++)
+                {
+                    if (IpAddress[i].IpPoint == channel.IpPoint)
+                    {
+                        Call(e, i);
+                        break;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.Error(ex);
+            }
         }
         private void Call(object obj, int len)
         {

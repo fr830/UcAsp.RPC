@@ -17,6 +17,7 @@ namespace UcAsp.RPC
         bool IsRun { get; set; }
 
         void Run();
+        void Run(DataEventArgs agrs,ChannelPool channel);
         DataEventArgs GetResult(DataEventArgs e);
         int TaskId { get; set; }
 

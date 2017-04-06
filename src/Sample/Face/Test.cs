@@ -41,7 +41,7 @@ namespace Face
         public List<string> Good(string yun, string mm, string kkk)
         {
             List<string> list = new List<string>();
-            for (int i = 0; i < 2000; i++)
+            for (int i = 0; i < 1000; i++)
             {
                 list.Add(yun.ToString());
                 list.Add(mm);
@@ -49,7 +49,7 @@ namespace Face
                 //Thread.Sleep(new Random().Next(200));
                 // throw new Exception("错误");
             }
-            Thread.Sleep(200);
+            Thread.Sleep(1000);
             return list;
         }
 

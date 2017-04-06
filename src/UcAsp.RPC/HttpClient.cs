@@ -139,6 +139,24 @@ namespace UcAsp.RPC
             sendtask.Start();
         }
 
+        public override void Run(DataEventArgs agrs, ChannelPool channel)
+        {
+            try
+            {
+                for (int i = 0; i < IpAddress.Count; i++)
+                {
+                    if (IpAddress[i].IpPoint == channel.IpPoint)
+                    {
+                        Call(agrs, i);
+                        break;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.Error(ex);
+            }
+        }
         private void Heatbeat_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
             CheckServer();

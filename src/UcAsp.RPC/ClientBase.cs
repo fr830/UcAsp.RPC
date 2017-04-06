@@ -30,6 +30,8 @@ namespace UcAsp.RPC
         public List<ChannelPool> IpAddress { get; set; }
         public int TaskId { get; set; }
         public abstract void Run();
+
+        public abstract void Run(DataEventArgs agrs, ChannelPool channel);
         public bool IsStart
         {
             get;

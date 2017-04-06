@@ -180,29 +180,36 @@ namespace UcAsp.RPC
         }
         private void ReceiveCallback(IAsyncResult result)
         {
-            StateObject state = (StateObject)result.AsyncState;
-            Socket handler = state.workSocket;
-            int bytesRead = handler.EndReceive(result);
-
-            if (bytesRead > 0)
+            try
             {
-                state.Builder.Add(state.buffer, 0, bytesRead);
-                int total = state.Builder.GetInt32(0);
+                StateObject state = (StateObject)result.AsyncState;
+                Socket handler = state.workSocket;
+                int bytesRead = handler.EndReceive(result);
 
-                if (total == state.Builder.Count)
+                if (bytesRead > 0)
                 {
-                    DataEventArgs dex = DataEventArgs.Parse(state.Builder);
-                    Call(handler, dex);
+                    state.Builder.Add(state.buffer, 0, bytesRead);
+                    int total = state.Builder.GetInt32(0);
 
-                    StateObject runstate = new StateObject();
+                    if (total == state.Builder.Count)
+                    {
+                        DataEventArgs dex = DataEventArgs.Parse(state.Builder);
+                        Call(handler, dex);
 
-                    runstate.workSocket = handler;
-                    handler.BeginReceive(runstate.buffer, 0, StateObject.BufferSize, SocketFlags.None, ReceiveCallback, runstate);
+                        StateObject runstate = new StateObject();
+
+                        runstate.workSocket = handler;
+                        handler.BeginReceive(runstate.buffer, 0, StateObject.BufferSize, SocketFlags.None, ReceiveCallback, runstate);
+                    }
+                    else
+                    {
+                        handler.BeginReceive(state.buffer, 0, StateObject.BufferSize, 0, new AsyncCallback(ReceiveCallback), state);
+                    }
                 }
-                else
-                {
-                    handler.BeginReceive(state.buffer, 0, StateObject.BufferSize, 0, new AsyncCallback(ReceiveCallback), state);
-                }
+            }
+            catch (SocketException ex)
+            {
+                _log.Error(ex);
             }
         }
     }

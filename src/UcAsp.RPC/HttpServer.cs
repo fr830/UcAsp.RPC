@@ -41,11 +41,11 @@ namespace UcAsp.RPC
 
             _url = string.Format("http://{0}:{1}", Dns.GetHostName(), port);
             _server = new TcpListener(IPAddress.Any, port);
-            _server.Start();
+            _server.Start(3000);
 
             _log.Info("启动WEB服务" + port);
 
-            for (int i = 0; i < 40 * 2; i++)
+            for (int i = 0; i < Environment.ProcessorCount * 2; i++)
             {
                 ThreadPool.QueueUserWorkItem(Listen, null);
             }

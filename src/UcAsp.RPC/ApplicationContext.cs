@@ -511,7 +511,7 @@ namespace UcAsp.RPC
                 return;
             DataEventArgs callreg = new DataEventArgs() { ActionCmd = CallActionCmd.Register.ToString(), ActionParam = "Register", T = typeof(List<RegisterInfo>) };
             callreg.CallHashCode = callreg.GetHashCode();
-            _clients.CallServiceMethod(callreg);
+            _clients.Run(callreg, _clients.IpAddress[_clients.IpAddress.Count-1]);
             DataEventArgs reg = _clients.GetResult(callreg);
             if (reg.StatusCode != StatusCode.Success)
                 return;
