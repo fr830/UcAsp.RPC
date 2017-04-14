@@ -406,7 +406,7 @@ namespace UcAsp.RPC
         {
             try
             {
-                // UdpClient client = new UdpClient(new IPEndPoint(IPAddress.Any, 7788));
+               // UdpClient client = new UdpClient(new IPEndPoint(IPAddress.Any, 7788));
                 if (clientBoard != null)
                     return;
 
@@ -418,27 +418,27 @@ namespace UcAsp.RPC
                 while (true)
                 {
 
-                    //byte[] buf = new byte[1024];
-                    //int l = clientBoard.ReceiveFrom(buf, ref endpoint);
-                    //int port = int.Parse(Encoding.Default.GetString(buf, 0, l));
-                    //IPAddress ip = ((IPEndPoint)endpoint).Address;
-                    //bool flag = false;
+                    byte[] buf = new byte[1024];
+                    int l = clientBoard.ReceiveFrom(buf, ref endpoint);
+                    int port = int.Parse(Encoding.Default.GetString(buf, 0, l));
+                    IPAddress ip = ((IPEndPoint)endpoint).Address;
+                    bool flag = false;
 
-                    //foreach (ChannelPool cp in _clients.IpAddress)
-                    //{
-                    //    if (cp.IpPoint.Address.ToString() == ip.ToString() && cp.IpPoint.Port == port)
-                    //    {
-                    //        flag = true;
-                    //        continue;
-                    //    }
+                    foreach (ChannelPool cp in _clients.IpAddress)
+                    {
+                        if (cp.IpPoint.Address.ToString() == ip.ToString() && cp.IpPoint.Port == port)
+                        {
+                            flag = true;
+                            continue;
+                        }
 
-                    //}
+                    }
 
-                    //if (!flag)
-                    //{
-                    //    ServerPort sport = new ServerPort() { Ip = ip.ToString(), Port = port, Pool = 10 };
-                    //    AddClient(sport);
-                    //}
+                    if (!flag)
+                    {
+                        ServerPort sport = new ServerPort() { Ip = ip.ToString(), Port = port, Pool = 10 };
+                        AddClient(sport);
+                    }
 
 
                 }
@@ -446,7 +446,7 @@ namespace UcAsp.RPC
             }
             catch (Exception ex)
             {
-                // _log.Error(ex);
+                 _log.Error(ex);
             }
         }
 
@@ -472,8 +472,8 @@ namespace UcAsp.RPC
                 }
                 _clients.Authorization = Convert.ToBase64String(Encoding.ASCII.GetBytes(username + ":" + password));
                 _clients.ClientTask = new Queue<DataEventArgs>();
-                _clients.ResultTask = new Dictionary<int, DataEventArgs>();
-                _clients.RuningTask = new Dictionary<int, DataEventArgs>();
+                _clients.ResultTask = new System.Collections.Concurrent.ConcurrentDictionary<int, DataEventArgs>();
+                _clients.RuningTask = new System.Collections.Concurrent.ConcurrentDictionary<int, DataEventArgs>();
                 _clients.IpAddress = new List<ChannelPool>();
             }
             bool iccon = false;

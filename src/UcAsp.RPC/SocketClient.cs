@@ -102,32 +102,56 @@ namespace UcAsp.RPC
         {
             StateObject state = (StateObject)result.AsyncState;
             Socket handler = state.workSocket;
-            int bytesRead = handler.EndReceive(result);
-
-            if (bytesRead > 0)
+            try
             {
-                state.Builder.Add(state.buffer, 0, bytesRead);
-                int total = state.Builder.GetInt32(0);
+                int bytesRead = handler.EndReceive(result);
 
-                if (total == state.Builder.Count)
+                if (bytesRead > 0)
                 {
-                    DataEventArgs dex = DataEventArgs.Parse(state.Builder);
-                    lock (ResultTask)
+                    state.Builder.Add(state.buffer, 0, bytesRead);
+                    int total = state.Builder.GetInt32(0);
+
+                    if (total == state.Builder.Count)
                     {
-                        if (ResultTask.ContainsKey(dex.TaskId))
-                        { ResultTask.Remove(dex.TaskId); }
-                        ResultTask.Add(dex.TaskId, dex);
+                        DataEventArgs dex = DataEventArgs.Parse(state.Builder);
+                        lock (ResultTask)
+                        {
+
+                            ResultTask.AddOrUpdate(dex.TaskId, dex, (key, value) => value = dex);
+                        }
+                    }
+                    else
+                    {
+                        handler.BeginReceive(state.buffer, 0, StateObject.BufferSize, 0, new AsyncCallback(ReceiveCallback), state);
                     }
                 }
-                else
+            }
+            catch (Exception ex)
+            {
+                _log.Error(ex);
+                lock (IpAddress)
                 {
-                    handler.BeginReceive(state.buffer, 0, StateObject.BufferSize, 0, new AsyncCallback(ReceiveCallback), state);
+                    for (int i = IpAddress.Count - 1; i >= 0; i--)
+                    {
+
+                        ChannelPool pool = IpAddress[i];
+                        if (pool != null)
+                        {
+                            IPEndPoint ip = (IPEndPoint)handler.RemoteEndPoint;
+                            if (pool.IpPoint.Address.ToString() == ip.Address.ToString() && pool.IpPoint.Port == ip.Port)
+                            {
+                                IpAddress.Remove(pool);
+                            }
+                        }
+                    }
                 }
+
             }
             //result.AsyncWaitHandle.Close();
         }
         public override DataEventArgs GetResult(DataEventArgs e)
         {
+            DataEventArgs outDea = new DataEventArgs();
             int time = 0;
             Task<DataEventArgs> chektask = new Task<DataEventArgs>(() =>
             {
@@ -154,7 +178,7 @@ namespace UcAsp.RPC
                             {
                                 if (RuningTask.ContainsKey(e.TaskId) && !ResultTask.ContainsKey(e.TaskId))
                                 {
-                                    RuningTask.Remove(e.TaskId);
+                                    RuningTask.TryRemove(e.TaskId, out outDea);
                                 }
                             }
 
@@ -242,17 +266,17 @@ namespace UcAsp.RPC
         }
         private void Call(object obj, int len)
         {
+            DataEventArgs outDea = new DataEventArgs();
             DataEventArgs e = (DataEventArgs)obj;
             try
             {
                 if (RuningTask == null)
                 {
-                    RuningTask = new Dictionary<int, DataEventArgs>();
+                    RuningTask = new System.Collections.Concurrent.ConcurrentDictionary<int, DataEventArgs>();
                 }
-                if (!RuningTask.ContainsKey(e.TaskId))
-                {
-                    RuningTask.Add(e.TaskId, e);
-                }
+
+                RuningTask.AddOrUpdate(e.TaskId, e, (key, value) => value = e);
+
                 Socket _client = IpAddress[len].Client;
 
                 byte[] _bf = e.ToByteArray();
@@ -275,7 +299,7 @@ namespace UcAsp.RPC
                 e.TryTimes++;
                 if (e.TryTimes < 3)
                 {
-                    RuningTask.Remove(e.TaskId);
+                    RuningTask.TryRemove(e.TaskId, out outDea);
                     for (int i = 0; i < IpAddress.Count; i++)
                     {
                         if (IpAddress[i].ActiveHash == e.TaskId)
@@ -286,7 +310,7 @@ namespace UcAsp.RPC
                     ClientTask.Enqueue(e);
                     return;
                 }
-                ResultTask.Add(e.TaskId, e);
+                ResultTask.AddOrUpdate(e.TaskId, e, (key, value) => value = e);
                 return;
             }
         }

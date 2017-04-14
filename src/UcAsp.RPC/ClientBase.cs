@@ -23,9 +23,9 @@ namespace UcAsp.RPC
     public abstract class ClientBase : IClient
     {
         public Queue<DataEventArgs> ClientTask { get; set; }
-        public Dictionary<int, DataEventArgs> ResultTask { get; set; }
+        public ConcurrentDictionary<int, DataEventArgs> ResultTask { get; set; }
 
-        public Dictionary<int, DataEventArgs> RuningTask { get; set; }
+        public ConcurrentDictionary<int, DataEventArgs> RuningTask { get; set; }
         private Socket socket;
         public List<ChannelPool> IpAddress { get; set; }
         public int TaskId { get; set; }
@@ -68,9 +68,10 @@ namespace UcAsp.RPC
 
         public void RemovePool(DataEventArgs hash)
         {
+            DataEventArgs outDea = new DataEventArgs();
             if (ResultTask.ContainsKey(hash.TaskId))
             {
-                ResultTask.Remove(hash.TaskId);
+                ResultTask.TryRemove(hash.TaskId, out outDea);
             }
 
             if (RuningTask.ContainsKey(hash.TaskId))
@@ -82,7 +83,7 @@ namespace UcAsp.RPC
                         IpAddress[i].ActiveHash = 0;
                     }
                 }
-                RuningTask.Remove(hash.TaskId);
+                RuningTask.TryRemove(hash.TaskId,out outDea);
             }
             for (int i = 0; i < IpAddress.Count; i++)
             {

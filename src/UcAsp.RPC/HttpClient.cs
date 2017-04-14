@@ -168,14 +168,15 @@ namespace UcAsp.RPC
         }
         private void Call(object obj, int len)
         {
+            DataEventArgs outDea = new DataEventArgs();
             DataEventArgs ea = (DataEventArgs)obj;
             try
             {
                 if (RuningTask == null)
                 {
-                    RuningTask = new Dictionary<int, DataEventArgs>();
+                    RuningTask = new ConcurrentDictionary<int, DataEventArgs>();
                 }
-                RuningTask.Add(ea.TaskId, ea);
+                RuningTask.AddOrUpdate(ea.TaskId, ea, (key, value) => value = ea);
                 string url = "http://" + IpAddress[len].IpPoint.Address.ToString() + ":" + (IpAddress[len].IpPoint.Port + 1);
                 Dictionary<string, string> header = new Dictionary<string, string>();
                 header.Add("Authorization", "Basic " + this.Authorization);
@@ -187,7 +188,7 @@ namespace UcAsp.RPC
                     {
                         ea.StatusCode = StatusCode.Success;
                         ea.Json = result.Item2;
-                        ResultTask.Add(ea.TaskId, ea);
+                        ResultTask.AddOrUpdate(ea.TaskId, ea, (key, value) => value = ea);
                     }
                     else
                     {
@@ -195,7 +196,7 @@ namespace UcAsp.RPC
                         if (HttpStatusCode.Moved == result.Item1)
                         {
                             ea.Json = result.Item2;
-                            RuningTask.Remove(ea.TaskId);
+                            RuningTask.TryRemove(ea.TaskId, out outDea);
                             IpAddress[len].Available = false;
                             ClientTask.Enqueue(ea);
                             CheckServer();
@@ -204,7 +205,7 @@ namespace UcAsp.RPC
                         else
                         {
                             ea.Json = result.Item2;
-                            ResultTask.Add(ea.TaskId, ea);
+                            ResultTask.AddOrUpdate(ea.TaskId, ea, (key, value) => value = ea);
                         }
                     }
 
@@ -221,7 +222,7 @@ namespace UcAsp.RPC
                     {
                         ea.StatusCode = StatusCode.Success;
                         ea.Json = result.Item2;
-                        ResultTask.Add(ea.TaskId, ea);
+                        ResultTask.AddOrUpdate(ea.TaskId, ea, (key, value) => value = ea);
                     }
                     else
                     {
@@ -229,7 +230,7 @@ namespace UcAsp.RPC
                         if (HttpStatusCode.Moved == result.Item1)
                         {
                             ea.Json = result.Item2;
-                            RuningTask.Remove(ea.TaskId);
+                            RuningTask.TryRemove(ea.TaskId, out outDea);
                             IpAddress[len].Available = false;
                             ClientTask.Enqueue(ea);
                             CheckServer();
@@ -238,7 +239,7 @@ namespace UcAsp.RPC
                         else
                         {
                             ea.Json = result.Item2;
-                            ResultTask.Add(ea.TaskId, ea);
+                            ResultTask.AddOrUpdate(ea.TaskId, ea, (key, value) => value = ea);
                         }
                     }
 
@@ -251,13 +252,12 @@ namespace UcAsp.RPC
                 ea.TryTimes++;
                 if (ea.TryTimes < 3)
                 {
-                    RuningTask.Remove(ea.TaskId);
+                    RuningTask.TryRemove(ea.TaskId, out outDea);
                     ClientTask.Enqueue(ea);
                     return;
                 }
-                if (ResultTask.ContainsKey(ea.TaskId))
-                { ResultTask.Remove(ea.TaskId); }
-                ResultTask.Add(ea.TaskId, ea);
+
+                ResultTask.AddOrUpdate(ea.TaskId, ea, (key, value) => value = ea);
                 return;
             }
             finally
@@ -269,7 +269,7 @@ namespace UcAsp.RPC
                         IpAddress[i].ActiveHash = 0;
                     }
                 }
-                RuningTask.Remove(ea.TaskId);
+                RuningTask.TryRemove(ea.TaskId, out outDea);
             }
         }
         public override bool Connect(string ip, int port, int pool)
