@@ -143,11 +143,19 @@ namespace UcAsp.RPC
                             if (parameters == null) parameters = new List<object>();
                             parameters = this.CorrectParameters(method, parameters);
                             Object bll = ApplicationContext.GetObject(name);
-
-                            var result = method.Invoke(bll, parameters.ToArray());
+                            object[] arrparam = parameters.ToArray();
+                            var result = method.Invoke(bll, arrparam);
                             if (!method.ReturnType.Equals(typeof(void)))
                             {
                                 e.Binary = this._serializer.ToBinary(result);
+                                if (e.Param == null)
+                                {
+                                    e.Param = new System.Collections.ArrayList();
+                                }
+                                for (int i = 0; i < arrparam.Length; i++)
+                                {                                    
+                                    e.Param.Add(arrparam[i]);
+                                }
                             }
                             else
                             {

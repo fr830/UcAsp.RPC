@@ -19,7 +19,7 @@ namespace UcAsp.RPC
     /// 二进制数据
     /// </summary>
     /// 
-    [Serializable]
+   // [Serializable]
     public class Binary
     {
         private readonly ILog _log = LogManager.GetLogger(typeof(Binary));

@@ -26,12 +26,14 @@ namespace UcAsp.RPC
             {
                 return default(T);
             }
-            using (MemoryStream ms = new MemoryStream(binary.Buffer))
-            {
-                IFormatter formater = new BinaryFormatter();
-                ms.Seek(0, SeekOrigin.Begin);
-                return (T)formater.Deserialize(ms);
-            }
+            //using (MemoryStream ms = new MemoryStream(binary.Buffer))
+            //{
+            //    IFormatter formater = new BinaryFormatter();
+            //    ms.Seek(0, SeekOrigin.Begin);
+            //    return (T)formater.Deserialize(ms);
+            //}
+            String s = Encoding.UTF8.GetString(binary.Buffer, 0, binary.Buffer.Length);
+            return (T)JsonConvert.DeserializeObject(s, typeof(T));
         }
 
         public object ToEntity(Binary binary, Type type)
@@ -40,15 +42,15 @@ namespace UcAsp.RPC
             {
                 return null;
             }
-            using (MemoryStream ms = new MemoryStream())
-            {
-                IFormatter formater = new BinaryFormatter();
-                ms.Write(binary.Buffer, 0, binary.Buffer.Length);
-                return formater.Deserialize(ms);
-            }
+            //using (MemoryStream ms = new MemoryStream())
+            //{
+            //    IFormatter formater = new BinaryFormatter();
+            //    ms.Write(binary.Buffer, 0, binary.Buffer.Length);
+            //    return formater.Deserialize(ms);
+            //}
 
-            //String s = Encoding.UTF8.GetString(binary.Buffer, 0, binary.Buffer.Length);
-            //return JsonConvert.DeserializeObject(s, type);
+            String s = Encoding.UTF8.GetString(binary.Buffer, 0, binary.Buffer.Length);
+            return JsonConvert.DeserializeObject(s, type);
 
 
         }
@@ -60,15 +62,15 @@ namespace UcAsp.RPC
                 return null;
             }
 
-            //String s = JsonConvert.SerializeObject(entity);
-            //return new Binary(Encoding.UTF8.GetBytes(s));
+            String s = JsonConvert.SerializeObject(entity);
+            return new Binary(Encoding.UTF8.GetBytes(s));
 
-            using (MemoryStream ms = new MemoryStream())
-            {
-                IFormatter formater = new BinaryFormatter();
-                formater.Serialize(ms, entity);
-                return new Binary(ms.ToArray());
-            }
+            //using (MemoryStream ms = new MemoryStream())
+            //{
+            //    IFormatter formater = new BinaryFormatter();
+            //    formater.Serialize(ms, entity);
+            //    return new Binary(ms.ToArray());
+            //}
         }
 
         public string ToString(object entity)
@@ -78,7 +80,9 @@ namespace UcAsp.RPC
 
         public T ToEntity<T>(string json)
         {
+
             return JsonConvert.DeserializeObject<T>(json);
+
         }
         public object ToEntity(string json, Type type)
         {

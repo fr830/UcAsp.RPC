@@ -16,6 +16,7 @@ using Microsoft.CSharp;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using log4net;
+using System.Collections;
 namespace UcAsp.RPC
 {
     public static class Proxy
@@ -61,7 +62,8 @@ namespace UcAsp.RPC
                 paras.ReferencedAssemblies.Add(rootpath + assembly.ManifestModule.Name);
                 paras.GenerateExecutable = false;
                 paras.GenerateInMemory = true;
-                CompilerResults cr = complier.CompileAssemblyFromSource(paras, GetCodeString(type, type.Namespace, nameSpace, nameClass));
+                string _tempCode = GetCodeString(type, type.Namespace, nameSpace, nameClass);
+                CompilerResults cr = complier.CompileAssemblyFromSource(paras, _tempCode);
                 if (cr.Errors.HasErrors)
                 {
                     foreach (CompilerError err in cr.Errors)
@@ -125,16 +127,27 @@ namespace UcAsp.RPC
             foreach (MethodInfo method in m)
             {
                 ParameterInfo[] para = method.GetParameters();
-
+                ArrayList arrparam = new ArrayList();
+                List<string> arrType = new List<string>();
+                string initiout = string.Empty;
                 sb.AppendLine(Environment.NewLine);
                 sb.AppendFormat("        public {0} {1}(", GetTypeName(method.ReturnType), method.Name);
                 for (int x = 0; x < para.Length; x++)
                 {
                     string param = GetTypeName(para[x].ParameterType);
-                    if (param.EndsWith("&"))
+                    string attr = para[x].Attributes.ToString().ToLower();
+                    if (param.EndsWith("&") && attr == "none")
                     {
                         param = "ref " + param.Replace("&", "");
                     }
+                    if (attr == "out")
+                    {
+                        initiout = initiout + para[x].Name + " =new " + param.Replace("&", "") + "();\r\n";
+                        param = "out " + param.Replace("&", "");
+                       
+                    }
+                    arrType.Add(param);
+                    arrparam.Add(para[x].Name);
                     sb.AppendFormat("{0} {1}", param, para[x].Name);
                     if (x != para.Length - 1)
                     {
@@ -145,7 +158,7 @@ namespace UcAsp.RPC
                 sb.AppendLine(Environment.NewLine);
                 sb.AppendLine("        {\r\n");
 
-
+                sb.Append(initiout);
 
                 sb.AppendLine(" Stopwatch wath = new Stopwatch();");
                 sb.AppendLine("wath.Start();");
@@ -164,15 +177,8 @@ namespace UcAsp.RPC
                 sb.AppendLine("            e.ActionCmd = CallActionCmd.Call.ToString();\r\n");
                 sb.AppendLine("       DataEventArgs data=new DataEventArgs();");
                 sb.AppendLine("        try{\r\n");
-                // sb.AppendLine("              Task  task = new Task(Run.CallServiceMethod,e);\r\n");
-                // sb.AppendLine("             task.Start();\r\n");
                 sb.AppendLine("       Run.CallServiceMethod(e);");
-                //  sb.AppendLine("             GetHandler handler=new  GetHandler(Run.GetResult);");
-                //  sb.AppendLine("             IAsyncResult result = handler.BeginInvoke(e, null, null);");
-
-                //  sb.AppendLine("             data = handler.EndInvoke(result);");
                 sb.AppendLine("             data = Run.GetResult(e);\r\n");
-                // sb.AppendLine("             data = Run.CallServiceMethod(e);\r\n");
                 sb.AppendLine("       }catch (Exception ex)\r\n");
                 sb.AppendLine("       { _log.Error(ex);}\r\n");
                 sb.AppendLine("            if (data.StatusCode != StatusCode.Success) {\r\n ");
@@ -181,6 +187,28 @@ namespace UcAsp.RPC
                 sb.AppendLine("                throw (ex);\r\n");
                 sb.AppendLine("            }\r\n");
                 sb.AppendLine("wath.Stop();");
+                //sb.AppendLine("try{\r\n");
+                for (int i = 0; i < arrparam.Count; i++)
+                {
+                    ; if (arrType[i].Replace("ref","").Replace("out","").Trim().ToLower() == "string")
+                    {
+                        sb.AppendLine(arrparam[i] + " =  data.Param[" + i + "].ToString();");
+                        
+                    }
+                    else if (arrType[i].Replace("ref", "").Replace("out", "").Trim().ToLower() == "boolean")
+                    {
+                        sb.AppendLine(arrparam[i] + " =  (bool)data.Param[" + i + "];");
+                    }
+                    else
+                    {
+                        sb.AppendLine(arrparam[i] + " =  new JsonSerializer().ToEntity<" + arrType[i].Replace("ref", "").Replace("out", "").Trim() + ">(data.Param[" + i + "].ToString());");
+                    }
+                }
+                //sb.AppendLine("}catch (Exception ex)\r\n");
+                //sb.AppendLine("{");
+                //sb.AppendLine("  Console.WriteLine(ex);");
+                //sb.AppendLine("}\r\n");
+
                 sb.AppendLine("_log.Info(e.ActionParam + \":\" + e.CallHashCode + \":\" + e.TaskId + \":\" + wath.ElapsedMilliseconds);");
                 if (IsVoid(method.ReturnType) == false)
                 {
@@ -191,7 +219,8 @@ namespace UcAsp.RPC
                     sb.AppendLine("}");
                     sb.AppendLine(" else");
                     sb.AppendLine("{");
-                    sb.AppendLine(string.Format("            return this.Serializer.ToEntity<{0}>(data.Binary);\r\n", GetTypeName(method.ReturnType)));
+                    
+                    sb.AppendLine(string.Format("return this.Serializer.ToEntity<{0}>(data.Binary);\r\n", GetTypeName(method.ReturnType)));
 
                     sb.AppendLine(" }");
 

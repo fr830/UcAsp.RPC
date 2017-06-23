@@ -21,6 +21,8 @@ namespace IFace
         string R(ref int o);
         string M(ref bool o,string code);
 
+        string X(out int m, out int x, ref bool o);
+
 
     }
 }

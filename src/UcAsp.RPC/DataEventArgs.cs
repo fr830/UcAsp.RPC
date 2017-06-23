@@ -12,6 +12,7 @@ using System.Text;
 using System.Net;
 using System.Net.Sockets;
 using log4net;
+using System.Collections;
 namespace UcAsp.RPC
 {
     [Serializable]
@@ -42,10 +43,12 @@ namespace UcAsp.RPC
         public string LastError { get; set; }
         public string RemoteIpAddress { get; set; }
         public int TryTimes { get; set; }
+
+        public ArrayList Param { get; set; }
         // 无数据时包的固定长度 24
         //总包长4 + ActionCmd长 4 + ActionParam长 4 + SessionId长 4 + hashCode 4 + 验校总包长 4
         //数据格式   [包长 4byte][ActionCmd长 4byte][ActionParam长 4byte][SessionId长 4byte][hashCode 4byte][ActionCmd N个byte][ActionParam N个byte][SessionId N个byte][实体 N个byte][包长 4byte]
-        private const int ConstLength = 44;
+        private const int ConstLength = 48;
 
 
         public DataEventArgs()
@@ -70,21 +73,25 @@ namespace UcAsp.RPC
         /// <returns></returns>
         public byte[] ToByteArray()
         {
+            string param = new JsonSerializer().ToString(Param);
             int cmdLength = this.ActionCmd.Length;
             int paramLength = Encoding.UTF8.GetByteCount(this.ActionParam);
             int idLength = Encoding.UTF8.GetByteCount(HttpSessionId);
             int errLength = Encoding.UTF8.GetByteCount(LastError);
+            //
+            int pavalLength = Encoding.UTF8.GetByteCount(param);
             int ipLength = 0;
             if (!string.IsNullOrEmpty(this.RemoteIpAddress))
             {
                 ipLength = Encoding.UTF8.GetByteCount(RemoteIpAddress);
             }
-            int capacity = ConstLength + cmdLength + paramLength + idLength + errLength + ipLength;
+            int capacity = ConstLength + cmdLength + paramLength + idLength + errLength + ipLength+ pavalLength;
 
             if (this.Binary != null && this.Binary.Buffer != null)
             {
                 capacity = capacity + this.Binary.Buffer.Length; // +实体数据长
             }
+            
             ByteBuilder builder = new ByteBuilder(capacity);
             builder.Add(BitConverter.GetBytes(capacity));
             builder.Add(BitConverter.GetBytes(cmdLength));
@@ -98,6 +105,8 @@ namespace UcAsp.RPC
             builder.Add(BitConverter.GetBytes((int)this.StatusCode));
             builder.Add(BitConverter.GetBytes(this.TryTimes));
             builder.Add(BitConverter.GetBytes(ipLength));
+            builder.Add(BitConverter.GetBytes(pavalLength));
+
 
 
 
@@ -106,6 +115,8 @@ namespace UcAsp.RPC
             builder.Add(Encoding.UTF8.GetBytes(this.ActionParam));
 
             builder.Add(Encoding.UTF8.GetBytes(this.HttpSessionId));
+
+           
 
             if (!string.IsNullOrEmpty(RemoteIpAddress))
             {
@@ -116,6 +127,9 @@ namespace UcAsp.RPC
             {
                 builder.Add(Encoding.UTF8.GetBytes(this.LastError));
             }
+
+            builder.Add(Encoding.UTF8.GetBytes(param));
+
             if (this.Binary != null)
             {
                 builder.Add(this.Binary.Buffer);
@@ -142,16 +156,24 @@ namespace UcAsp.RPC
                 int totalLength = recvBuilder.ReadInt32();
                 // cmdLength
                 int cmdLength = recvBuilder.ReadInt32();
+
                 int paramLength = recvBuilder.ReadInt32();
+
                 int idLength = recvBuilder.ReadInt32();
 
                 int errLength = recvBuilder.ReadInt32();
                 // 哈希值
                 int hashCode = recvBuilder.ReadInt32();
+
                 int taskId = recvBuilder.ReadInt32();
+
                 int statusCode = recvBuilder.ReadInt32();
+
                 int tryTimes = recvBuilder.ReadInt32();
+
                 int ipLength = recvBuilder.ReadInt32();
+                int pavalLength = recvBuilder.ReadInt32();
+
                 String cmd = Encoding.UTF8.GetString(recvBuilder.ReadRange(cmdLength), 0, cmdLength);
                 String param = Encoding.UTF8.GetString(recvBuilder.ReadRange(paramLength), 0, paramLength);
                 String id = Encoding.UTF8.GetString(recvBuilder.ReadRange(idLength), 0, idLength);
@@ -167,8 +189,10 @@ namespace UcAsp.RPC
                 {
                     lastError = Encoding.UTF8.GetString(errBinary);
                 }
+
+                ArrayList Param =new JsonSerializer().ToEntity<ArrayList>( Encoding.UTF8.GetString(recvBuilder.ReadRange(pavalLength)));
                 // 实体长
-                int entityLength = totalLength - ConstLength - cmdLength - paramLength - idLength - errLength - ipLength;
+                int entityLength = totalLength - ConstLength - cmdLength - paramLength - idLength - errLength - ipLength-pavalLength;
                 // 实体数据
                 Binary entityBinary = new Binary(recvBuilder.ReadRange(entityLength));
                 // 校验长
@@ -179,7 +203,7 @@ namespace UcAsp.RPC
                 {
 
                     // 返回数据事件包给发送者
-                    return new DataEventArgs() { Binary = entityBinary, LastError = lastError, RemoteIpAddress = ipAddress, TryTimes = tryTimes, StatusCode = (StatusCode)statusCode, TaskId = taskId, ActionCmd = cmd, CallHashCode = hashCode, ActionParam = param, HttpSessionId = id };
+                    return new DataEventArgs() { Binary = entityBinary, Param=Param, LastError = lastError, RemoteIpAddress = ipAddress, TryTimes = tryTimes, StatusCode = (StatusCode)statusCode, TaskId = taskId, ActionCmd = cmd, CallHashCode = hashCode, ActionParam = param, HttpSessionId = id };
                 }
                 else
                 {

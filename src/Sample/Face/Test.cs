@@ -91,9 +91,10 @@ namespace Face
             return m;
         }
 
+        
         public string R(ref int o)
         {
-            o = 111;
+            o = 111+o;
             return "mm";
         }
 
@@ -101,6 +102,14 @@ namespace Face
         {
             o = true;
             return "s";
+        }
+        public string X(out int m, out int x, ref bool o)
+        {
+            x = 9;
+            m = 2;
+            m = m * x;
+            o = false;
+            return m.ToString();
         }
     }
 }

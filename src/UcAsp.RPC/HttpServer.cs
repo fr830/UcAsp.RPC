@@ -301,40 +301,7 @@ namespace UcAsp.RPC
                 // Console.WriteLine("Call：" + Watch.ElapsedMilliseconds);
             }
         }
-        public override List<object> CorrectParameters(MethodInfo method, List<object> parameterValues)
-        {
-            if (parameterValues.Count == method.GetParameters().Length)
-            {
-                for (int i = 0; i < parameterValues.Count; i++)
-                {
-                    // 传递的参数值
-                    object entity = parameterValues[i];
-                    // 传递参数的类型
-                    Type eType = entity.GetType();
-
-                    Type[] ParameterTypes = new Type[method.GetParameters().Length];
-                    for (int x = 0; x < method.GetParameters().Length; x++)
-                    {
-                        ParameterTypes[x] = method.GetParameters()[x].ParameterType;
-                    }
-                    // 目标方法参数类型
-                    Type pType = ParameterTypes[i];
-                    // 类型不一致，需要转换类型
-                    if (eType.Equals(pType) == false)
-                    {
-                        // 转换entity的类型
-                        // Assembly al = pType.Assembly;
-                        // object obj = al.CreateInstance(pType.Namespace + "." + pType.Name);
-                        object pValue = JsonConvert.DeserializeObject(entity.ToString(), pType); //this._serializer.ToEntity(bin, pType);
-                        // 保存参数
-                        parameterValues[i] = pValue;
-                    }
-                }
-            }
-
-            return parameterValues;
-        }
-        private void SendAPI(Socket socket)
+       private void SendAPI(Socket socket)
         {
             byte[] buffer = Encoding.UTF8.GetBytes(HtmlHelp());
             HttpRespone.SendHeader(_httpversion, _mimetype, buffer.Length, " 200 OK", ref socket);
