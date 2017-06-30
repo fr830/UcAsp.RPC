@@ -184,10 +184,12 @@ namespace UcAsp.RPC
                 {
 
                     Tuple<HttpStatusCode, string> result = HttpPost.Post(url + "/" + CallActionCmd.Register.ToString(), null, header);
+                    DataEventArgs redata = JsonConvert.DeserializeObject<DataEventArgs>(result.Item2);
                     if (result.Item1 == HttpStatusCode.OK)
                     {
                         ea.StatusCode = StatusCode.Success;
-                        ea.Json = result.Item2;
+                        ea.Json = redata.Json;
+                        ea.Param = redata.Param;
                         ResultTask.AddOrUpdate(ea.TaskId, ea, (key, value) => value = ea);
                     }
                     else
@@ -218,10 +220,12 @@ namespace UcAsp.RPC
                     Dictionary<string, string> param = new Dictionary<string, string>();
                     param.Add("", JsonConvert.SerializeObject(eabinary));
                     var result = HttpPost.Post(url + "/" + code, param, header);
+                    DataEventArgs redata = JsonConvert.DeserializeObject<DataEventArgs>(result.Item2);
                     if (result.Item1 == HttpStatusCode.OK)
                     {
                         ea.StatusCode = StatusCode.Success;
-                        ea.Json = result.Item2;
+                        ea.Json = redata.Json;
+                        ea.Param = redata.Param;
                         ResultTask.AddOrUpdate(ea.TaskId, ea, (key, value) => value = ea);
                     }
                     else

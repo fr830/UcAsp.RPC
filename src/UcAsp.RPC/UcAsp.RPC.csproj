@@ -76,6 +76,7 @@
     <Compile Include="Proxy.cs" />
     <Compile Include="ProxyObject.cs" />
     <Compile Include="RegisterInfo.cs" />
+    <Compile Include="Restful.cs" />
     <Compile Include="ServerBase.cs" />
     <Compile Include="ServerPort.cs" />
     <Compile Include="SocketClient.cs" />

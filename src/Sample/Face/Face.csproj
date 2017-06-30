@@ -54,6 +54,10 @@
     <Compile Include="Test2.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\UcAsp.RPC\UcAsp.RPC.csproj">
+      <Project>{4d6db5dd-ab98-4342-bb71-825ad752ee7b}</Project>
+      <Name>UcAsp.RPC</Name>
+    </ProjectReference>
     <ProjectReference Include="..\IFace\IFace.csproj">
       <Project>{34cb8eff-6268-4e05-bd6d-0112a31ef01f}</Project>
       <Name>IFace</Name>

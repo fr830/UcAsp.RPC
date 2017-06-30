@@ -11,11 +11,23 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using UcAsp.RPC;
 using IFace;
 namespace Face
 {
+    /// <summary>
+    /// 
+    /// </summary>
+    [Restful("Test")]
+    
     public class Test : ITest
     {
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="im"></param>
+        /// <returns></returns>
+        [Restful("POST","GetAll")]
         public string ToList(List<Imodel> im)
         {
             StringBuilder sb = new StringBuilder();
@@ -26,6 +38,7 @@ namespace Face
             }
             return sb.ToString();
         }
+        [Restful("POST","TestPost")]
         public string Get(string msg, int c)
         {
             // Thread.Sleep(2000);

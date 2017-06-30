@@ -151,12 +151,12 @@ namespace UcAsp.RPC
                                     socket.Close();
                                     return;
                                 }
-
-                                List<object> param = JsonConvert.DeserializeObject<List<object>>(content);
-                                if (param == null)
-                                {
-                                    param = new List<object>();
-                                }
+                                string param = content;
+                                //  List<object> param = JsonConvert.DeserializeObject<List<object>>(content);
+                                //   if (param == null)
+                                //  {
+                                //      param = new List<object>();
+                                //  }
                                 if (Route[1].ToUpper() == "WEBAPI")
                                 {
                                     string method = string.Empty;
@@ -171,12 +171,12 @@ namespace UcAsp.RPC
                                             method = method + "/" + Route[n];
                                         }
                                     }
-                                    param.Add(method + ",webapi");
+                                    param = content + "\\" + (method + ",webapi");
 
                                 }
                                 else
                                 {
-                                    param.Add(sDirName.Replace("/", ""));
+                                    param = content + "\\" + (sDirName.Replace("/", ""));
                                 }
                                 Call(socket, param);
                             }
@@ -206,19 +206,27 @@ namespace UcAsp.RPC
 
         public override void Call(Socket socket, object obj)
         {
+            string[] content = obj.ToString().Split('\\');
             Stopwatch Watch = new Stopwatch();
             Watch.Start();
             try
             {
-                List<object> e = (List<object>)obj;
+                List<object> e = JsonConvert.DeserializeObject<List<object>>(content[0]);
                 MethodInfo method = null;
                 string name = string.Empty;
-                string code = e[e.Count - 1].ToString();
+                string code = content[1];
                 if (code.ToLower() == "register")
                 {
                     string reginfo = JsonConvert.SerializeObject(RegisterInfo);
-                    HttpRespone.SendHeader(_httpversion, _mimetype, Encoding.UTF8.GetBytes(reginfo).Length, " 200 OK", ref socket);
-                    HttpRespone.SendToBrowser(reginfo, ref socket);
+
+                    DataEventArgs reg = new DataEventArgs();
+                    reg.Param = new System.Collections.ArrayList();
+                    reg.Json = reginfo;
+
+
+
+                    HttpRespone.SendHeader(_httpversion, _mimetype, Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(reg)).Length, " 200 OK", ref socket);
+                    HttpRespone.SendToBrowser(JsonConvert.SerializeObject(reg), ref socket);
                     return;
                 }
                 var parameters = e;
@@ -275,15 +283,26 @@ namespace UcAsp.RPC
                     return;
                 }
 
-                parameters.RemoveAt(e.Count - 1);
+                // parameters.RemoveAt(e.Count - 1);
                 if (parameters == null) parameters = new List<object>();
                 parameters = this.CorrectParameters(method, parameters);
 
+                object[] arrparam = parameters.ToArray();
                 Object bll = ApplicationContext.GetObject(name);
 
-                var result = method.Invoke(bll, parameters.ToArray());
+                var result = method.Invoke(bll, arrparam);
+
                 string data = JsonConvert.SerializeObject(result);
-                byte[] buffer = Encoding.UTF8.GetBytes(data);
+                DataEventArgs ea = new DataEventArgs();
+                ea.Param = new System.Collections.ArrayList();
+                ea.Json = data;
+                for (int i = 0; i < arrparam.Length; i++)
+                {
+                    ea.Param.Add(arrparam[i]);
+                }
+
+                byte[] buffer = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(ea));
+
                 HttpRespone.SendHeader(_httpversion, _mimetype, buffer.Length, " 200 OK", ref socket);
                 HttpRespone.SendToBrowser(buffer, ref socket);
 
@@ -301,7 +320,7 @@ namespace UcAsp.RPC
                 // Console.WriteLine("Call：" + Watch.ElapsedMilliseconds);
             }
         }
-       private void SendAPI(Socket socket)
+        private void SendAPI(Socket socket)
         {
             byte[] buffer = Encoding.UTF8.GetBytes(HtmlHelp());
             HttpRespone.SendHeader(_httpversion, _mimetype, buffer.Length, " 200 OK", ref socket);

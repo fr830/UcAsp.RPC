@@ -150,13 +150,13 @@ namespace UcAsp.RPC.Client.test
                 int xx = 1;
                 bool mm = true;
                 clazz.X(out mmx, out xx, ref mm);
-                Console.WriteLine(m + "." + xx+"."+mm);
+                Console.WriteLine(m + "." + xx + "." + mm);
 
-                // Tuple<int> t = clazz.GetTuple(1000);
-                //Console.WriteLine("tuple:" + t.Item1);
+                Tuple<int> t = clazz.GetTuple(1000);
+                Console.WriteLine("tuple:" + t.Item1);
 
-                // List<Nvr> n = clazz.GetModel(222);
-                // Console.WriteLine("nvr:" + n.Count);
+                List<Nvr> n = clazz.GetModel(222);
+                Console.WriteLine("nvr:" + n.Count);
 
 
 
