@@ -12,16 +12,31 @@ using System.Linq;
 using System.Text;
 
 namespace UcAsp.RPC
-{   
+{
     public class Restful : Attribute
     {
         public string Method { get; set; }
         public string Path { get; set; }
-
-        public Restful() { }
-        public Restful(string method, string path) { this.Method = method; this.Path = path; }
+        public Restful()
+        { }
+        public Restful(string method, string path)
+        {
+            if (path == "register")
+            {
+                Exception ex = new Exception("register路径是系统保留，请更换！");
+                throw (ex);
+            }
+            this.Method = method;
+            this.Path = path;
+        }
         public Restful(string path)
         {
+            if (path == "register")
+            {
+                Exception ex = new Exception("register路径是系统保留，请更换！");
+                throw (ex);
+            }
+
             this.Path = path;
         }
     }

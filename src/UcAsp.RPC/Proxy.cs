@@ -178,9 +178,7 @@ namespace UcAsp.RPC
                 sb.AppendLine("       DataEventArgs data=new DataEventArgs();");
                 sb.AppendLine("        try{\r\n");
                 sb.AppendLine("       Run.CallServiceMethod(e);");
-                sb.AppendLine(" Console.WriteLine (11111111111111);\r\n; ");
                 sb.AppendLine("             data = Run.GetResult(e);\r\n");
-                sb.AppendLine(" Console.WriteLine (222222222222222);\r\n; ");
                 sb.AppendLine("       }catch (Exception ex)\r\n");
                 sb.AppendLine("       { Console.WriteLine(ex);}\r\n");
                 sb.AppendLine("            if (data.StatusCode != StatusCode.Success) {\r\n ");
@@ -189,30 +187,24 @@ namespace UcAsp.RPC
                 sb.AppendLine("                throw (ex);\r\n");
                 sb.AppendLine("            }\r\n");
                 sb.AppendLine("wath.Stop();");
-               sb.AppendLine("try{\r\n");
+              // sb.AppendLine("try{\r\n");
                 for (int i = 0; i < arrparam.Count; i++)
                 {
                     ; if (arrType[i].Replace("ref", "").Replace("out", "").Trim().ToLower() == "string")
                     {
-                        sb.AppendLine(" Console.WriteLine (222222222222223);\r\n; ");
+                      
                         sb.AppendLine(arrparam[i] + " =  data.Param[" + i + "].ToString();");
 
                     }
                     else if (arrType[i].Replace("ref", "").Replace("out", "").Trim().ToLower() == "boolean")
                     {
-                        sb.AppendLine(" Console.WriteLine (222222222222224);\r\n; ");
                         sb.AppendLine(arrparam[i] + " =  (bool)data.Param[" + i + "];");
                     }
                     else
                     {
-                        sb.AppendLine(" Console.WriteLine (222222222222225);\r\n; ");
                         sb.AppendLine(arrparam[i] + " =  new JsonSerializer().ToEntity<" + arrType[i].Replace("ref", "").Replace("out", "").Trim() + ">(data.Param[" + i + "].ToString());");
                     }
-                    sb.AppendLine(" Console.WriteLine (666666666666666666);\r\n; ");
                 }
-              
-
-                sb.AppendLine("Console.WriteLine(e.ActionParam + \":\" + e.CallHashCode + \":\" + e.TaskId + \":\" + wath.ElapsedMilliseconds);");
                 if (IsVoid(method.ReturnType) == false)
                 {
                     sb.AppendLine(" if (!string.IsNullOrEmpty(e.Json))");
@@ -229,12 +221,12 @@ namespace UcAsp.RPC
 
 
                 }
-                sb.AppendLine("}catch (Exception ex)\r\n");
-                sb.AppendLine("{");
-                sb.AppendLine(" Console.WriteLine (ex);\r\n; ");
-                sb.AppendLine("  throw (ex);\r\n; ");
-                sb.AppendLine("}\r\n");
-                sb.AppendLine("        }\r\n");
+               // sb.AppendLine("}catch (Exception ex)\r\n");
+               // sb.AppendLine("{");
+               // sb.AppendLine(" Console.WriteLine (ex);\r\n; ");
+               // sb.AppendLine("  throw (ex);\r\n; ");
+               // sb.AppendLine("}\r\n");
+               sb.AppendLine("        }\r\n");
 
             }
             sb.Append("    }\r\n");

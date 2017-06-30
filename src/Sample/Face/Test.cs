@@ -18,7 +18,7 @@ namespace Face
     /// <summary>
     /// 
     /// </summary>
-    [Restful("Test")]
+    [Restful("TestClazz")]
     
     public class Test : ITest
     {
@@ -39,7 +39,7 @@ namespace Face
             return sb.ToString();
         }
         [Restful("POST","TestPost")]
-        public string Get(string msg, int c)
+        public string Get( string msg, int c)
         {
             // Thread.Sleep(2000);
             return msg + c.ToString();
@@ -51,6 +51,8 @@ namespace Face
         /// <param name="mm">字符</param>
         /// <param name="kkk">表格</param>
         /// <returns>数据列</returns>
+        /// 
+        [Restful(Path ="PathGood", Method ="GET")]
         public List<string> Good(string yun, string mm, string kkk)
         {
             List<string> list = new List<string>();

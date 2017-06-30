@@ -17,7 +17,7 @@ using System.Threading.Tasks;
 using System.IO;
 using System.Collections.Concurrent;
 using log4net;
-using System.Threading.Tasks;
+using System.IO.Compression;
 using System.Diagnostics;
 using Newtonsoft.Json;
 namespace UcAsp.RPC
@@ -70,7 +70,7 @@ namespace UcAsp.RPC
                     {
                         return er;
                     }
-                    if (time > 2000)
+                    if (time > 10000)
                     {
                         if (e.TryTimes < 6)
                         {
@@ -344,6 +344,7 @@ namespace UcAsp.RPC
 
                     System.Net.HttpWebRequest request = (System.Net.HttpWebRequest)WebRequest.Create(url);
                     request.Method = "POST";
+                    request.Headers.Add("UcAsp.Net_RPC","true");
                     request.ContentType = "application/x-www-form-urlencoded";
                     request.KeepAlive = false;
                     request.Timeout = 1000 * 30;
@@ -384,9 +385,13 @@ namespace UcAsp.RPC
                     System.IO.Stream writer = request.GetRequestStream();
                     writer.Write(payload, 0, payload.Length);
                     System.Net.HttpWebResponse response = (System.Net.HttpWebResponse)request.GetResponse();
-                    System.IO.StreamReader myreader = new System.IO.StreamReader(response.GetResponseStream(), Encoding.UTF8);
-                    string responseText = myreader.ReadToEnd();
-                    myreader.Close();
+                    string responseText = string.Empty;
+                    GZipStream gzip = new GZipStream(response.GetResponseStream(), CompressionMode.Decompress);//解压缩
+                    using (StreamReader reader = new StreamReader(gzip, Encoding.UTF8))//中文编码处理
+                    {
+                        responseText = reader.ReadToEnd();
+                    }                    
+                    
                     writer.Close();
 
                     return new Tuple<HttpStatusCode, string>(response.StatusCode, responseText);

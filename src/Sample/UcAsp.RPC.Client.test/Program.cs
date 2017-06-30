@@ -60,10 +60,10 @@ namespace UcAsp.RPC.Client.test
             // }
             // new Program().Tasks(0);
             // Console.WriteLine(0);
-            for (int i = 0; i < 5000; i++)
+            for (int i = 0; i < 100; i++)
             {
-               // Task tas = new Task(() =>
-               // {
+                Task tas = new Task(() =>
+                {
                     new Program().Tasks(i);
 
                     // Thread t = new Thread(new ParameterizedThreadStart(new Program().Tasks));
@@ -74,8 +74,8 @@ namespace UcAsp.RPC.Client.test
 
                     // new Program().Tasks(i);
 
-              //  });
-                //tas.Start();
+                });
+                tas.Start();
             }
             // Console.WriteLine(task.Result);
             // Thread thread = new Thread(new ParameterizedThreadStart(new Program().Tasks));
@@ -143,20 +143,20 @@ namespace UcAsp.RPC.Client.test
                 List<string> m = clazz.Good(i.ToString(), "aaaa", "ss");
                 Console.WriteLine("Gods:" + m[0]);
 
-                int o = (int)i;
-                string x = clazz.R(ref o);
-                Console.WriteLine(x + "." + o);
-                int mmx = 9;
-                int xx = 1;
-                bool mm = true;
-                clazz.X(out mmx, out xx, ref mm);
-                Console.WriteLine(m + "." + xx + "." + mm);
+                //int o = (int)i;
+                //string x = clazz.R(ref o);
+                //Console.WriteLine(x + "." + o);
+                //int mmx = 9;
+                //int xx = 1;
+                //bool mm = true;
+                //clazz.X(out mmx, out xx, ref mm);
+                //Console.WriteLine(m + "." + xx + "." + mm);
 
-                Tuple<int> t = clazz.GetTuple(1000);
-                Console.WriteLine("tuple:" + t.Item1);
+                //Tuple<int> t = clazz.GetTuple(1000);
+                //Console.WriteLine("tuple:" + t.Item1);
 
-                List<Nvr> n = clazz.GetModel(222);
-                Console.WriteLine("nvr:" + n.Count);
+                //List<Nvr> n = clazz.GetModel(222);
+                //Console.WriteLine("nvr:" + n.Count);
 
 
 
