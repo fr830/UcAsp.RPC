@@ -21,6 +21,9 @@ using System.Web;
 using System.Reflection;
 using Newtonsoft.Json;
 using log4net;
+using UcAsp.WebSocket;
+using UcAsp.WebSocket.Net;
+using UcAsp.WebSocket.Server;
 namespace UcAsp.RPC
 {
     public class HttpServer : ServerBase, IDisposable
@@ -38,16 +41,16 @@ namespace UcAsp.RPC
 
         public override void StartListen(int port)
         {
-
+             WebServer web = new WebServer("http://localhost:"+ port+"/");
+            web.DocumentRootPath =System.AppDomain.CurrentDomain.BaseDirectory;
+            IPAddress[] iplist= Dns.GetHostAddresses(Dns.GetHostName());
+            for (int i = 0; i < iplist.Length; i++)
+            {
+                if(iplist[i].AddressFamily.)
+            }
             _url = string.Format("http://{0}:{1}", Dns.GetHostName(), port);
-            _server = new TcpListener(IPAddress.Any, port);
-            _server.Start(3000);
+            
 
-            _log.Info("启动WEB服务" + port);
-
-            Thread run = new Thread(new ParameterizedThreadStart(Listen));
-            run.Start(null);
-           
         }
         public void Listen(object obj)
         {
