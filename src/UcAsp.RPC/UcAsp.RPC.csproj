@@ -80,6 +80,9 @@
     <Compile Include="Restful.cs" />
     <Compile Include="ServerBase.cs" />
     <Compile Include="ServerPort.cs" />
+    <Compile Include="Service\ActionService.cs" />
+    <Compile Include="Service\ApiService.cs" />
+    <Compile Include="Service\RegisterService.cs" />
     <Compile Include="SocketClient.cs" />
     <Compile Include="StateObject.cs" />
     <Compile Include="StatusCode.cs" />
