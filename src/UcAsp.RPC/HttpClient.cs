@@ -344,7 +344,7 @@ namespace UcAsp.RPC
 
                     System.Net.HttpWebRequest request = (System.Net.HttpWebRequest)WebRequest.Create(url);
                     request.Method = "POST";
-                    request.Headers.Add("UcAsp.Net_RPC","true");
+                    request.Headers.Add("UcAsp.Net_RPC", "true");
                     request.ContentType = "application/x-www-form-urlencoded";
                     request.KeepAlive = false;
                     request.Timeout = 1000 * 30;
@@ -385,13 +385,7 @@ namespace UcAsp.RPC
                     System.IO.Stream writer = request.GetRequestStream();
                     writer.Write(payload, 0, payload.Length);
                     System.Net.HttpWebResponse response = (System.Net.HttpWebResponse)request.GetResponse();
-                    string responseText = string.Empty;
-                    GZipStream gzip = new GZipStream(response.GetResponseStream(), CompressionMode.Decompress);//解压缩
-                    using (StreamReader reader = new StreamReader(gzip, Encoding.UTF8))//中文编码处理
-                    {
-                        responseText = reader.ReadToEnd();
-                    }                    
-                    
+                    string responseText = GZipUntil.UnZip(response.GetResponseStream());
                     writer.Close();
 
                     return new Tuple<HttpStatusCode, string>(response.StatusCode, responseText);
