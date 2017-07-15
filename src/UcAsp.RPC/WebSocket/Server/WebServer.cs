@@ -879,7 +879,7 @@ namespace UcAsp.WebSocket.Server
         private void processRequest(HttpListenerContext context)
         {
             WebSocketServiceHost host;
-            if (!_services.InternalTryGetServiceHost(context.Request.RawUrl, out host))
+            if (!_services.InternalTryGetServiceHost(context.Request.RawUrl.ToLower(), out host))
             {
                 bool isExit = File.Exists(_docRootPath + context.Request.RawUrl);
                 if (isExit)
@@ -903,7 +903,7 @@ namespace UcAsp.WebSocket.Server
         private void processRequest(HttpListenerWebSocketContext context)
         {
             WebSocketServiceHost host;
-            if (!_services.InternalTryGetServiceHost(context.RequestUri.AbsolutePath, out host))
+            if (!_services.InternalTryGetServiceHost(context.RequestUri.AbsolutePath.ToLower(), out host))
             {
                 context.Close(HttpStatusCode.NotImplemented);
                 return;

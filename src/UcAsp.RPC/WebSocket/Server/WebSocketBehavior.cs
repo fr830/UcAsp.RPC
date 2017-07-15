@@ -366,7 +366,7 @@ namespace UcAsp.WebSocket.Server
 
         private void onMessage(object sender, MessageEventArgs e)
         {
-            OnMessage(e);
+            OnMessage(sender,e);
         }
 
         private void onOpen(object sender, EventArgs e)
@@ -540,7 +540,7 @@ namespace UcAsp.WebSocket.Server
         /// A <see cref="MessageEventArgs"/> that represents the event data passed to
         /// a <see cref="WebSocket.OnMessage"/> event.
         /// </param>
-        protected virtual void OnMessage(MessageEventArgs e)
+        protected virtual void OnMessage(object sender,MessageEventArgs e)
         {
         }
 

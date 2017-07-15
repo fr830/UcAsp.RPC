@@ -49,51 +49,7 @@ namespace UcAsp.RPC
             IsStart = true;
 
         }
-        /// <summary>
-        /// 纠正参数的值
-        /// Json序列化为List(object)后,object的类型和参数的类型不一致
-        /// </summary>
-        /// <param name="method">欲调用的目标方法</param>
-        /// <param name="parameterValues">传递的参数值</param>
-        /// <returns></returns>
-
-        public virtual List<object> CorrectParameters(MethodInfo method, List<object> parameterValues)
-        {
-            if (parameterValues.Count == method.GetParameters().Length)
-            {
-                for (int i = 0; i < parameterValues.Count; i++)
-                {
-                    // 传递的参数值
-                    object entity = parameterValues[i];
-                    // 传递参数的类型
-                    Type eType = entity.GetType();
-
-                    Type[] ParameterTypes = new Type[method.GetParameters().Length];
-                    for (int x = 0; x < method.GetParameters().Length; x++)
-                    {
-                        string paratype = method.GetParameters()[x].ParameterType.FullName;
-                        if (paratype.EndsWith("&"))
-                        {
-                            paratype = paratype.Replace("&", "");
-                        }
-                        ParameterTypes[x] = Type.GetType(paratype);// method.GetParameters()[x].ParameterType;
-                    }
-                    // 目标方法参数类型
-                    Type pType = ParameterTypes[i];
-                    // 类型不一致，需要转换类型
-                    if (eType.Equals(pType) == false)
-                    {
-                        // 转换entity的类型
-                        Binary bin = this._serializer.ToBinary(entity);
-                        object pValue = this._serializer.ToEntity(bin, pType);
-                        // 保存参数
-                        parameterValues[i] = pValue;
-                    }
-                }
-            }
-
-            return parameterValues;
-        }
+  
 
         public virtual void Call(Socket socket, Object obj)
         {
@@ -141,7 +97,7 @@ namespace UcAsp.RPC
                             MethodInfo method = MemberInfos[code].Item2;
                             var parameters = this._serializer.ToEntity<List<object>>(e.Binary);
                             if (parameters == null) parameters = new List<object>();
-                            parameters = this.CorrectParameters(method, parameters);
+                            parameters = new MethodParam().CorrectParameters(method, parameters);
                             Object bll = ApplicationContext.GetObject(name);
                             object[] arrparam = parameters.ToArray();
                             var result = method.Invoke(bll, arrparam);

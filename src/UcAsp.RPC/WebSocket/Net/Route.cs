@@ -78,9 +78,9 @@ namespace UcAsp.WebSocket.Net
                     for (int m = 0; m < pInfo.Length; m++)
                     {
                         PropertyInfo p = pInfo[m];
-                        newregurl = newregurl.Replace("{" + p.Name + "}", p.GetValue(ky.Value.Rule));
+                        newregurl = newregurl.Replace("{" + p.Name + "}", p.GetValue(ky.Value.Rule,null));
                     }
-                    Match match = Regex.Match(reurl, newregurl);
+                    Match match = Regex.Match(reurl, newregurl,RegexOptions.IgnoreCase);
                     if (match != null)
                     {
                         string result = match.Value;
