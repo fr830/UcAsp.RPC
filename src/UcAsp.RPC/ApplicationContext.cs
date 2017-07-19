@@ -325,9 +325,13 @@ namespace UcAsp.RPC
                             _obj.Add(action, t);
                         }
 
+                        for (int i = 0; i < _interface.Length; i++)
+                        {
+                            RegisterInfo reg = new RegisterInfo() { ClassName = t.Name, NameSpace = t.Namespace, FaceNameSpace = _interface[i].Namespace, InterfaceName = _interface[i].Name };
+                            _registerInfo.Add(reg);
+                        }
 
-                        RegisterInfo reg = new RegisterInfo() { ClassName = t.Name, NameSpace = t.Namespace, FaceNameSpace = _interface[0].Namespace, InterfaceName = _interface[0].Name };
-                        _registerInfo.Add(reg);
+
                         ///添加方法
                         MethodInfo[] infos = t.GetMethods();
                         foreach (MethodInfo info in infos)
@@ -406,7 +410,7 @@ namespace UcAsp.RPC
         {
             try
             {
-               // UdpClient client = new UdpClient(new IPEndPoint(IPAddress.Any, 7788));
+                // UdpClient client = new UdpClient(new IPEndPoint(IPAddress.Any, 7788));
                 if (clientBoard != null)
                     return;
 
@@ -446,7 +450,7 @@ namespace UcAsp.RPC
             }
             catch (Exception ex)
             {
-                 _log.Error(ex);
+                _log.Error(ex);
             }
         }
 
@@ -511,7 +515,7 @@ namespace UcAsp.RPC
                 return;
             DataEventArgs callreg = new DataEventArgs() { ActionCmd = CallActionCmd.Register.ToString(), ActionParam = "Register", T = typeof(List<RegisterInfo>) };
             callreg.CallHashCode = callreg.GetHashCode();
-            _clients.Run(callreg, _clients.IpAddress[_clients.IpAddress.Count-1]);
+            _clients.Run(callreg, _clients.IpAddress[_clients.IpAddress.Count - 1]);
             DataEventArgs reg = _clients.GetResult(callreg);
             if (reg.StatusCode != StatusCode.Success)
                 return;
@@ -556,6 +560,7 @@ namespace UcAsp.RPC
             {
                 Type type = _obj[className];
                 object obj = Activator.CreateInstance(type);
+
                 return obj;
             }
             return null;

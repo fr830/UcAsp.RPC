@@ -15,19 +15,22 @@ using UcAsp.RPC;
 using IFace;
 namespace Face
 {
+
+
     /// <summary>
     /// 
     /// </summary>
     [Restful("TestClazz")]
-    
+
     public class Test : ITest
     {
+
         /// <summary>
         /// 
         /// </summary>
         /// <param name="im"></param>
         /// <returns></returns>
-        [Restful("POST","GetAll")]
+        [Restful("POST", "GetAll")]
         public string ToList(List<Imodel> im)
         {
             StringBuilder sb = new StringBuilder();
@@ -38,10 +41,12 @@ namespace Face
             }
             return sb.ToString();
         }
-        [Restful("POST","TestPost")]
-        public string Get( string msg, int c)
+        [Restful("POST", "TestPost")]
+        public string Get(string msg, int c)
         {
-            // Thread.Sleep(2000);
+            Event e = new Event { C = c };
+            byte[] send = Encoding.UTF8.GetBytes("测试");
+            
             return msg + c.ToString();
         }
         /// <summary>
@@ -52,7 +57,7 @@ namespace Face
         /// <param name="kkk">表格</param>
         /// <returns>数据列</returns>
         /// 
-        [Restful(Path ="PathGood", Method ="GET")]
+        [Restful(Path = "PathGood", Method = "GET")]
         public List<string> Good(string yun, string mm, string kkk)
         {
             List<string> list = new List<string>();
@@ -106,14 +111,14 @@ namespace Face
             return m;
         }
 
-        
+
         public string R(ref int o)
         {
-            o = 111+o;
+            o = 111 + o;
             return "mm";
         }
 
-        public string M(ref bool o,string code)
+        public string M(ref bool o, string code)
         {
             o = true;
             return "s";

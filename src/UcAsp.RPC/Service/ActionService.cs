@@ -73,12 +73,12 @@ namespace UcAsp.RPC.Service
         }
         protected override void OnMessage(object sender, MessageEventArgs e)
         {
+            Console.WriteLine(e.Data);
             var data = JsonConvert.DeserializeObject<dynamic>(e.Data);
             string name = data.clazz;
             string methodname = data.method;
             var parameters = data.param;
             DataEventArgs ea = Call(name, methodname, null, parameters);
-
             Send(ea.Json);
         }
         protected override void OnPut(HttpRequestEventArgs ev)
@@ -88,6 +88,7 @@ namespace UcAsp.RPC.Service
         }
         protected override void OnGet(HttpRequestEventArgs ev)
         {
+
             ev.Response.AddHeader("Content-Encoding", "gzip");
             ev.Response.WriteContent(Error(415, "不允许调用"));
         }

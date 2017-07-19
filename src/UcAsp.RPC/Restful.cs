@@ -13,12 +13,20 @@ using System.Text;
 
 namespace UcAsp.RPC
 {
-    public class Restful : Attribute
+    public class Restful: Attribute 
     {
         public string Method { get; set; }
         public string Path { get; set; }
+        /// <summary>
+        /// 是否出现在接口中
+        /// </summary>
+        public bool NoRest { get; set; }
         public Restful()
         { }
+        public Restful(bool noRest)
+        {
+            this.NoRest = noRest;
+        }
         public Restful(string method, string path)
         {
             if (path == "register")
@@ -29,6 +37,18 @@ namespace UcAsp.RPC
             this.Method = method;
             this.Path = path;
         }
+        public Restful(string method, string path, bool noRest)
+        {
+            if (path == "register")
+            {
+                Exception ex = new Exception("register路径是系统保留，请更换！");
+                throw (ex);
+            }
+            this.Method = method;
+            this.Path = path;
+            this.NoRest = noRest;
+        }
+
         public Restful(string path)
         {
             if (path == "register")

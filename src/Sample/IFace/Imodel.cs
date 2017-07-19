@@ -27,6 +27,10 @@ namespace IFace
             return m;
         }
     }
+    public class Event : EventArgs
+    {
+        public int C { get; set; }
+    }
     [Serializable]
     public class Nvr
     {

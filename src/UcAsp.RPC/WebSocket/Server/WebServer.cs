@@ -13,13 +13,6 @@ using UcAsp.WebSocket.Net.WebSockets;
 
 namespace UcAsp.WebSocket.Server
 {
-    /// <summary>
-    /// Provides a simple HTTP server that allows to accept
-    /// WebSocket handshake requests.
-    /// </summary>
-    /// <remarks>
-    /// This class can provide multiple WebSocket services.
-    /// </remarks>
     public class WebServer
     {
         #region Private Fields
@@ -760,8 +753,6 @@ namespace UcAsp.WebSocket.Server
 
         #endregion
 
-
-
         #region Private Methods
 
         private void abort()
@@ -881,10 +872,12 @@ namespace UcAsp.WebSocket.Server
             WebSocketServiceHost host;
             if (!_services.InternalTryGetServiceHost(context.Request.RawUrl.ToLower(), out host))
             {
-                bool isExit = File.Exists(_docRootPath + context.Request.RawUrl);
+                string localpath = System.Web.HttpUtility.UrlDecode(context.Request.RawUrl, System.Text.Encoding.UTF8).Replace("/", "\\");
+                string path = _docRootPath + localpath;
+                bool isExit = File.Exists(path);
                 if (isExit)
                 {
-                    byte[] buffer = GetFile(context.Request.RawUrl.Replace("/", "\\"));
+                    byte[] buffer = GetFile(localpath);
                     context.Response.WriteContent(buffer);
                 }
                 else
@@ -894,9 +887,10 @@ namespace UcAsp.WebSocket.Server
                 }
                 return;
             }
-            host.Behavior.Run(context);
+
             host.StartSession(context);
-            
+            host.Behavior.Run(context);
+
         }
 
 
@@ -1226,7 +1220,7 @@ namespace UcAsp.WebSocket.Server
         ///   </para>
         /// </exception>
 
-        public void AddWebSocketService<TBehavior>(string path, Func<TBehavior> creator,dynamic rule)
+        public void AddWebSocketService<TBehavior>(string path, Func<TBehavior> creator, dynamic rule)
       where TBehavior : WebSocketBehavior
         {
             if (path == null)
@@ -1369,7 +1363,7 @@ namespace UcAsp.WebSocket.Server
         ///   <paramref name="path"/> is already in use.
         ///   </para>
         /// </exception>
-        public void AddWebSocketService<TBehaviorWithNew>(string path, Action<TBehaviorWithNew> initializer,dynamic rule)
+        public void AddWebSocketService<TBehaviorWithNew>(string path, Action<TBehaviorWithNew> initializer, dynamic rule)
           where TBehaviorWithNew : WebSocketBehavior, new()
         {
             _services.AddService<TBehaviorWithNew>(path, initializer, rule);

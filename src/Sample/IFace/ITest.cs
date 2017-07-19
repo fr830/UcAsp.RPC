@@ -7,7 +7,7 @@ namespace IFace
 {
     public interface ITest
     {
-        // string GetProper { get; set; }
+       
         string Get(string msg, int c);
         List<string> Good(string yun, string mm, string kkk);
         int GetInt(int i);
@@ -19,11 +19,11 @@ namespace IFace
         string ToList(List<Imodel> i);
 
         string R(ref int o);
-        string M(ref bool o,string code);
+        string M(ref bool o, string code);
 
         string X(out int m, out int x, ref bool o);
 
-       
+
 
     }
 }

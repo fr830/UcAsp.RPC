@@ -18,8 +18,13 @@ namespace UcAsp.RPC.Service
 {
     public class ApiService : WebSocketBehavior
     {
+
         public Dictionary<string, Tuple<string, MethodInfo, int>> MemberInfos { get; set; }
 
+        protected override void OnConnect(HttpRequestEventArgs ev)
+        {
+
+        }
         private string HtmlHelp(string _url)
         {
 
@@ -76,6 +81,8 @@ namespace UcAsp.RPC.Service
                     {
                         Restful rf = (Restful)cattri[0];
                         path = rf.Path.ToLower();
+                        if (rf.NoRest)
+                            continue;
                     }
                     clazzpath = ((Restful)clazz[0]).Path.ToLower();
                     sb.Append(@"<div class=""list-group-item"">Example:Request Body JSON {");
@@ -98,7 +105,7 @@ namespace UcAsp.RPC.Service
                         path = rf.Path.ToLower();
                     }
                     clazzpath = ((Restful)clazz[0]).Path.ToLower();
-                    sb.Append(@"<div class=""list-group-item"">Example:WebSocket Send Data JSON{""clazz"":"""+ clazzpath + @""",""method"":"""+ path + @""",""param"": {");
+                    sb.Append(@"<div class=""list-group-item"">Example:WebSocket Send Data JSON{""clazz"":""" + clazzpath + @""",""method"":""" + path + @""",""param"": {");
                     for (int xx = 0; xx < para.Length; xx++)
                     {
                         sb.AppendFormat("\"{0}\":value", para[xx].Name);
@@ -108,7 +115,7 @@ namespace UcAsp.RPC.Service
                         }
                     }
                     sb.Append(@"}}</div>");
-                    sb.AppendFormat(@"<div class=""list-group-item"">API URL<br />[1]:{0}/websocket/call/<br /> </div> ", _url.Replace("http","ws"), clazzpath, path);
+                    sb.AppendFormat(@"<div class=""list-group-item"">API URL<br />[1]:{0}/websocket/call/<br /> </div> ", _url.Replace("http", "ws"), clazzpath, path);
 
                 }
                 sb.Append(@" </div>");
@@ -123,12 +130,19 @@ namespace UcAsp.RPC.Service
 
         protected override void OnMessage(object sender, MessageEventArgs e)
         {
+
             Send(HtmlHelp(""));
         }
         protected override void OnGet(HttpRequestEventArgs ev)
         {
+
+            WebSocketSessionManager session = Sessions;
             byte[] _buffer = GZipUntil.GetZip(Encoding.UTF8.GetBytes(HtmlHelp("http://" + ev.Request.UserHostName)));
             ev.Response.AddHeader("Content-Encoding", "gzip");
+            Cookie cookie = ev.Request.Cookies["SessionId"];
+            if (cookie != null) { ApiService sn = (ApiService)Sessions[cookie.Value]; }
+
+
             ev.Response.WriteContent(_buffer);
         }
     }

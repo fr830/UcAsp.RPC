@@ -366,7 +366,7 @@ namespace UcAsp.WebSocket.Server
 
         private void onMessage(object sender, MessageEventArgs e)
         {
-            OnMessage(sender,e);
+            OnMessage(sender, e);
         }
 
         private void onOpen(object sender, EventArgs e)
@@ -428,9 +428,15 @@ namespace UcAsp.WebSocket.Server
                 return;
             }
             var method = context.Request.HttpMethod;
+            if (null == _sessions)
+            {
+                _sessions = sessions;
+            }
+            AddCookie(context);
             switch (method)
             {
                 case "GET":
+
                     OnGet(new HttpRequestEventArgs(context, null));
                     break;
                 case "HEAD":
@@ -465,25 +471,7 @@ namespace UcAsp.WebSocket.Server
             }
 
 
-            //_context = context;
-            //_sessions = sessions;
 
-            //_websocket = context.WebSocket;
-            //_websocket.CustomHandshakeRequestChecker = checkHandshakeRequest;
-            //_websocket.EmitOnPing = _emitOnPing;
-            //_websocket.IgnoreExtensions = _ignoreExtensions;
-            //_websocket.Protocol = _protocol;
-
-            //var waitTime = sessions.WaitTime;
-            //if (waitTime != _websocket.WaitTime)
-            //    _websocket.WaitTime = waitTime;
-
-            //_websocket.OnOpen += onOpen;
-            //_websocket.OnMessage += onMessage;
-            //_websocket.OnError += onError;
-            //_websocket.OnClose += onClose;
-
-            //_websocket.InternalAccept();
         }
 
 
@@ -540,7 +528,7 @@ namespace UcAsp.WebSocket.Server
         /// A <see cref="MessageEventArgs"/> that represents the event data passed to
         /// a <see cref="WebSocket.OnMessage"/> event.
         /// </param>
-        protected virtual void OnMessage(object sender,MessageEventArgs e)
+        protected virtual void OnMessage(object sender, MessageEventArgs e)
         {
         }
 
@@ -748,6 +736,29 @@ namespace UcAsp.WebSocket.Server
         /// Occurs when the server receives an HTTP TRACE request.
         /// </summary>
         protected virtual void OnTrace(HttpRequestEventArgs ev) { }
+
+        protected void AddCookie(HttpListenerContext context)
+        {
+
+            Cookie cookie = context.Request.Cookies["SessionId"];
+            if (null == cookie)
+            {
+                _id = _sessions.Add(this);
+                Cookie session = new Cookie { Name = "SessionId", Value = _id };
+                context.Response.AppendCookie(session);
+                _startTime = DateTime.Now;
+            }
+            else
+            {
+                if (null == _sessions[cookie.Value])
+                {
+                    _id = _sessions.Add(this);
+                    Cookie session = new Cookie { Name = "SessionId", Value = _id };
+                    context.Response.AppendCookie(session);
+                    _startTime = DateTime.Now;
+                }
+            }
+        }
         #endregion
     }
 }

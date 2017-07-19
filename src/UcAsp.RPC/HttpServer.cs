@@ -42,7 +42,7 @@ namespace UcAsp.RPC
         public override void StartListen(int port)
         {
             web = new WebServer("http://localhost:" + port + "/");
-            web.DocumentRootPath = System.AppDomain.CurrentDomain.BaseDirectory;
+            web.DocumentRootPath = System.AppDomain.CurrentDomain.BaseDirectory+"wwwroot";
             IPAddress[] iplist = Dns.GetHostAddresses(Dns.GetHostName());
             for (int i = 0; i < iplist.Length; i++)
             {

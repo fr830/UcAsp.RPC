@@ -31,9 +31,9 @@ namespace UcAsp.RPC.Client.test
             ArrayList data = new ArrayList();
             data.Add(true);
             data.Add("sssssss");
-           bool o = (Boolean)data[0];
-           
-           string code = (String)data[1];
+            bool o = (Boolean)data[0];
+
+            string code = (String)data[1];
 
             //IFace.ITest clazz = context.GetProxyObject<IFace.ITest>();
             //Console.WriteLine(".");
@@ -60,22 +60,22 @@ namespace UcAsp.RPC.Client.test
             // }
             // new Program().Tasks(0);
             // Console.WriteLine(0);
-            for (int i = 0; i < 100; i++)
+            for (int i = 0; i < 10000; i++)
             {
-                Task tas = new Task(() =>
-                {
-                    new Program().Tasks(i);
+                // Task tas = new Task(() =>
+                //{
+                new Program().Tasks(i);
 
-                    // Thread t = new Thread(new ParameterizedThreadStart(new Program().Tasks));
-                    // t.Start(i);
-                    // Thread.Sleep(100);
+                // Thread t = new Thread(new ParameterizedThreadStart(new Program().Tasks));
+                // t.Start(i);
+                // Thread.Sleep(100);
 
-                    // Console.WriteLine(i);
+                // Console.WriteLine(i);
 
-                    // new Program().Tasks(i);
+                // new Program().Tasks(i);
 
-                });
-                tas.Start();
+                //  });
+                // tas.Start();
             }
             // Console.WriteLine(task.Result);
             // Thread thread = new Thread(new ParameterizedThreadStart(new Program().Tasks));
@@ -139,24 +139,25 @@ namespace UcAsp.RPC.Client.test
                 //// Task t = new Task(() =>
                 // {
                 clazz = context.GetProxyObject<IFace.ITest>();
+               
 
                 List<string> m = clazz.Good(i.ToString(), "aaaa", "ss");
                 Console.WriteLine("Gods:" + m[0]);
 
-                //int o = (int)i;
-                //string x = clazz.R(ref o);
-                //Console.WriteLine(x + "." + o);
-                //int mmx = 9;
-                //int xx = 1;
-                //bool mm = true;
-                //clazz.X(out mmx, out xx, ref mm);
-                //Console.WriteLine(m + "." + xx + "." + mm);
+                int o = (int)i;
+                string x = clazz.R(ref o);
+                Console.WriteLine(x + "." + o);
+                int mmx = 9;
+                int xx = 1;
+                bool mm = true;
+                clazz.X(out mmx, out xx, ref mm);
+                Console.WriteLine(m + "." + xx + "." + mm);
 
-                //Tuple<int> t = clazz.GetTuple(1000);
-                //Console.WriteLine("tuple:" + t.Item1);
+                Tuple<int> t = clazz.GetTuple(1000);
+                Console.WriteLine("tuple:" + t.Item1);
 
-                //List<Nvr> n = clazz.GetModel(222);
-                //Console.WriteLine("nvr:" + n.Count);
+                List<Nvr> n = clazz.GetModel(222);
+                Console.WriteLine("nvr:" + n.Count);
 
 
 
@@ -174,6 +175,11 @@ namespace UcAsp.RPC.Client.test
 
             // Thread.Sleep(1000);
             //return m[0];
+        }
+
+        private void Clazz_OnChange(object sender, Event e)
+        {
+            Console.WriteLine(e.C);
         }
     }
 }
