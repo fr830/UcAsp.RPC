@@ -11,17 +11,50 @@
   </configSections>
   <service>
     <server>
-      <add key="port" value="9966" />
+      <add key="port" value="9966" />  <!--服務器端口--->
       <add key="username" value="admin" />
       <add key="password" value="admin" />
     </server>
     <assmebly>
-      <add key="Face" value="Face.dll" />
-      <!--<add key="ISCS.WCS.Opc.Client" value="ISCS.WCS.Opc.Client.dll" />
-       <add key="ISCS.WMS2.BLL" value="ISCS.WMS2.BLL.dll" />
-      <add key="ISCS.WCS.BLL" value="ISCS.WCS.BLL.dll" />      
-      <add key="Json" value="Newtonsoft.Json.dll" />-->
+      <add key="Face" value="Face.dll" /><!--需要被外部應用的類庫--->
     </assmebly>
   </service>
 </configuration>
+```
+#客戶端配置
+```XML
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <configSections>
+    <sectionGroup name="client">
+      <section name="server" type="System.Configuration.NameValueSectionHandler, System, Version=1.0.3300.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, Custom=null" />
+    </sectionGroup>
+  </configSections>
+  <client>
+    <server>
+      <add key="ip" value="127.0.0.1:9966" /> <!---服務器地址--->
+      <add key="mode" value="tcp" />
+      <add key="pool" value="10" />
+      <add key="username" value="admin" />
+      <add key="password" value="admin" />
+    </server>
+    <relation>
+      <add key="ISCS.WMS2.Model" value="ISCS.WMS2.Model.dll" /><!--関聯類庫-->
+    </relation>
+  </client>
+
+</configuration>
+```
+
+#應用
+客戶端創建對象
+```C#
+static ApplicationContext context= new ApplicationContext();
+context.Start(AppDomain.CurrentDomain.BaseDirectory + "Application.config", AppDomain.CurrentDomain.BaseDirectory);
+```
+實例一個對象
+```C#
+IFace.ITest clazz = context.GetProxyObject<IFace.ITest>();
+int o = (int)i;
+string x = clazz.R(ref o);
 ```
