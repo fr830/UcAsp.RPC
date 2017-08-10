@@ -53,13 +53,13 @@ context.Start(AppDomain.CurrentDomain.BaseDirectory+ "Application.config", AppDo
 </configuration>
 ```
 
-# 應用
-# 客戶端創建對象
+# 客户端设置
+## 客戶端創建對象
 ```C#
 static ApplicationContext context= new ApplicationContext();
 context.Start(AppDomain.CurrentDomain.BaseDirectory + "Application.config", AppDomain.CurrentDomain.BaseDirectory);
 ```
-# 實例一個對象
+## 實例一個對象
 ```C#
 IFace.ITest clazz = context.GetProxyObject<IFace.ITest>();
 int o = (int)i;
