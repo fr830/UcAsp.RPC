@@ -8,8 +8,6 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using IFace;
-using ISCS.WMS2.IBLL;
-using ISCS.WMS2.Model;
 using System.Collections;
 namespace UcAsp.RPC.Client.test
 {
@@ -20,7 +18,7 @@ namespace UcAsp.RPC.Client.test
         string resut = string.Empty;
         static long d = DateTime.Now.Ticks;
         static IFace.ITest clazz;
-        static ISwExportBLL bll;
+        static IFace.ITest2 clazz2;
         private object count = 0;
         static void Main(string[] args)
         {
@@ -139,25 +137,27 @@ namespace UcAsp.RPC.Client.test
                 //// Task t = new Task(() =>
                 // {
                 clazz = context.GetProxyObject<IFace.ITest>();
-               
+                clazz2 = context.GetProxyObject<IFace.ITest2>();
+                Imodel mo = new Imodel {  Code=(int)i, Message="ssssssssss"};
+                int c = clazz2.GetMod(mo);
+                Console.WriteLine("C:" + c);
+                //List<string> m = clazz.Good(i.ToString(), "aaaa", "ss");
+                //Console.WriteLine("Gods:" + m[0]);
 
-                List<string> m = clazz.Good(i.ToString(), "aaaa", "ss");
-                Console.WriteLine("Gods:" + m[0]);
+                //int o = (int)i;
+                //string x = clazz.R(ref o);
+                //Console.WriteLine(x + "." + o);
+                //int mmx = 9;
+                //int xx = 1;
+                //bool mm = true;
+                //clazz.X(out mmx, out xx, ref mm);
+                //Console.WriteLine(m + "." + xx + "." + mm);
 
-                int o = (int)i;
-                string x = clazz.R(ref o);
-                Console.WriteLine(x + "." + o);
-                int mmx = 9;
-                int xx = 1;
-                bool mm = true;
-                clazz.X(out mmx, out xx, ref mm);
-                Console.WriteLine(m + "." + xx + "." + mm);
+                //Tuple<int> t = clazz.GetTuple(1000);
+                //Console.WriteLine("tuple:" + t.Item1);
 
-                Tuple<int> t = clazz.GetTuple(1000);
-                Console.WriteLine("tuple:" + t.Item1);
-
-                List<Nvr> n = clazz.GetModel(222);
-                Console.WriteLine("nvr:" + n.Count);
+                //List<Nvr> n = clazz.GetModel(222);
+                //Console.WriteLine("nvr:" + n.Count);
 
 
 

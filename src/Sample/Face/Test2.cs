@@ -11,15 +11,21 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using IFace;
+using UcAsp.RPC;
 namespace Face
 {
-    public class Test2:ITest2
+    public class Test2 : ITest2
     {
         private string Program_Id = "c55f679a-8596-4a93-9aa3-591c33e90c0c";
         public int GetMore(int code)
         {
             throw new Exception("错误");
             return code;
+        }
+        [Restful(Path = "model")]
+        public int GetMod(Imodel m)
+        {
+            return m.Code;
         }
     }
 }

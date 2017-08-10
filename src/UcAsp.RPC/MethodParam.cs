@@ -44,6 +44,10 @@ namespace UcAsp.RPC
                             paratype = paratype.Replace("&", "");
                         }
                         ParameterTypes[x] = Type.GetType(paratype);// method.GetParameters()[x].ParameterType;
+                        if (ParameterTypes[x] == null)
+                        {
+                            ParameterTypes[x]= method.GetParameters()[x].ParameterType; 
+                        }
                     }
                     // 目标方法参数类型
                     Type pType = ParameterTypes[i];

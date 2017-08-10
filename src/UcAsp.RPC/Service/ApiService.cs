@@ -72,7 +72,7 @@ namespace UcAsp.RPC.Service
 
 
 
-                object[] cattri = kv.Value.Item2.GetCustomAttributes(typeof(Restful), true);
+                object[] cattri = kv.Value.Item2.GetCustomAttributes(true);
 
 
                 if (clazz != null && clazz.Length > 0)
@@ -80,7 +80,10 @@ namespace UcAsp.RPC.Service
                     if (null != cattri && cattri.Length > 0)
                     {
                         Restful rf = (Restful)cattri[0];
-                        path = rf.Path.ToLower();
+                        if (rf.Path != null)
+                        {
+                            path = rf.Path.ToLower();
+                        }
                         if (rf.NoRest)
                             continue;
                     }

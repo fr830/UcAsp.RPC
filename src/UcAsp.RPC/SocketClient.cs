@@ -199,7 +199,7 @@ namespace UcAsp.RPC
             chektask.Start();
             DataEventArgs data = chektask.Result;
             RemovePool(data);
-
+            Console.WriteLine(data.TaskId);
             return data;
         }
 

@@ -15,7 +15,7 @@ namespace IFace
 {
     public interface ITest2
     {
-
+        int GetMod(Imodel m);
         int GetMore(int code);
     }
 }

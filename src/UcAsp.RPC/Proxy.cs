@@ -171,6 +171,8 @@ namespace UcAsp.RPC
                 sb.AppendLine("            DataEventArgs e = new DataEventArgs();");
                 sb.AppendLine("            e.Binary = this.Serializer.ToBinary(entity);");
                 sb.AppendLine("            e.CallHashCode = e.GetHashCode();");
+                sb.AppendLine("            e.StatusCode = StatusCode.Normal;");
+                
                 sb.AppendLine("            e.T = typeof(" + GetTypeName(method.ReturnType) + ");");
                 string action = string.Format("{0}.{1}.{2}", method.DeclaringType.FullName, method.Name, GetMethodMd5Code(method));
                 sb.AppendLine(string.Format("            e.ActionParam = \"{0}\";\r\n", action));

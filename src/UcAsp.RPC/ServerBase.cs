@@ -57,6 +57,7 @@ namespace UcAsp.RPC
             Stopwatch wath = new Stopwatch();
             wath.Start();
             DataEventArgs e = (DataEventArgs)obj;
+            Console.WriteLine(e.TaskId);
             LastParam = _serializer.ToString(e);
             LastRunTime = DateTime.Now;
             LastMethod = e.ActionParam;

@@ -16,11 +16,15 @@ using UcAsp.WebSocket;
 using Newtonsoft.Json;
 using System.IO;
 using System.Reflection;
+using System.Threading;
 namespace UcAsp.RPC.Service
 {
 
     public class ActionService : WebSocketBehavior
     {
+        CancellationTokenSource source = new CancellationTokenSource();
+        CancellationToken token;
+        private Dictionary<string, DateTime> RunCall = new Dictionary<string, DateTime>();
         public Dictionary<string, Tuple<string, MethodInfo, int>> MemberInfos { get; set; }
         protected override void OnPost(HttpRequestEventArgs ev)
         {
@@ -53,8 +57,8 @@ namespace UcAsp.RPC.Service
             {
                 code = rurl[1];
             }
-
-            DataEventArgs ea = Call(name, methodname, code, parameters);
+            bool keeplive = false;
+            DataEventArgs ea = Call(name, methodname, code, parameters, ref keeplive);
 
             if (rpc == "true")
             {
@@ -71,15 +75,67 @@ namespace UcAsp.RPC.Service
 
 
         }
+        /// <summary>
+        /// @heart 用于心跳
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         protected override void OnMessage(object sender, MessageEventArgs e)
         {
-            Console.WriteLine(e.Data);
-            var data = JsonConvert.DeserializeObject<dynamic>(e.Data);
-            string name = data.clazz;
-            string methodname = data.method;
-            var parameters = data.param;
-            DataEventArgs ea = Call(name, methodname, null, parameters);
-            Send(ea.Json);
+            if (e.Data != "@heart")
+            {
+                var data = JsonConvert.DeserializeObject<dynamic>(e.Data);
+                string name = data.clazz;
+                string methodname = data.method;
+                var parameters = data.param;
+                bool keeplive = false;
+                DataEventArgs ea = Call(name, methodname, null, parameters, ref keeplive);
+               // if (keeplive)
+               // {
+                    //DateTime outTime;
+                    //if (!RunCall.TryGetValue(name + "." + methodname, out outTime))
+                    //{
+                       // Thread th = new Thread(new ParameterizedThreadStart(KeepLiveCall));
+                      //  th.Start(new CallPara { Name = name, MethodName = methodname, Parameters = parameters });
+                      //  RunCall.Add(name + "." + methodname, DateTime.Now);
+                    //}
+                //}
+                Send(ea.Json);
+            }
+        }
+        private void KeepLiveCall(object obj)
+        {
+             token=source.Token;
+
+            int error = 0;
+            while (!token.IsCancellationRequested)
+            {
+                try
+                {
+                    bool keeplive = false;
+                    CallPara para = (CallPara)obj;
+                    DataEventArgs ea = Call(para.Name, para.MethodName, null, para.Parameters, ref keeplive);
+                    if (ea.Json != null && ea.Json != "null")
+                    {
+                        this.Send(ea.Json);
+                    }
+
+                    Thread.Sleep(50);
+                    if (error > 20)
+                        break;
+                }
+                catch (Exception e)
+                {
+                    error++;
+                    Log.Error(e.Message);
+                }
+
+            }
+        }
+
+        protected override void OnClose(CloseEventArgs e)
+        {
+            source.Cancel();
         }
         protected override void OnPut(HttpRequestEventArgs ev)
         {
@@ -88,7 +144,6 @@ namespace UcAsp.RPC.Service
         }
         protected override void OnGet(HttpRequestEventArgs ev)
         {
-
             ev.Response.AddHeader("Content-Encoding", "gzip");
             ev.Response.WriteContent(Error(415, "不允许调用"));
         }
@@ -106,7 +161,7 @@ namespace UcAsp.RPC.Service
             return _buffer;
         }
 
-        protected DataEventArgs Call(string name, string methodname, string code, dynamic parameters)
+        protected DataEventArgs Call(string name, string methodname, string code, dynamic parameters, ref bool keeplive)
         {
             DataEventArgs ea = new DataEventArgs();
             if (string.IsNullOrEmpty(name) && string.IsNullOrEmpty(code))
@@ -127,70 +182,74 @@ namespace UcAsp.RPC.Service
             if (string.IsNullOrEmpty(code))
             {
                 #region 地址请求
-                foreach (KeyValuePair<string, Tuple<string, MethodInfo, int>> kv in MemberInfos)
+                try
                 {
-                    object[] clazz = kv.Value.Item2.DeclaringType.GetCustomAttributes(typeof(Restful), true);
-                    string clazzpath = string.Empty;
-                    if (clazz != null && clazz.Length > 0)
+                    lock (MemberInfos)
                     {
-                        clazzpath = ((Restful)clazz[0]).Path.ToLower();
-                    }
-
-                    string clazzname = kv.Value.Item1.ToString().ToLower();
-                    if (clazzname == name || (!string.IsNullOrEmpty(clazzpath) && clazzpath == name))
-                    {
-
-                        string kvmethod = kv.Value.Item2.Name.ToLower();
-                        string path = string.Empty;
-
-
-
-
-                        object[] cattri = kv.Value.Item2.GetCustomAttributes(typeof(Restful), true);
-                        if (null != cattri && cattri.Length > 0)
+                        foreach (KeyValuePair<string, Tuple<string, MethodInfo, int>> kv in MemberInfos)
                         {
-                            Restful rf = (Restful)cattri[0];
-                            path = rf.Path.ToLower();
-                        }
-
-                        if (kvmethod == methodname.ToLower() || (!string.IsNullOrEmpty(path) && path == methodname.ToLower()))
-                        {
-                            List<object> param = new List<object>();
-
-                            try
+                            object[] clazz = kv.Value.Item2.DeclaringType.GetCustomAttributes(typeof(Restful), true);
+                            string clazzpath = string.Empty;
+                            if (clazz != null && clazz.Length > 0)
                             {
-                                foreach (ParameterInfo para in kv.Value.Item2.GetParameters())
+                                clazzpath = ((Restful)clazz[0]).Path.ToLower();
+                            }
+
+                            string clazzname = kv.Value.Item1.ToString().ToLower();
+                            if (clazzname == name || (!string.IsNullOrEmpty(clazzpath) && clazzpath == name))
+                            {
+
+                                string kvmethod = kv.Value.Item2.Name.ToLower();
+                                string path = string.Empty;
+                                object[] cattri = kv.Value.Item2.GetCustomAttributes(typeof(Restful), true);
+                                if (null != cattri && cattri.Length > 0)
                                 {
-                                    param.Add(parameters[para.Name]);
+                                    Restful rf = (Restful)cattri[0];
+                                    path = rf.Path.ToLower();
+                                    keeplive = rf.KeepAlive;
+                                }
+
+                                if (kvmethod == methodname.ToLower() || (!string.IsNullOrEmpty(path) && path == methodname.ToLower()))
+                                {
+
+                                    List<object> param = new List<object>();
+
+                                    try
+                                    {
+                                        foreach (ParameterInfo para in kv.Value.Item2.GetParameters())
+                                        {
+                                            param.Add(parameters[para.Name]);
+                                        }
+                                    }
+                                    catch (Exception ex)
+                                    {
+
+                                        break;
+                                    }
+                                    parameters = param;
+                                    int i = 0;
+                                    foreach (ParameterInfo para in kv.Value.Item2.GetParameters())
+                                    {
+                                        object o = param[i];
+                                        if (para.ParameterType.Name != o.GetType().Name)
+                                            break;
+                                        i++;
+                                    }
+                                    if (kv.Value.Item2.GetParameters().Length == param.Count)
+                                    {
+                                        name = kv.Value.Item1;
+                                        method = kv.Value.Item2;
+                                        MemberInfos[kv.Key] = new Tuple<string, MethodInfo, int>(MemberInfos[kv.Key].Item1, MemberInfos[kv.Key].Item2, MemberInfos[kv.Key].Item3 + 1);
+                                        break;
+                                    }
+
                                 }
                             }
-                            catch (Exception ex)
-                            {
-
-                                break;
-                            }
-                            parameters = param;
-                            int i = 0;
-                            foreach (ParameterInfo para in kv.Value.Item2.GetParameters())
-                            {
-                                object o = param[i];
-                                if (para.ParameterType.Name != o.GetType().Name)
-                                    break;
-                                i++;
-                            }
-                            if (kv.Value.Item2.GetParameters().Length == param.Count)
-                            {
-                                name = kv.Value.Item1;
-                                method = kv.Value.Item2;
-                                MemberInfos[kv.Key] = new Tuple<string, MethodInfo, int>(MemberInfos[kv.Key].Item1, MemberInfos[kv.Key].Item2, MemberInfos[kv.Key].Item3 + 1);
-                                break;
-                            }
-
                         }
                     }
-
-
                 }
+                catch (Exception ex)
+                { }
                 #endregion
             }
 
@@ -217,7 +276,10 @@ namespace UcAsp.RPC.Service
             object[] arrparam = parameters.ToArray();
             Object bll = ApplicationContext.GetObject(name);
             var result = method.Invoke(bll, arrparam);
-            string data = JsonConvert.SerializeObject(result);
+            JsonSerializerSettings jsonsetting = new JsonSerializerSettings();
+            jsonsetting.Formatting = Formatting.Indented;
+            
+            string data = JsonConvert.SerializeObject(result, jsonsetting);
             ea.Param = new System.Collections.ArrayList();
             ea.Json = data;
             for (int i = 0; i < arrparam.Length; i++)
@@ -227,5 +289,16 @@ namespace UcAsp.RPC.Service
             return ea;
         }
 
+        internal class CallPara
+        {
+            public string Name { get; set; }
+            public string MethodName { get; set; }
+
+            public dynamic Parameters { get; set; }
+
+
+        }
     }
+
+
 }

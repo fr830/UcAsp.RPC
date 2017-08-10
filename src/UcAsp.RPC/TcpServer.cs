@@ -79,8 +79,7 @@ namespace UcAsp.RPC
                 StateObject state = new StateObject();
                 state.workSocket = client;
                 client.BeginReceive(state.buffer, 0, StateObject.BufferSize, SocketFlags.None, ReceiveCallback, state);
-                // Thread t = new Thread(new ParameterizedThreadStart(Recive));
-                // t.Start(client);
+                
 
             }
             catch (Exception ex)
@@ -89,55 +88,7 @@ namespace UcAsp.RPC
                 Console.WriteLine(ex);
                 IsStart = false;
             }
-        }
-        private void Recive(object obj)
-        {
-            Socket client = (Socket)(obj);
-            while (!token.IsCancellationRequested)
-            {
-                if (client.Connected)
-                {
-                    try
-                    {
-                        ByteBuilder _recvBuilder = new ByteBuilder(client.ReceiveBufferSize);
-                        byte[] buffer = new byte[buffersize];
-                        int total = 0;
-                        while (!token.IsCancellationRequested)
-                        {
-                            int l = client.Receive(buffer, SocketFlags.None);
-                            _recvBuilder.Add(buffer, 0, l);
-                            total = _recvBuilder.GetInt32(0);
-                            if (_recvBuilder.Count == total)
-                            { break; }
-                        }
-                        DataEventArgs e = DataEventArgs.Parse(_recvBuilder);
-                        Console.WriteLine(e.TaskId + ".");
-                        Call(client, e);
-
-
-
-                    }
-                    catch (SocketException ex)
-                    {
-                        _log.Error(ex.SocketErrorCode.ToString());
-                        Console.WriteLine(ex.Message + ex.SocketErrorCode.ToString());
-                        break;
-                    }
-                    finally
-                    {
-
-                    }
-                }
-                else
-                {
-                    break;
-                }
-
-            }
-            try { Console.WriteLine("断开连接..........................................."); } catch (Exception ex) { Console.WriteLine(ex); }
-
-
-        }
+        }  
         #endregion
         public override void Stop()
         {

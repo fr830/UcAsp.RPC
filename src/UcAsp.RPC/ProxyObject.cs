@@ -18,8 +18,6 @@ namespace UcAsp.RPC
     {
         private ISerializer _serializer = new JsonSerializer();
 
-        private IClient _client;
-
         public IClient Clients { get; set; }
         public IClient Run
         {
@@ -29,8 +27,6 @@ namespace UcAsp.RPC
                     throw new Exception("没有可用的服务器");
                 else
                 {
-                    // int len = Clients.Count;
-                    // int rad = new Random().Next(Clients.GetHashCode()) % len;
                     return Clients;
 
                 }

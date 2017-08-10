@@ -28,7 +28,7 @@ namespace UcAsp.WebSocket.Server
         private WebSocketServiceManager _services;
         private volatile ServerState _state;
         private object _sync;
-
+        private Dictionary<string, string> _mime = new Dictionary<string, string>();
         #endregion
 
         #region Public Constructors
@@ -865,6 +865,25 @@ namespace UcAsp.WebSocket.Server
             _log = _listener.Log;
             _services = new WebSocketServiceManager(_log);
             _sync = new object();
+            _mime.Add("gif", "image/gif");
+            _mime.Add("jpeg", "image/jpeg");
+            _mime.Add("jpg", "image/jpeg");
+            _mime.Add("tif", "image/tif");
+            _mime.Add("png", "image/png");
+            _mime.Add("txt", "text/plain");
+            _mime.Add("html", "text/xml");
+            _mime.Add("htm", "text/xml");
+            _mime.Add("js", "application/x-javascript");
+            _mime.Add("css", "text/css");
+            _mime.Add("avi", "video/x-msvideo");
+            _mime.Add("zip", "application/zip");
+            _mime.Add("rar", "application/x-rar-compressed");
+            _mime.Add("flv", "flv-application/octet-stream");
+            _mime.Add("mp4", "application/octet-stream");
+            _mime.Add("svg", "image/svg+xml");
+            _mime.Add("woff", "application/x-font-woff");
+            _mime.Add("woff2", "application/x-font-woff");
+            _mime.Add("ttf", "application/octet-stream");
         }
 
         private void processRequest(HttpListenerContext context)
@@ -872,12 +891,25 @@ namespace UcAsp.WebSocket.Server
             WebSocketServiceHost host;
             if (!_services.InternalTryGetServiceHost(context.Request.RawUrl.ToLower(), out host))
             {
+                string url = context.Request.RawUrl.ToLower();
+                string mime = "image/jpeg";
+                string[] l = url.Split('.');
+
+                string ext = "txt";
+                if (l.Length >= 2)
+                {
+                    if (_mime.ContainsKey(l[l.Length - 1]))
+                    {
+                        mime = _mime[l[l.Length - 1]];
+                    }
+                }
                 string localpath = System.Web.HttpUtility.UrlDecode(context.Request.RawUrl, System.Text.Encoding.UTF8).Replace("/", "\\");
                 string path = _docRootPath + localpath;
                 bool isExit = File.Exists(path);
                 if (isExit)
                 {
                     byte[] buffer = GetFile(localpath);
+                  //  context.Response.AddHeader("Content-Type", mime);
                     context.Response.WriteContent(buffer);
                 }
                 else
