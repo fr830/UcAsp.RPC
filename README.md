@@ -21,6 +21,13 @@
   </service>
 </configuration>
 ```
+# 服務器端设置
+
+```C#
+ApplicationContext context = new ApplicationContext();
+context.Start(AppDomain.CurrentDomain.BaseDirectory+ "Application.config", AppDomain.CurrentDomain.BaseDirectory);
+```
+
 # 客戶端配置
 ```XML
 <?xml version="1.0" encoding="utf-8"?>
