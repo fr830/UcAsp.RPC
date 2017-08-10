@@ -1,6 +1,6 @@
 # UcAsp.RPC
 
-#服务器端配置
+# 服务器端配置
 ```XML
 <?xml version="1.0" encoding="utf-8"?>
 <configuration>
@@ -21,7 +21,7 @@
   </service>
 </configuration>
 ```
-#客戶端配置
+# 客戶端配置
 ```XML
 <?xml version="1.0" encoding="utf-8"?>
 <configuration>
@@ -46,13 +46,13 @@
 </configuration>
 ```
 
-#應用
-客戶端創建對象
+# 應用
+# 客戶端創建對象
 ```C#
 static ApplicationContext context= new ApplicationContext();
 context.Start(AppDomain.CurrentDomain.BaseDirectory + "Application.config", AppDomain.CurrentDomain.BaseDirectory);
 ```
-實例一個對象
+# 實例一個對象
 ```C#
 IFace.ITest clazz = context.GetProxyObject<IFace.ITest>();
 int o = (int)i;
