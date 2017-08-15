@@ -342,15 +342,20 @@ namespace UcAsp.RPC
                             {
                                 //md5格式
                                 Tuple<string, MethodInfo, int> tuple = new Tuple<string, MethodInfo, int>(action, info, 0);
-                                //方法类 重新方法无法实现
-                                /* Tuple<string, MethodInfo> tuplepath = new Tuple<string, MethodInfo>(action, info);
-                                 string path = t.Namespace + "/" + t.Name + "/" + info.Name;
-                                 if (!_memberinfos.ContainsKey(path))
-                                 {
-                                     _memberinfos.Add(path, tuplepath);
-                                 }
-                                 */
+
                                 _memberinfos.Add(method, tuple);
+
+                                object[] attr = info.GetCustomAttributes(typeof(Restful), true);
+                                if (attr.Length > 0)
+                                {
+                                    Restful rf = (Restful)attr[0];
+                                    if (rf.IsRun)
+                                    {
+                                        object _runObj = Activator.CreateInstance(t);
+                                        info.Invoke(_runObj, null);
+                                    }
+                                }
+
                             }
                         }
                     }

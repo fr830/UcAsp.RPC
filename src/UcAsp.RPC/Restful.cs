@@ -23,6 +23,11 @@ namespace UcAsp.RPC
         public bool NoRest { get; set; }
 
         public bool KeepAlive { get; set; }
+
+        /// <summary>
+        /// 启动运行方法，只能使用void 和无参数的方法
+        /// </summary>
+        public bool IsRun { get; set; }
         public Restful()
         { }
         public Restful(bool noRest)
@@ -41,7 +46,10 @@ namespace UcAsp.RPC
         {
             this.KeepAlive = keepAlive;
         }
-
+        public Restful(string method, string path, bool noRest, bool keepAlive,bool isRun) : this(method, path, noRest, keepAlive)
+        {
+            this.IsRun = isRun;
+        }
         public Restful(string path)
         {
             if (path == "register")

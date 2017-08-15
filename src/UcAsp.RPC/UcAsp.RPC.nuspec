@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>$id$</id>
+    <version>1.0.0.1</version>
+    <title>UcAsp.RPC</title>
+    <authors>Rixiang.Yu</authors>
+    <owners>Rixiang.Yu</owners>
+    <projectUrl>https://github.com/servucn/UcAsp.RPC</projectUrl>  
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>C# 开发的.Net框架下的RPC服务，路线:已经开发好的程序如何快速实现RPC. </description>
+    <releaseNotes>bug 提交地址：https://github.com/servucn/UcAsp.RPC/issues</releaseNotes>
+    <copyright>Copyright 2017</copyright>
+    <tags>Rpc</tags>
+  </metadata>
+</package>

@@ -44,6 +44,7 @@ namespace UcAsp.RPC
             web = new WebServer("http://localhost:" + port + "/");
             web.DocumentRootPath = System.AppDomain.CurrentDomain.BaseDirectory+"wwwroot";
             IPAddress[] iplist = Dns.GetHostAddresses(Dns.GetHostName());
+            web.AddPrefixes("http://127.0.0.1:" + port + "/");
             for (int i = 0; i < iplist.Length; i++)
             {
                 web.AddPrefixes("http://" + iplist[i] + ":" + port + "/");
