@@ -90,22 +90,22 @@ namespace UcAsp.RPC.Service
                 var parameters = data.param;
                 bool keeplive = false;
                 DataEventArgs ea = Call(name, methodname, null, parameters, ref keeplive);
-               // if (keeplive)
-               // {
-                    //DateTime outTime;
-                    //if (!RunCall.TryGetValue(name + "." + methodname, out outTime))
-                    //{
-                       // Thread th = new Thread(new ParameterizedThreadStart(KeepLiveCall));
-                      //  th.Start(new CallPara { Name = name, MethodName = methodname, Parameters = parameters });
-                      //  RunCall.Add(name + "." + methodname, DateTime.Now);
-                    //}
+                // if (keeplive)
+                // {
+                //DateTime outTime;
+                //if (!RunCall.TryGetValue(name + "." + methodname, out outTime))
+                //{
+                // Thread th = new Thread(new ParameterizedThreadStart(KeepLiveCall));
+                //  th.Start(new CallPara { Name = name, MethodName = methodname, Parameters = parameters });
+                //  RunCall.Add(name + "." + methodname, DateTime.Now);
+                //}
                 //}
                 Send(ea.Json);
             }
         }
         private void KeepLiveCall(object obj)
         {
-             token=source.Token;
+            token = source.Token;
 
             int error = 0;
             while (!token.IsCancellationRequested)
@@ -190,7 +190,7 @@ namespace UcAsp.RPC.Service
                         {
                             object[] clazz = kv.Value.Item2.DeclaringType.GetCustomAttributes(typeof(Restful), true);
                             string clazzpath = string.Empty;
-                            if (clazz != null && clazz.Length > 0)
+                            if (clazz != null && clazz.Length > 0 && ((Restful)clazz[0]).Path != null)
                             {
                                 clazzpath = ((Restful)clazz[0]).Path.ToLower();
                             }
@@ -205,8 +205,12 @@ namespace UcAsp.RPC.Service
                                 if (null != cattri && cattri.Length > 0)
                                 {
                                     Restful rf = (Restful)cattri[0];
-                                    path = rf.Path.ToLower();
+                                    if (rf.Path != null)
+                                    {
+                                        path = rf.Path.ToLower();
+                                    }
                                     keeplive = rf.KeepAlive;
+
                                 }
 
                                 if (kvmethod == methodname.ToLower() || (!string.IsNullOrEmpty(path) && path == methodname.ToLower()))
@@ -278,7 +282,7 @@ namespace UcAsp.RPC.Service
             var result = method.Invoke(bll, arrparam);
             JsonSerializerSettings jsonsetting = new JsonSerializerSettings();
             jsonsetting.Formatting = Formatting.Indented;
-            
+
             string data = JsonConvert.SerializeObject(result, jsonsetting);
             ea.Param = new System.Collections.ArrayList();
             ea.Json = data;

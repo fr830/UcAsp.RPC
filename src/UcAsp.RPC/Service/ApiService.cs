@@ -68,13 +68,7 @@ namespace UcAsp.RPC.Service
                 object[] clazz = kv.Value.Item2.DeclaringType.GetCustomAttributes(typeof(Restful), true);
                 string clazzpath = string.Empty;
                 string path = kv.Value.Item2.Name;
-
-
-
-
                 object[] cattri = kv.Value.Item2.GetCustomAttributes(true);
-
-
                 if (clazz != null && clazz.Length > 0)
                 {
                     if (null != cattri && cattri.Length > 0)
@@ -105,7 +99,10 @@ namespace UcAsp.RPC.Service
                     if (null != cattri && cattri.Length > 0)
                     {
                         Restful rf = (Restful)cattri[0];
-                        path = rf.Path.ToLower();
+                        if (rf.Path != null)
+                        {
+                            path = rf.Path.ToLower();
+                        }
                     }
                     clazzpath = ((Restful)clazz[0]).Path.ToLower();
                     sb.Append(@"<div class=""list-group-item"">Example:WebSocket Send Data JSON{""clazz"":""" + clazzpath + @""",""method"":""" + path + @""",""param"": {");
