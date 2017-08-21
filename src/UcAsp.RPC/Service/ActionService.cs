@@ -17,11 +17,13 @@ using Newtonsoft.Json;
 using System.IO;
 using System.Reflection;
 using System.Threading;
+using log4net;
 namespace UcAsp.RPC.Service
 {
 
     public class ActionService : WebSocketBehavior
     {
+        private readonly ILog _log = LogManager.GetLogger(typeof(ActionService));
         CancellationTokenSource source = new CancellationTokenSource();
         CancellationToken token;
         private Dictionary<string, DateTime> RunCall = new Dictionary<string, DateTime>();
@@ -33,12 +35,8 @@ namespace UcAsp.RPC.Service
             {
                 content = reader.ReadToEnd();
             }
-            MethodInfo method = null;
-
-            var parameters = JsonConvert.DeserializeObject<dynamic>(content);
-            if (parameters == null) parameters = new List<object>();
-
             string rpc = ev.Request.Headers["UcAsp.Net_RPC"];
+
             string url = ev.Request.RawUrl;
             if (!url.EndsWith("/"))
             {
@@ -58,8 +56,19 @@ namespace UcAsp.RPC.Service
                 code = rurl[1];
             }
             bool keeplive = false;
-            DataEventArgs ea = Call(name, methodname, code, parameters, ref keeplive);
-
+            DataEventArgs ea = new DataEventArgs();
+            try
+            {
+                var parameters = JsonConvert.DeserializeObject<dynamic>(content);
+                if (parameters == null) parameters = new List<object>();
+                ea = Call(name, methodname, code, parameters, ref keeplive);
+            }
+            catch (Exception ex)
+            {
+                ea.StatusCode = StatusCode.Error;
+                ea.LastError = ex.Message;
+                _log.Error(ex);
+            }
             if (rpc == "true")
             {
                 byte[] buffer = GZipUntil.GetZip(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(ea)));
@@ -84,22 +93,22 @@ namespace UcAsp.RPC.Service
         {
             if (e.Data != "@heart")
             {
-                var data = JsonConvert.DeserializeObject<dynamic>(e.Data);
-                string name = data.clazz;
-                string methodname = data.method;
-                var parameters = data.param;
-                bool keeplive = false;
-                DataEventArgs ea = Call(name, methodname, null, parameters, ref keeplive);
-                // if (keeplive)
-                // {
-                //DateTime outTime;
-                //if (!RunCall.TryGetValue(name + "." + methodname, out outTime))
-                //{
-                // Thread th = new Thread(new ParameterizedThreadStart(KeepLiveCall));
-                //  th.Start(new CallPara { Name = name, MethodName = methodname, Parameters = parameters });
-                //  RunCall.Add(name + "." + methodname, DateTime.Now);
-                //}
-                //}
+                DataEventArgs ea = new DataEventArgs();
+                try
+                {
+                    var data = JsonConvert.DeserializeObject<dynamic>(e.Data);
+                    string name = data.clazz;
+                    string methodname = data.method;
+                    var parameters = data.param;
+                    bool keeplive = false;
+                    ea = Call(name, methodname, null, parameters, ref keeplive);
+                }
+                catch (Exception ex)
+                {
+                    ea.StatusCode = StatusCode.Error;
+                    ea.LastError = ex.Message;
+                    _log.Error(ex);
+                }
                 Send(ea.Json);
             }
         }
@@ -253,7 +262,9 @@ namespace UcAsp.RPC.Service
                     }
                 }
                 catch (Exception ex)
-                { }
+                {
+                    _log.Error(ex);
+                }
                 #endregion
             }
 
