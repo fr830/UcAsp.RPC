@@ -188,7 +188,8 @@ namespace UcAsp.RPC
                     if (result.Item1 == HttpStatusCode.OK)
                     {
                         ea.StatusCode = StatusCode.Success;
-                        ea.Json = redata.Json;
+                        dynamic data = JsonConvert.DeserializeObject<dynamic>(redata.Json);
+                        ea.Json = data.data.ToString();
                         ea.Param = redata.Param;
                         ResultTask.AddOrUpdate(ea.TaskId, ea, (key, value) => value = ea);
                     }
