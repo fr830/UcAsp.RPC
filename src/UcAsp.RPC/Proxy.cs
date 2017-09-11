@@ -172,7 +172,7 @@ namespace UcAsp.RPC
                 sb.AppendLine("            e.Binary = this.Serializer.ToBinary(entity);");
                 sb.AppendLine("            e.CallHashCode = e.GetHashCode();");
                 sb.AppendLine("            e.StatusCode = StatusCode.Normal;");
-                
+
                 sb.AppendLine("            e.T = typeof(" + GetTypeName(method.ReturnType) + ");");
                 string action = string.Format("{0}.{1}.{2}", method.DeclaringType.FullName, method.Name, GetMethodMd5Code(method));
                 sb.AppendLine(string.Format("            e.ActionParam = \"{0}\";\r\n", action));
@@ -189,12 +189,12 @@ namespace UcAsp.RPC
                 sb.AppendLine("                throw (ex);\r\n");
                 sb.AppendLine("            }\r\n");
                 sb.AppendLine("wath.Stop();");
-              // sb.AppendLine("try{\r\n");
+                // sb.AppendLine("try{\r\n");
                 for (int i = 0; i < arrparam.Count; i++)
                 {
                     ; if (arrType[i].Replace("ref", "").Replace("out", "").Trim().ToLower() == "string")
                     {
-                      
+
                         sb.AppendLine(arrparam[i] + " =  data.Param[" + i + "].ToString();");
 
                     }
@@ -223,12 +223,12 @@ namespace UcAsp.RPC
 
 
                 }
-               // sb.AppendLine("}catch (Exception ex)\r\n");
-               // sb.AppendLine("{");
-               // sb.AppendLine(" Console.WriteLine (ex);\r\n; ");
-               // sb.AppendLine("  throw (ex);\r\n; ");
-               // sb.AppendLine("}\r\n");
-               sb.AppendLine("        }\r\n");
+                // sb.AppendLine("}catch (Exception ex)\r\n");
+                // sb.AppendLine("{");
+                // sb.AppendLine(" Console.WriteLine (ex);\r\n; ");
+                // sb.AppendLine("  throw (ex);\r\n; ");
+                // sb.AppendLine("}\r\n");
+                sb.AppendLine("        }\r\n");
 
             }
             sb.Append("    }\r\n");

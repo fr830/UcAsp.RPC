@@ -46,7 +46,7 @@ namespace Face
         {
             Event e = new Event { C = c };
             byte[] send = Encoding.UTF8.GetBytes("测试");
-            
+
             return msg + c.ToString();
         }
         /// <summary>
@@ -66,10 +66,10 @@ namespace Face
                 list.Add(yun.ToString());
                 list.Add(mm);
                 list.Add(kkk);
-                //Thread.Sleep(new Random().Next(200));
+                
                 // throw new Exception("错误");
             }
-            Thread.Sleep(1000);
+            Thread.Sleep(new Random().Next(500));
             return list;
         }
 

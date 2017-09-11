@@ -22,81 +22,156 @@ namespace UcAsp.RPC
 {
     public abstract class ClientBase : IClient
     {
-        public Queue<DataEventArgs> ClientTask { get; set; }
-        public ConcurrentDictionary<int, DataEventArgs> ResultTask { get; set; }
+        private static CancellationTokenSource cancelTokenSource = new CancellationTokenSource();
+        private readonly ILog _log = LogManager.GetLogger(typeof(ClientBase));
 
-        public ConcurrentDictionary<int, DataEventArgs> RuningTask { get; set; }
-        private Socket socket;
-        public List<ChannelPool> IpAddress { get; set; }
-        public int TaskId { get; set; }
-        public abstract void Run();
+        private ConcurrentQueue<DataEventArgs> _clientTask = new ConcurrentQueue<DataEventArgs>();
+        private ConcurrentDictionary<int, DataEventArgs> _resultTask = new ConcurrentDictionary<int, DataEventArgs>();
+        private ConcurrentDictionary<int, DataEventArgs> _runingTask = new ConcurrentDictionary<int, DataEventArgs>();
+        private List<ChannelPool> _channels = new List<ChannelPool>();
+        public ConcurrentQueue<DataEventArgs> ClientTask { get { return this._clientTask; } set { this._clientTask = value; } }
+        public ConcurrentDictionary<int, DataEventArgs> ResultTask { get { return this._resultTask; } set { this._resultTask = value; } }
 
-        public abstract void Run(DataEventArgs agrs, ChannelPool channel);
-        public bool IsStart
+        public ConcurrentDictionary<int, DataEventArgs> RuningTask { get { return this._runingTask; } set { this._runingTask = value; } }
+
+        public List<ChannelPool> Channels { get { return this._channels; } set { this._channels = value; } }
+
+        public virtual void Run()
         {
-            get;
 
-            set;
-        }
-
-        public string LastError
-        {
-            get;
-
-            set;
-        }
-
-        public bool IsRun
-        {
-            get;
-
-            set;
-        }
-
-        public long PingActives
-        {
-            get;
-
-            set;
-        }
-
-        public abstract void CallServiceMethod(object e);
-        public abstract DataEventArgs GetResult(DataEventArgs e);
-
-        public abstract bool Connect(string ip, int port, int pool);
-
-
-        public void RemovePool(DataEventArgs hash)
-        {
-            DataEventArgs outDea = new DataEventArgs();
-            if (ResultTask.ContainsKey(hash.TaskId))
+            new Task(() =>
             {
-                ResultTask.TryRemove(hash.TaskId, out outDea);
-            }
-
-            if (RuningTask.ContainsKey(hash.TaskId))
-            {
-                for (int i = 0; i < IpAddress.Count; i++)
+                while (!cancelTokenSource.Token.IsCancellationRequested)
                 {
-                    if (IpAddress[i].ActiveHash == hash.TaskId)
+                    DataEventArgs e;
+                    if (ClientTask.TryDequeue(out e))
                     {
-                        IpAddress[i].ActiveHash = 0;
+                        ChannelPool channel = Channels[0];
+                        Dictionary<int, int> dic = new Dictionary<int, int>();
+                        int num = 0;
+                        int k = 0;
+                        lock (Channels)
+                        {
+
+                            foreach (ChannelPool p in Channels)
+                            {
+                                if (p.ActiveHash == 0 && p.Available == true)
+                                {
+                                    dic.Add(k, num);
+                                    k++;
+                                }
+                                num++;
+                            }
+                        }
+
+                        int cnum = new Random(e.GetHashCode()).Next(k);
+                        int i = 0;
+                        if (dic.TryGetValue(cnum, out i))
+                        {
+                            channel = Channels[i];
+
+                        }
+                        else
+                        {
+                            int times = 0;
+                            while (channel.ActiveHash == 1 && times < 100)
+                            {
+                                i = new Random(e.GetHashCode()).Next(Channels.Count);
+                                channel = Channels[i];
+                                Thread.Sleep(1);
+                                times++;
+                            }
+                            if (times >= 100)
+                            {
+                                Channels.Add(new ChannelPool { IpPoint = channel.IpPoint });
+                                i = Channels.Count - 1;
+                            }
+                        }
+
+                        Channels[i].ActiveHash = 1;
+                        Channels[i].RunTimes++;
+                        Channels[i].PingActives = DateTime.Now.Ticks;
+                        e.CallHashCode = i;
+                        Call(e, i);
+
                     }
+                    Thread.Sleep(2);
                 }
-                RuningTask.TryRemove(hash.TaskId,out outDea);
-            }
-            for (int i = 0; i < IpAddress.Count; i++)
-            {
-                if (IpAddress[i].ActiveHash == hash.TaskId)
-                {
-                    IpAddress[i].ActiveHash = 0;
-                }
-            }
+
+            }, TaskCreationOptions.LongRunning).Start();
+
         }
+
+        public virtual void CallServiceMethod(DataEventArgs de)
+        {
+            if (ApplicationContext._taskId < int.MaxValue)
+            {
+                ApplicationContext._taskId++;
+            }
+            else
+            {
+                ApplicationContext._taskId = 0;
+            }
+            de.TaskId = ApplicationContext._taskId;
+
+            try
+            {
+                ClientTask.Enqueue(de);
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
+
+        }
+        public virtual DataEventArgs GetResult(DataEventArgs e)
+        {
+            DataEventArgs arg = new DataEventArgs();
+            try
+            {
+                var cts = new CancellationTokenSource(50000);
+                while (!cts.Token.IsCancellationRequested)
+                {
+
+                    if (ResultTask.TryGetValue(e.TaskId, out arg))
+                    {
+                        arg.StatusCode = StatusCode.Success;
+                        Channels[arg.CallHashCode].ActiveHash = 0;
+                        return arg;
+                    }
+                    Thread.Sleep(3);
+                }
+            }
+            catch (Exception ex)
+            {
+                arg.StatusCode = StatusCode.Serious;
+                _log.Error(ex);
+                Console.WriteLine(ex);
+                Channels[e.CallHashCode].ActiveHash = 1;
+                return arg;
+
+            }
+            Channels[e.CallHashCode].ActiveHash = 1;
+            e.StatusCode = StatusCode.TimeOut;
+            return e;
+
+
+        }
+        public virtual void Call(object obj, int len) { }
         public string Authorization { get; set; }
 
-        public abstract void Exit();
+
+        public virtual void Exit()
+        {
+            cancelTokenSource.Cancel();
+
+
+        }
 
         public abstract void CheckServer();
+
+        public abstract DataEventArgs GetResult(DataEventArgs e, ChannelPool channel);
+
     }
 }

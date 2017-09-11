@@ -17,14 +17,14 @@ namespace UcAsp.RPC
         private readonly ILog _log = LogManager.GetLogger(typeof(ApplicationContext));
         private static ServerBase _server = null;
         private static ServerBase _httpserver = null;
-        public static IClient _clients = null;
+        // public static IClient _clients = null;
         private static string _rootpath = string.Empty;
         private static ISerializer _serializer = new JsonSerializer();
         public static int _taskId = 0;
         private static bool _run = false;
         private static Dictionary<string, Type> _obj = new Dictionary<string, Type>();
         private static Dictionary<string, Tuple<string, MethodInfo, int>> _memberinfos = new Dictionary<string, Tuple<string, MethodInfo, int>>();
-        private static Dictionary<string, Tuple<string, List<ChannelPool>>> _proxobj = new Dictionary<string, Tuple<string, List<ChannelPool>>>();
+        private static Dictionary<string, dynamic> _proxobj = new Dictionary<string, dynamic>();
         private static List<RegisterInfo> _registerInfo = new List<RegisterInfo>();
         private static string _config;
         CancellationTokenSource cts = new CancellationTokenSource();
@@ -44,16 +44,17 @@ namespace UcAsp.RPC
             string name = asssembly.FullName;
             if (_proxobj.ContainsKey(name))
             {
-                string[] content = _proxobj[name].Item1.Split(',');
-                string nameSpace = content[0];
-                string className = content[1];
+                dynamic _client = _proxobj[name];
+
+                string nameSpace = _client.NameSpace;
+                string className = _client.ClassName;
                 object clazz = Proxy.GetObjectType<T>(nameSpace, className);
                 Type type = clazz.GetType();
 
-                PropertyInfo property = type.GetProperty("Clients");
+                PropertyInfo property = type.GetProperty("Client");
                 if (property != null && property.CanWrite)
                 {
-                    property.SetValue(clazz, _clients, null);
+                    property.SetValue(clazz, _client.Client, null);
                 }
                 return (T)clazz;
             }
@@ -64,7 +65,7 @@ namespace UcAsp.RPC
 
             }
         }
-
+        #region 监控
         public DateTime LastRunTime()
         {
             if (_server != null)
@@ -124,7 +125,7 @@ namespace UcAsp.RPC
                 return 0;
             }
         }
-
+        #endregion
         public T GetProxyObject<T>(IPEndPoint ep)
         {
 
@@ -132,25 +133,16 @@ namespace UcAsp.RPC
             string name = asssembly.FullName;
             if (_proxobj.ContainsKey(name))
             {
-                string[] content = _proxobj[name].Item1.Split(',');
-                string nameSpace = content[0];
-                string className = content[1];
+                dynamic _client = _proxobj[name];
+
+                string nameSpace = _client.NameSpace;
+                string className = _client.ClassName;
                 object clazz = Proxy.GetObjectType<T>(nameSpace, className);
                 Type type = clazz.GetType();
                 PropertyInfo property = type.GetProperty("Client");
                 if (property != null && property.CanWrite)
                 {
-                    // foreach (IClient _c in _clients)
-                    // {
-                    //foreach (ChannelPool _p in _clients.IpAddress)
-                    //{
-                    //    if (_p.IpPoint.Port == ep.Port && _p.IpPoint.Address.Equals(ep.Address))
-                    //        break;
-                    //}
-                    //client = _clients;
-                    //  }
-
-                    property.SetValue(clazz, _clients, null);
+                    property.SetValue(clazz, _client.Client, null);
                 }
                 return (T)clazz;
             }
@@ -199,7 +191,6 @@ namespace UcAsp.RPC
                 _rootpath = _rootpath + "\\";
             }
             _config = _rootpath + "Application.config";
-            // Start(_config, _rootpath);
         }
         public void Start(string configpath, string rootpath)
         {
@@ -283,25 +274,7 @@ namespace UcAsp.RPC
                 getBoardthread.Start();
             }
 
-            //foreach (ChannelPool iclient in _clients.IpAddress.Where(o=>o.Available==false))
-            //{
-            //    try
-            //    {
 
-            //        DataEventArgs callping = new DataEventArgs() { ActionCmd = CallActionCmd.Ping.ToString(), ActionParam = "PING" };
-            //        _clients.CallServiceMethod(callping);
-            //        DataEventArgs ping = _clients.GetResult(callping);
-            //        string result = _serializer.ToEntity<string>(ping.Binary);
-            //        Console.WriteLine(result);
-            //        _log.Info(result);
-
-            //    }
-            //    catch (Exception ex)
-            //    {
-
-            //    }
-
-            //}
 
         }
         private void InitializeServer(Config config)
@@ -416,41 +389,41 @@ namespace UcAsp.RPC
             try
             {
                 // UdpClient client = new UdpClient(new IPEndPoint(IPAddress.Any, 7788));
-                if (clientBoard != null)
-                    return;
+                /* if (clientBoard != null)
+                     return;
 
-                clientBoard = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-                clientBoard.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ExclusiveAddressUse, false);
-                clientBoard.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-                clientBoard.Bind(new IPEndPoint(IPAddress.Any, 7788));
-                EndPoint endpoint = new IPEndPoint(IPAddress.Any, 0);
-                while (true)
-                {
+                 clientBoard = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+                 clientBoard.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ExclusiveAddressUse, false);
+                 clientBoard.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+                 clientBoard.Bind(new IPEndPoint(IPAddress.Any, 7788));
+                 EndPoint endpoint = new IPEndPoint(IPAddress.Any, 0);
+                 while (true)
+                 {
 
-                    byte[] buf = new byte[1024];
-                    int l = clientBoard.ReceiveFrom(buf, ref endpoint);
-                    int port = int.Parse(Encoding.Default.GetString(buf, 0, l));
-                    IPAddress ip = ((IPEndPoint)endpoint).Address;
-                    bool flag = false;
+                     byte[] buf = new byte[1024];
+                     int l = clientBoard.ReceiveFrom(buf, ref endpoint);
+                     int port = int.Parse(Encoding.Default.GetString(buf, 0, l));
+                     IPAddress ip = ((IPEndPoint)endpoint).Address;
+                     bool flag = false;
 
-                    foreach (ChannelPool cp in _clients.IpAddress)
-                    {
-                        if (cp.IpPoint.Address.ToString() == ip.ToString() && cp.IpPoint.Port == port)
-                        {
-                            flag = true;
-                            continue;
-                        }
+                     foreach (ChannelPool cp in _clients.IpAddress)
+                     {
+                         if (cp.IpPoint.Address.ToString() == ip.ToString() && cp.IpPoint.Port == port)
+                         {
+                             flag = true;
+                             continue;
+                         }
 
-                    }
+                     }
 
-                    if (!flag)
-                    {
-                        ServerPort sport = new ServerPort() { Ip = ip.ToString(), Port = port, Pool = 10 };
-                        AddClient(sport);
-                    }
+                     if (!flag)
+                     {
+                         ServerPort sport = new ServerPort() { Ip = ip.ToString(), Port = port, Pool = 10 };
+                         AddClient(sport);
+                     }
 
 
-                }
+                 }*/
 
             }
             catch (Exception ex)
@@ -464,66 +437,45 @@ namespace UcAsp.RPC
             ServerPort sport = (ServerPort)serverport;
             string ip = sport.Ip;
             int port = sport.Port;
-            int pool = sport.Pool + 2;
+            int pool = sport.Pool;
             Config config = new Config(_config) { GroupName = "client" };
-            if (_clients == null)
+            IClient _client;
+            string mode = config.GetValue("server", "mode", "tcp");
+            string password = (string)config.GetValue("server", "password");
+            string username = (string)config.GetValue("server", "username");
+            if (mode.ToLower() == "tcp")
             {
-                string mode = config.GetValue("server", "mode", "tcp");
-                string password = (string)config.GetValue("server", "password");
-                string username = (string)config.GetValue("server", "username");
-                if (mode.ToLower() == "tcp")
-                {
-                    _clients = new SocketClient();
-                }
-                else
-                {
-                    _clients = new HttpClient();
-                }
-                _clients.Authorization = Convert.ToBase64String(Encoding.ASCII.GetBytes(username + ":" + password));
-                _clients.ClientTask = new Queue<DataEventArgs>();
-                _clients.ResultTask = new System.Collections.Concurrent.ConcurrentDictionary<int, DataEventArgs>();
-                _clients.RuningTask = new System.Collections.Concurrent.ConcurrentDictionary<int, DataEventArgs>();
-                _clients.IpAddress = new List<ChannelPool>();
+                _client = new SocketClient();
             }
-            bool iccon = false;
-            bool conn = false;
-            if (_clients.IpAddress.Count <= 0)
+            else
             {
-                //
-                conn = _clients.Connect(ip, port, pool);
-                ///
-
-            };
-
-
-
-            foreach (ChannelPool ic in _clients.IpAddress)
-            {
-
-                if (ic.IpPoint.Address.ToString() == ip && ic.IpPoint.Port == port)
-                {
-                    iccon = true;
-                    break;
-                }
+                _client = new HttpClient();
             }
-            if (!iccon)
-            {
-                conn = _clients.Connect(ip, port, pool);
+            _client.ClientTask = new System.Collections.Concurrent.ConcurrentQueue<DataEventArgs>();
+            _client.ResultTask = new System.Collections.Concurrent.ConcurrentDictionary<int, DataEventArgs>();
+            _client.RuningTask = new System.Collections.Concurrent.ConcurrentDictionary<int, DataEventArgs>();
+            _client.Channels = new List<ChannelPool>();
 
-            }
-            if (!_run)
-            {
-                _clients.Run();
-                _run = true;
-            }
-            if (!conn)
+            ChannelPool channlepool = new ChannelPool { IpPoint = new IPEndPoint(IPAddress.Parse(ip), port) };
+            _client.Channels.Add(channlepool);
+            _client.Authorization = Convert.ToBase64String(Encoding.ASCII.GetBytes(username + ":" + password));
+            DataEventArgs vali = new DataEventArgs { ActionCmd = CallActionCmd.Validate.ToString(), ActionParam = _client.Authorization, TaskId = 0 };
+            DataEventArgs valiresult = _client.GetResult(vali, channlepool);
+            if (valiresult.StatusCode != StatusCode.Success)///如果验证失败退出
                 return;
-            DataEventArgs callreg = new DataEventArgs() { ActionCmd = CallActionCmd.Register.ToString(), ActionParam = "Register", T = typeof(List<RegisterInfo>) };
-            callreg.CallHashCode = callreg.GetHashCode();
-            _clients.Run(callreg, _clients.IpAddress[_clients.IpAddress.Count - 1]);
-            DataEventArgs reg = _clients.GetResult(callreg);
+
+
+            _client.Authorization = valiresult.HttpSessionId;
+
+            DataEventArgs callreg = new DataEventArgs() { HttpSessionId = _client.Authorization, ActionCmd = CallActionCmd.Register.ToString(), ActionParam = "Register", T = typeof(List<RegisterInfo>) };
+
+
+            DataEventArgs reg = _client.GetResult(callreg, channlepool);
+
             if (reg.StatusCode != StatusCode.Success)
                 return;
+
+            _client.Run();
             List<RegisterInfo> registerInfos = new List<RegisterInfo>();
             if (!string.IsNullOrEmpty(reg.Json))
             {
@@ -535,25 +487,41 @@ namespace UcAsp.RPC
             }
             if (registerInfos != null)
             {
+                for (int i = 0; i < pool; i++)
+                {
+                    ChannelPool channel = new ChannelPool { IpPoint = new IPEndPoint(IPAddress.Parse(ip), port) };
+                    _client.Channels.Add(channel);
+                }
                 foreach (RegisterInfo info in registerInfos)
                 {
                     lock (_proxobj)
                     {
                         string assname = string.Format("{0}.{1}", info.FaceNameSpace, info.InterfaceName);
-                        string ass = string.Format("{0},{1}", info.NameSpace, info.ClassName);
+                        dynamic val = new { ClassName = info.ClassName, NameSpace = info.NameSpace, Client = _client };
                         if (!_proxobj.ContainsKey(assname))
                         {
-                            List<ChannelPool> _listIClient = new List<ChannelPool>();
-                            // _listIClient.Add(channel);
-                            Tuple<string, List<ChannelPool>> tuple = new Tuple<string, List<ChannelPool>>(ass, _listIClient);
-                            _proxobj.Add(assname, tuple);
+                            _proxobj.Add(assname, val);
                         }
                         else
                         {
-                            List<ChannelPool> client = _proxobj[assname].Item2;
-                            //  client.Add(channel);
-                            Tuple<string, List<ChannelPool>> tuple = new Tuple<string, List<ChannelPool>>(_proxobj[assname].Item1, client);
-                            _proxobj[assname] = tuple;
+                            bool pc = false;
+                            foreach (ChannelPool p in _proxobj[assname].Channels)
+                            {
+                                if (p.IpPoint == channlepool.IpPoint)
+                                {
+                                    pc = true;
+                                }
+                            }
+                            if (!pc)
+                            {
+                                _proxobj[assname].Channels.Add(channlepool);
+                                for (int i = 0; i < 10; i++)
+                                {
+                                    ChannelPool channel = new ChannelPool { IpPoint = new IPEndPoint(IPAddress.Parse(ip), port) };
+                                    _proxobj[assname].Channels.Add(channel);
+                                }
+                            }
+
                         }
                     }
                 }
@@ -603,12 +571,7 @@ namespace UcAsp.RPC
                 }
                 catch { }
             }
-            if (_clients != null)
-            {
 
-                _clients.Exit();
-
-            }
             if (_server != null)
             {
                 _server.Stop();

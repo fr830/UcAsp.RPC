@@ -58,11 +58,19 @@ namespace UcAsp.RPC.Client.test
             // }
             // new Program().Tasks(0);
             // Console.WriteLine(0);
-            for (int i = 0; i < 10000; i++)
+
+            ThreadPool.SetMaxThreads(10, 10);
+            for (int i = 0; i < 2000; i++)
             {
                 // Task tas = new Task(() =>
                 //{
-                new Program().Tasks(i);
+                //   ThreadPool.QueueUserWorkItem(new WaitCallback(s =>
+                // {
+                //new Program().Tasks(i);
+                //}));
+
+               new Program().Tasks(i);
+
 
                 // Thread t = new Thread(new ParameterizedThreadStart(new Program().Tasks));
                 // t.Start(i);
@@ -134,24 +142,27 @@ namespace UcAsp.RPC.Client.test
             // Console.WriteLine(list.Count);
             try
             {
-                //// Task t = new Task(() =>
-                // {
-                clazz = context.GetProxyObject<IFace.ITest>();
-                clazz2 = context.GetProxyObject<IFace.ITest2>();
-                Imodel mo = new Imodel {  Code=(int)i, Message="ssssssssss"};
-                int c = clazz2.GetMod(mo);
-                Console.WriteLine("C:" + c);
-                //List<string> m = clazz.Good(i.ToString(), "aaaa", "ss");
-                //Console.WriteLine("Gods:" + m[0]);
 
-                //int o = (int)i;
-                //string x = clazz.R(ref o);
-                //Console.WriteLine(x + "." + o);
-                //int mmx = 9;
-                //int xx = 1;
-                //bool mm = true;
-                //clazz.X(out mmx, out xx, ref mm);
-                //Console.WriteLine(m + "." + xx + "." + mm);
+                clazz = context.GetProxyObject<IFace.ITest>();
+
+                    List<string> m = clazz.Good(i.ToString(), "aaaa", "ss");
+                    Console.WriteLine("Gods:" + m[0]);
+
+
+
+                   int mmx = 9;
+                   int xx = 1;
+                   bool mm = true;
+                   clazz.X(out mmx, out xx, ref mm);
+                   Console.WriteLine(xx);
+
+
+
+                int o = (int)i;
+                string x = clazz.R(ref o);
+                Console.WriteLine(x + "." + o);
+
+
 
                 //Tuple<int> t = clazz.GetTuple(1000);
                 //Console.WriteLine("tuple:" + t.Item1);

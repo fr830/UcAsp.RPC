@@ -18,16 +18,16 @@ namespace UcAsp.RPC
     {
         private ISerializer _serializer = new JsonSerializer();
 
-        public IClient Clients { get; set; }
+        public IClient Client { get; set; }
         public IClient Run
         {
             get
             {
-                if (Clients == null)
+                if (Client == null)
                     throw new Exception("没有可用的服务器");
                 else
                 {
-                    return Clients;
+                    return Client;
 
                 }
 

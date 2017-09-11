@@ -75,7 +75,7 @@ namespace UcAsp.RPC
             else if (e.ActionCmd == CallActionCmd.Validate.ToString())
             {
 
-                e.HttpSessionId = "";
+                e.HttpSessionId =  Guid.NewGuid().ToString("N");
             }
             else if (e.ActionCmd == CallActionCmd.Call.ToString())
             {
@@ -125,6 +125,7 @@ namespace UcAsp.RPC
                         catch (Exception ex)
                         {
                             _log.Error(ex);
+                            Console.WriteLine(ex);
                             e.LastError = ex.Message;
                             if (ex.InnerException != null)
                             {

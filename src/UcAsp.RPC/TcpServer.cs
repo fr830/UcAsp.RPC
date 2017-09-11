@@ -77,9 +77,10 @@ namespace UcAsp.RPC
             try
             {
                 StateObject state = new StateObject();
-                state.workSocket = client;
-                client.BeginReceive(state.buffer, 0, StateObject.BufferSize, SocketFlags.None, ReceiveCallback, state);
+                state.WorkSocket = client;
                 
+                client.BeginReceive(state.Buffer, 0, StateObject.BufferSize, SocketFlags.None, ReceiveCallback, state);
+
 
             }
             catch (Exception ex)
@@ -88,7 +89,7 @@ namespace UcAsp.RPC
                 Console.WriteLine(ex);
                 IsStart = false;
             }
-        }  
+        }
         #endregion
         public override void Stop()
         {
@@ -134,12 +135,12 @@ namespace UcAsp.RPC
             try
             {
                 StateObject state = (StateObject)result.AsyncState;
-                Socket handler = state.workSocket;
+                Socket handler = state.WorkSocket;
                 int bytesRead = handler.EndReceive(result);
 
                 if (bytesRead > 0)
                 {
-                    state.Builder.Add(state.buffer, 0, bytesRead);
+                    state.Builder.Add(state.Buffer, 0, bytesRead);
                     int total = state.Builder.GetInt32(0);
 
                     if (total == state.Builder.Count)
@@ -148,18 +149,19 @@ namespace UcAsp.RPC
                         Call(handler, dex);
 
                         StateObject runstate = new StateObject();
-
-                        runstate.workSocket = handler;
-                        handler.BeginReceive(runstate.buffer, 0, StateObject.BufferSize, SocketFlags.None, ReceiveCallback, runstate);
+                        runstate.WorkSocket = handler;
+                        handler.BeginReceive(runstate.Buffer, 0, StateObject.BufferSize, SocketFlags.None, ReceiveCallback, runstate);
                     }
                     else
                     {
-                        handler.BeginReceive(state.buffer, 0, StateObject.BufferSize, 0, new AsyncCallback(ReceiveCallback), state);
+                       
+                        handler.BeginReceive(state.Buffer, 0, StateObject.BufferSize, 0, new AsyncCallback(ReceiveCallback), state);
                     }
                 }
             }
             catch (SocketException ex)
             {
+                Console.WriteLine(ex);
                 _log.Error(ex);
             }
         }

@@ -30,11 +30,11 @@ namespace UcAsp.RPC
         private const int buffersize = 1024 * 5;
         private System.Timers.Timer heatbeat = new System.Timers.Timer();
 
-        public override void CallServiceMethod(object de)
+        public override void CallServiceMethod(DataEventArgs e)
         {
             lock (ClientTask)
             {
-                DataEventArgs e = (DataEventArgs)de;
+
                 if (ApplicationContext._taskId < int.MaxValue)
                 {
                     ApplicationContext._taskId++;
@@ -42,10 +42,6 @@ namespace UcAsp.RPC
                 else
                 {
                     ApplicationContext._taskId = 0;
-                }
-                while (RuningTask.Count + 2 > IpAddress.Count)
-                {
-                    Thread.Sleep(2);
                 }
                 e.TaskId = ApplicationContext._taskId;
                 ClientTask.Enqueue(e);
@@ -84,13 +80,11 @@ namespace UcAsp.RPC
                         }
                     }
                     time++;
-                    TaskId = e.TaskId;
 
                 }
             }, cancelTokenSource.Token);
             chektask.Start();
             DataEventArgs data = chektask.Result;
-            RemovePool(data);
 
             return data;
         }
@@ -106,24 +100,25 @@ namespace UcAsp.RPC
                 while (!cancelTokenSource.IsCancellationRequested)
                 {
                     Thread.Sleep(2);
-                    if (ClientTask.Count > 0)
+                    DataEventArgs e;
+                    if (ClientTask.TryDequeue(out e))
                     {
                         try
                         {
-                            DataEventArgs e = ClientTask.Dequeue();
-                            int len = e.TaskId % IpAddress.Count;
-                            while (IpAddress[len].ActiveHash != 0 || IpAddress[len].Available == false)
+                            int i = new Random(e.GetHashCode()).Next(Channels.Count);
+                            ChannelPool channel = Channels[i];
+                            int times = 0;
+                            while (channel.ActiveHash == 1 && times < 300)
                             {
-                                len++;
-                                if (len >= IpAddress.Count)
-                                {
-                                    len = 0;
-                                }
+                                i = new Random(e.GetHashCode()).Next(Channels.Count);
+                                channel = Channels[i];
+                                Thread.Sleep(1);
+                                times++;
                             }
-                            IpAddress[len].ActiveHash = e.TaskId;
-                            IpAddress[len].RunTimes++;
-                            IpAddress[len].PingActives = DateTime.Now.Ticks;
-                            Call(e, len);
+                            Channels[i].ActiveHash = e.TaskId;
+                            Channels[i].RunTimes++;
+                            Channels[i].PingActives = DateTime.Now.Ticks;
+                            Call(e, i);
                         }
                         catch (Exception ex)
                         {
@@ -139,27 +134,9 @@ namespace UcAsp.RPC
             sendtask.Start();
         }
 
-        public override void Run(DataEventArgs agrs, ChannelPool channel)
-        {
-            try
-            {
-                for (int i = 0; i < IpAddress.Count; i++)
-                {
-                    if (IpAddress[i].IpPoint == channel.IpPoint)
-                    {
-                        Call(agrs, i);
-                        break;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _log.Error(ex);
-            }
-        }
         private void Heatbeat_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
-            CheckServer();
+            //CheckServer();
         }
 
         public override void Exit()
@@ -177,7 +154,7 @@ namespace UcAsp.RPC
                     RuningTask = new ConcurrentDictionary<int, DataEventArgs>();
                 }
                 RuningTask.AddOrUpdate(ea.TaskId, ea, (key, value) => value = ea);
-                string url = "http://" + IpAddress[len].IpPoint.Address.ToString() + ":" + (IpAddress[len].IpPoint.Port + 1);
+                string url = "http://" + Channels[len].IpPoint.Address.ToString() + ":" + (Channels[len].IpPoint.Port + 1);
                 Dictionary<string, string> header = new Dictionary<string, string>();
                 header.Add("Authorization", "Basic " + this.Authorization);
                 if (ea.ActionCmd == CallActionCmd.Register.ToString())
@@ -200,10 +177,9 @@ namespace UcAsp.RPC
                         {
                             ea.Json = result.Item2;
                             RuningTask.TryRemove(ea.TaskId, out outDea);
-                            IpAddress[len].Available = false;
+                            Channels[len].Available = false;
                             ClientTask.Enqueue(ea);
-                            CheckServer();
-
+                         
                         }
                         else
                         {
@@ -236,9 +212,8 @@ namespace UcAsp.RPC
                         {
                             ea.Json = result.Item2;
                             RuningTask.TryRemove(ea.TaskId, out outDea);
-                            IpAddress[len].Available = false;
+                            Channels[len].Available = false;
                             ClientTask.Enqueue(ea);
-                            CheckServer();
 
                         }
                         else
@@ -267,35 +242,20 @@ namespace UcAsp.RPC
             }
             finally
             {
-                for (int i = 0; i < IpAddress.Count; i++)
+                for (int i = 0; i < Channels.Count; i++)
                 {
-                    if (IpAddress[i].ActiveHash == ea.TaskId)
+                    if (Channels[i].ActiveHash == ea.TaskId)
                     {
-                        IpAddress[i].ActiveHash = 0;
+                        Channels[i].ActiveHash = 0;
                     }
                 }
                 RuningTask.TryRemove(ea.TaskId, out outDea);
             }
         }
-        public override bool Connect(string ip, int port, int pool)
-        {
-            bool flag = true;
-            for (int i = 0; i < pool; i++)
-            {
-                try
-                {
-                    IPEndPoint ep = new IPEndPoint(IPAddress.Parse(ip), port);
-                    ChannelPool channel = new ChannelPool() { Available = true, IpPoint = ep, PingActives = 0, RunTimes = 0 };
-                    IpAddress.Add(channel);
 
-                }
-                catch (Exception ex)
-                {
-                    flag = false;
-                    _log.Error(ex);
-                }
-            }
-            return flag;
+        public override DataEventArgs GetResult(DataEventArgs e, ChannelPool channel)
+        {
+            throw new NotImplementedException();
         }
         public override void CheckServer()
         {
@@ -307,17 +267,17 @@ namespace UcAsp.RPC
                     heatbeat.Enabled = false;
                     try
                     {
-                        for (int i = 0; i < IpAddress.Count; i++)
+                        for (int i = 0; i < Channels.Count; i++)
                         {
 
-                            string url = "http://" + IpAddress[i].IpPoint.Address.ToString() + ":" + (IpAddress[i].IpPoint.Port + 1);
+                            string url = "http://" + Channels[i].IpPoint.Address.ToString() + ":" + (Channels[i].IpPoint.Port + 1);
                             if (HttpPost.CheckHttp(url) == HttpStatusCode.OK)
                             {
-                                IpAddress[i].Available = true;
+                                Channels[i].Available = true;
                             }
                             else
                             {
-                                IpAddress[i].Available = false;
+                                Channels[i].Available = false;
                             }
 
                         }
@@ -334,6 +294,7 @@ namespace UcAsp.RPC
             t.Start();
 
         }
+
         protected internal class HttpPost
         {
             public static Tuple<HttpStatusCode, string> Post(string url, Dictionary<string, string> param, Dictionary<string, string> header)

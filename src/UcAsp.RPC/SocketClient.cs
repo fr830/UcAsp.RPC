@@ -15,306 +15,217 @@ using log4net;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
+using System.Diagnostics;
+using System.Collections.Concurrent;
+using System.Net.NetworkInformation;
 namespace UcAsp.RPC
 {
     public class SocketClient : ClientBase
     {
         private static CancellationTokenSource cancelTokenSource = new CancellationTokenSource();
         private readonly ILog _log = LogManager.GetLogger(typeof(SocketClient));
-        private System.Timers.Timer heatbeat = new System.Timers.Timer();
-
-        public override void CallServiceMethod(object de)
-        {
-            lock (ClientTask)
-            {
-                DataEventArgs e = (DataEventArgs)de;
-                if (ApplicationContext._taskId < int.MaxValue)
-                {
-                    ApplicationContext._taskId++;
-                }
-                else
-                {
-                    ApplicationContext._taskId = 0;
-                }
-                while (RuningTask.Count + 2 > IpAddress.Count)
-                {
-                    Thread.Sleep(2);
-                }
-                e.TaskId = ApplicationContext._taskId;
-                ClientTask.Enqueue(e);
-            }
-        }
-
-        public override void CheckServer()
-        {
-
-        }
-
-        public override bool Connect(string ip, int port, int pool)
-        {
-            bool flag = true;
-            for (int i = 0; i < pool; i++)
-            {
-                try
-                {
-                    IPEndPoint ep = new IPEndPoint(IPAddress.Parse(ip), port);
-                    Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                    socket.Connect(ep);
-
-                    if (socket != null)
-                    {
-                        ChannelPool channel = new ChannelPool() { Available = true, Client = socket, IpPoint = ep, PingActives = 0, RunTimes = 0 };
-                        IpAddress.Add(channel);
-
-                    }
-                    else
-                    {
-                        ChannelPool channel = new ChannelPool() { Available = false, Client = socket, IpPoint = ep, PingActives = 0, RunTimes = 0 };
-                        IpAddress.Add(channel);
-                        flag = false;
-
-                    }
-
-                }
-                catch (Exception ex)
-                {
-                    flag = false;
-                    _log.Error(ex);
-                }
-            }
-            return flag;
-        }
-
+        Monitor monitor = new Monitor();
         public override void Exit()
         {
             cancelTokenSource.Cancel();
-            RuningTask.Clear();
-            ResultTask.Clear();
-            foreach (ChannelPool pool in IpAddress)
-            {
-                if (pool.Client != null && pool.Client.Connected)
-                {
-                    pool.Client.Close();
-                }
-            }
+
+
         }
-        private void ReceiveCallback(IAsyncResult result)
+        public override DataEventArgs GetResult(DataEventArgs e, ChannelPool channel)
         {
-            StateObject state = (StateObject)result.AsyncState;
-            Socket handler = state.workSocket;
+
             try
             {
-                int bytesRead = handler.EndReceive(result);
-
-                if (bytesRead > 0)
+                if (channel.Client == null || channel.Client.Connected != true)
                 {
-                    state.Builder.Add(state.buffer, 0, bytesRead);
-                    int total = state.Builder.GetInt32(0);
-
-                    if (total == state.Builder.Count)
-                    {
-                        DataEventArgs dex = DataEventArgs.Parse(state.Builder);
-                        lock (ResultTask)
-                        {
-
-                            ResultTask.AddOrUpdate(dex.TaskId, dex, (key, value) => value = dex);
-                        }
-                    }
-                    else
-                    {
-                        handler.BeginReceive(state.buffer, 0, StateObject.BufferSize, 0, new AsyncCallback(ReceiveCallback), state);
-                    }
+                    channel.Client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                    channel.Client.Connect(channel.IpPoint);
+                    channel.Available = true;
                 }
+                byte[] _sbuffer = e.ToByteArray();
+                channel.Client.Send(_sbuffer, _sbuffer.Length, SocketFlags.None);
+
+                ByteBuilder builder = new ByteBuilder(1);
+
+                byte[] _recbuff = new byte[2048];
+                int i = channel.Client.Receive(_recbuff, 2048, SocketFlags.None);
+                builder.Add(_recbuff.Take(i).ToArray());
+                int total = builder.GetInt32(0);
+                while (channel.Client.Available > 0)
+                {
+                    i = channel.Client.Receive(_recbuff, 2048, SocketFlags.None);
+                    builder.Add(_recbuff, 0, i);
+                }
+                while (total > builder.Count)
+                {
+                    i = channel.Client.Receive(_recbuff, 2048, SocketFlags.None);
+                    builder.Add(_recbuff, 0, i);
+                }
+                if (total == builder.Count)
+                {
+                    DataEventArgs d = DataEventArgs.Parse(builder);
+                    d.StatusCode = StatusCode.Success;
+                    Channels[e.CallHashCode].ActiveHash = 0;
+                    return d;
+                }
+                Channels[e.CallHashCode].ActiveHash = 0;
+                e.StatusCode = StatusCode.TimeOut;
+                return e;
             }
-            catch (Exception ex)
+            catch (SocketException)
             {
-                _log.Error(ex);
-                lock (IpAddress)
+                foreach (ChannelPool p in Channels)
                 {
-                    for (int i = IpAddress.Count - 1; i >= 0; i--)
+                    if (p.IpPoint == channel.IpPoint)
                     {
-
-                        ChannelPool pool = IpAddress[i];
-                        if (pool != null)
-                        {
-                            IPEndPoint ip = (IPEndPoint)handler.RemoteEndPoint;
-                            if (pool.IpPoint.Address.ToString() == ip.Address.ToString() && pool.IpPoint.Port == ip.Port)
-                            {
-                                IpAddress.Remove(pool);
-                            }
-                        }
+                        p.Available = false;
                     }
                 }
-
+                e.StatusCode = StatusCode.Error;
+                return e;
             }
-            //result.AsyncWaitHandle.Close();
-        }
-        public override DataEventArgs GetResult(DataEventArgs e)
-        {
-            DataEventArgs outDea = new DataEventArgs();
-            int time = 0;
-            Task<DataEventArgs> chektask = new Task<DataEventArgs>(() =>
+
+            catch (Exception)
             {
-                while (true)
-                {
-                    if (cancelTokenSource.IsCancellationRequested)
-                    {
-                        return null;
-                    }
-                    Thread.Sleep(5);
-                    DataEventArgs er = new DataEventArgs();
-                    bool result = ResultTask.TryGetValue(e.TaskId, out er);
-                    if (result)
-                    {
-                        return er;
-                    }
+                e.StatusCode = StatusCode.Error;
+                return e;
+            }
 
-                    if (time > 15000)
-                    {
-                        if (e.TryTimes < 6)
-                        {
-                            e.TryTimes++;
-                            lock (RuningTask)
-                            {
-                                if (RuningTask.ContainsKey(e.TaskId) && !ResultTask.ContainsKey(e.TaskId))
-                                {
-                                    RuningTask.TryRemove(e.TaskId, out outDea);
-                                }
-                            }
-
-                            ClientTask.Enqueue(e);
-                        }
-                        else
-                        {
-
-                            e.StatusCode = StatusCode.TimeOut;
-                            return e;
-                        }
-                    }
-                    time++;
-                    TaskId = e.TaskId;
-
-                }
-            }, cancelTokenSource.Token);
-            chektask.Start();
-            DataEventArgs data = chektask.Result;
-            RemovePool(data);
-            Console.WriteLine(data.TaskId);
-            return data;
         }
 
-        public override void Run()
+
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="e"></param>
+        /// <param name="channel"></param>
+        /// <returns></returns>
+        /// 
+        public override void Call(object dataev, int i)
         {
-            Task run = new Task(() =>
-            {
-                while (!cancelTokenSource.IsCancellationRequested)
-                {
-
-                    List<ChannelPool> avipool = IpAddress.Where(o => o.ActiveHash == 0 && o.Client != null && o.Available == true).ToList();
-                    if (RuningTask.Count + 1 < avipool.Count)
-                    {
-                        if (ClientTask.Count > 0)
-                        {
-                            try
-                            {
-                                DataEventArgs e = ClientTask.Dequeue();
-                                int len = e.TaskId % IpAddress.Count;
-                                while (IpAddress[len].ActiveHash != 0 || IpAddress[len].Available == false)
-                                {
-                                    len++;
-                                    if (len >= IpAddress.Count)
-                                    {
-                                        len = 0;
-                                    }
-                                }
-                                IpAddress[len].ActiveHash = e.TaskId;
-                                IpAddress[len].RunTimes++;
-                                IpAddress[len].PingActives = DateTime.Now.Ticks;
-                                Call(e, len);
-                            }
-                            catch (Exception ex)
-                            {
-                                _log.Error(ex);
-                            }
-
-                        }
-
-                    }
-                    Thread.Sleep(5);
-                }
-
-            }, cancelTokenSource.Token);
-            run.Start();
-        }
-        public override void Run(DataEventArgs e, ChannelPool channel)
-        {
+            Stopwatch watch = new Stopwatch();
+            watch.Start();
+            DataEventArgs e = (DataEventArgs)dataev;
+            ChannelPool channel = Channels[i];
             try
             {
-                for (int i = 0; i < IpAddress.Count; i++)
+                e.CallHashCode = i;
+                Socket _client = channel.Client;
+                if (_client == null || _client.Connected != true)
                 {
-                    if (IpAddress[i].IpPoint == channel.IpPoint)
-                    {
-                        Call(e, i);
-                        break;
-                    }
+                    channel.Client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                    channel.Client.Connect(channel.IpPoint);
+                    channel.Available = true;
                 }
-            }
-            catch (Exception ex)
-            {
-                _log.Error(ex);
-            }
-        }
-        private void Call(object obj, int len)
-        {
-            DataEventArgs outDea = new DataEventArgs();
-            DataEventArgs e = (DataEventArgs)obj;
-            try
-            {
-                if (RuningTask == null)
-                {
-                    RuningTask = new System.Collections.Concurrent.ConcurrentDictionary<int, DataEventArgs>();
-                }
-
-                RuningTask.AddOrUpdate(e.TaskId, e, (key, value) => value = e);
-
-                Socket _client = IpAddress[len].Client;
+                _client = channel.Client;
 
                 byte[] _bf = e.ToByteArray();
 
 
+
+                #region 異步
                 _client.BeginSend(_bf, 0, _bf.Length, SocketFlags.None, null, null);
+                #endregion
+                #region 異步接收
                 StateObject state = new StateObject();
-                state.workSocket = _client;
+                state.WorkSocket = _client;
                 SocketError error;
-                _client.BeginReceive(state.buffer, 0, StateObject.BufferSize, SocketFlags.None, out error, ReceiveCallback, state);
-                // Console.WriteLine(error);
+                _client.BeginReceive(state.Buffer, 0, StateObject.BufferSize, SocketFlags.None, out error, ReceiveCallback, state);
+                #endregion
+                watch.Stop();
+                monitor.Write(e.TaskId, "", "...", watch.ElapsedMilliseconds);
+            }
+            catch (SocketException sex)
+            {
+                foreach (ChannelPool p in Channels)
+                {
+                    if (p.IpPoint == channel.IpPoint)
+                    {
+                        p.Available = false;
+                    }
+                }
+                e.StatusCode = StatusCode.Error;
+                lock (ResultTask)
+                {
+                    e.StatusCode = StatusCode.Serious;
+                    ResultTask.AddOrUpdate(e.TaskId, e, (key, value) => value = e);
+                }
+                _log.Error(sex);
             }
             catch (Exception ex)
             {
-                CheckServer();
-                Console.WriteLine(ex);
-                IpAddress[len].Available = false;
-                _log.Error(ex + ex.StackTrace);
-                e.StatusCode = StatusCode.TimeOut;
-                e.TryTimes++;
-                if (e.TryTimes < 3)
+                lock (ResultTask)
                 {
-                    RuningTask.TryRemove(e.TaskId, out outDea);
-                    for (int i = 0; i < IpAddress.Count; i++)
-                    {
-                        if (IpAddress[i].ActiveHash == e.TaskId)
-                        {
-                            IpAddress[i].ActiveHash = 0;
-                        }
-                    }
-                    ClientTask.Enqueue(e);
-                    return;
+                    e.StatusCode = StatusCode.Serious;
+                    ResultTask.AddOrUpdate(e.TaskId, e, (key, value) => value = e);
                 }
-                ResultTask.AddOrUpdate(e.TaskId, e, (key, value) => value = e);
-                return;
+                _log.Error(ex);
             }
         }
 
+
+        private void ReceiveCallback(IAsyncResult result)
+        {
+
+            StateObject state = (StateObject)result.AsyncState;
+            Socket handler = state.WorkSocket;
+            try
+            {
+
+
+                int bytesRead = handler.EndReceive(result);
+                state.Builder.Add(state.Buffer, 0, bytesRead);
+                int total = state.Builder.GetInt32(0);
+                if (total == state.Builder.Count)
+                {
+                    DataEventArgs dex = DataEventArgs.Parse(state.Builder);
+                    lock (ResultTask)
+                    {
+
+                        ResultTask.AddOrUpdate(dex.TaskId, dex, (key, value) => value = dex);
+                    }
+                }
+                else
+                {
+                    handler.BeginReceive(state.Buffer, 0, StateObject.BufferSize, 0, new AsyncCallback(ReceiveCallback), state);
+                }
+
+
+
+
+
+            }
+
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+                _log.Error(ex);
+            }
+        }
+
+
+
+
+
+        public override void CheckServer()
+        {
+            foreach (ChannelPool channel in Channels)
+            {
+                if (!channel.Available)
+                {
+                    try
+                    {
+                        channel.Client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                        channel.Client.Connect(channel.IpPoint);
+                        channel.Available = true;
+                    }
+                    catch (Exception ex)
+                    { }
+                }
+            }
+        }
     }
+
 
 }

@@ -8,30 +8,23 @@ namespace UcAsp.RPC
 {
     public interface IClient
     {
-        bool IsStart { get; set; }
-        Queue<DataEventArgs> ClientTask { get; set; }
+
+        ConcurrentQueue<DataEventArgs> ClientTask { get; set; }
         ConcurrentDictionary<int, DataEventArgs> ResultTask { get; set; }
         ConcurrentDictionary<int, DataEventArgs> RuningTask { get; set; }
 
-        List<ChannelPool> IpAddress { get; set; }
-        bool IsRun { get; set; }
+        List<ChannelPool> Channels { get; set; }
+
+
+        void CallServiceMethod(DataEventArgs de);
+
+        DataEventArgs GetResult(DataEventArgs e);
+        DataEventArgs GetResult(DataEventArgs e, ChannelPool channel);
+       
 
         void Run();
-        void Run(DataEventArgs agrs,ChannelPool channel);
-        DataEventArgs GetResult(DataEventArgs e);
-        int TaskId { get; set; }
-
-        bool Connect(String ip, int port, int pool);
-
         void Exit();
 
-        void CallServiceMethod(object e);
-
-        string LastError { get; set; }
-
-        long PingActives { get; set; }
-
         string Authorization { get; set; }
-        void CheckServer();
     }
 }
