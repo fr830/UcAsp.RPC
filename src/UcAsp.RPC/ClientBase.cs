@@ -35,6 +35,7 @@ namespace UcAsp.RPC
         public ConcurrentDictionary<int, DataEventArgs> RuningTask { get { return this._runingTask; } set { this._runingTask = value; } }
 
         public List<ChannelPool> Channels { get { return this._channels; } set { this._channels = value; } }
+        internal List<DataEventArgs> _timeourTask = new List<DataEventArgs>();
 
         public virtual void Run()
         {
@@ -44,63 +45,73 @@ namespace UcAsp.RPC
                 while (!cancelTokenSource.Token.IsCancellationRequested)
                 {
                     DataEventArgs e;
-                    if (ClientTask.TryDequeue(out e))
+                    if (ClientTask.TryPeek(out e))
                     {
-                        ChannelPool channel = Channels[0];
-                        Dictionary<int, int> dic = new Dictionary<int, int>();
-                        int num = 0;
-                        int k = 0;
-                        lock (Channels)
+                        if (_timeourTask.FirstOrDefault(o => o.TaskId == e.TaskId) != null)
                         {
-
-                            foreach (ChannelPool p in Channels)
-                            {
-                                if (p.ActiveHash == 0 && p.Available == true)
-                                {
-                                    dic.Add(k, num);
-                                    k++;
-                                }
-                                num++;
-                            }
+                            ClientTask.TryDequeue(out e);
+                            continue;
                         }
 
-                        int cnum = new Random(e.GetHashCode()).Next(k);
+                        ChannelPool channel = Channels[0];
+                        Dictionary<int, int> dic = GetChannel();
+                        int k = dic.Count;
+                        int cnum = new Random(unchecked((int)DateTime.Now.Ticks)).Next(k);
                         int i = 0;
                         if (dic.TryGetValue(cnum, out i))
                         {
                             channel = Channels[i];
-
                         }
                         else
                         {
                             int times = 0;
-                            while (channel.ActiveHash == 1 && times < 100)
+                            while (k == 0 && times < 5000)
                             {
-                                i = new Random(e.GetHashCode()).Next(Channels.Count);
-                                channel = Channels[i];
-                                Thread.Sleep(1);
+                                dic = GetChannel();
+                                k = dic.Count;
+                                cnum = new Random(unchecked((int)DateTime.Now.Ticks)).Next(Channels.Count);
+                                if (dic.TryGetValue(cnum, out i))
+                                {
+                                    channel = Channels[i];
+                                    break;
+                                }
+                                Thread.Sleep(2);
                                 times++;
                             }
-                            if (times >= 100)
+                            if (times >= 5000 && Channels.Count < 50)
                             {
                                 Channels.Add(new ChannelPool { IpPoint = channel.IpPoint });
                                 i = Channels.Count - 1;
                             }
+                            else
+                            {
+                                continue;
+                            }
                         }
 
-                        Channels[i].ActiveHash = 1;
-                        Channels[i].RunTimes++;
-                        Channels[i].PingActives = DateTime.Now.Ticks;
-                        e.CallHashCode = i;
-                        Call(e, i);
+
+                        if (ClientTask.TryDequeue(out e))
+                        {
+                            Channels[i].ActiveHash = 1;
+                            Channels[i].RunTimes++;
+                            Channels[i].PingActives = DateTime.Now.Ticks;
+                            e.CallHashCode = i;
+                            Call(e, i);
+
+                        }
 
                     }
-                    Thread.Sleep(2);
+                    else
+                    {
+                        Thread.Sleep(5);
+                    }
+
                 }
 
             }, TaskCreationOptions.LongRunning).Start();
 
         }
+
 
         public virtual void CallServiceMethod(DataEventArgs de)
         {
@@ -130,7 +141,7 @@ namespace UcAsp.RPC
             DataEventArgs arg = new DataEventArgs();
             try
             {
-                var cts = new CancellationTokenSource(50000);
+                var cts = new CancellationTokenSource(150000);
                 while (!cts.Token.IsCancellationRequested)
                 {
 
@@ -138,6 +149,13 @@ namespace UcAsp.RPC
                     {
                         arg.StatusCode = StatusCode.Success;
                         Channels[arg.CallHashCode].ActiveHash = 0;
+                        try
+                        {
+                            DataEventArgs outarg = new DataEventArgs();
+                            ResultTask.TryRemove(arg.TaskId, out outarg);
+                            RuningTask.TryRemove(arg.TaskId, out outarg);
+                        }
+                        catch { }
                         return arg;
                     }
                     Thread.Sleep(3);
@@ -152,7 +170,8 @@ namespace UcAsp.RPC
                 return arg;
 
             }
-            Channels[e.CallHashCode].ActiveHash = 1;
+
+            _timeourTask.Add(e);
             e.StatusCode = StatusCode.TimeOut;
             return e;
 
@@ -172,6 +191,25 @@ namespace UcAsp.RPC
         public abstract void CheckServer();
 
         public abstract DataEventArgs GetResult(DataEventArgs e, ChannelPool channel);
+        private Dictionary<int, int> GetChannel()
+        {
+            Dictionary<int, int> dic = new Dictionary<int, int>();
+            int num = 0;
+            int k = 0;
+            lock (Channels)
+            {
 
+                foreach (ChannelPool p in Channels)
+                {
+                    if (p.ActiveHash == 0 && p.Available == true)
+                    {
+                        dic.Add(k, num);
+                        k++;
+                    }
+                    num++;
+                }
+            }
+            return dic;
+        }
     }
 }

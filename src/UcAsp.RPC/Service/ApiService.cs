@@ -68,7 +68,7 @@ namespace UcAsp.RPC.Service
                 object[] clazz = kv.Value.Item2.DeclaringType.GetCustomAttributes(typeof(Restful), true);
                 string clazzpath = string.Empty;
                 string path = kv.Value.Item2.Name;
-                object[] cattri = kv.Value.Item2.GetCustomAttributes(true);
+                object[] cattri = kv.Value.Item2.GetCustomAttributes(typeof(Restful), true);
                 if (clazz != null && clazz.Length > 0)
                 {
                     if (null != cattri && cattri.Length > 0)

@@ -149,7 +149,15 @@ namespace UcAsp.RPC
                 lock (ResultTask)
                 {
                     e.StatusCode = StatusCode.Serious;
-                    ResultTask.AddOrUpdate(e.TaskId, e, (key, value) => value = e);
+                    DataEventArgs timeout = _timeourTask.FirstOrDefault(o => o.TaskId == e.TaskId);
+                    if (timeout == null)
+                    {
+                        ResultTask.AddOrUpdate(e.TaskId, e, (key, value) => value = e);
+                    }
+                    else
+                    {
+                        _timeourTask.Remove(timeout);
+                    }
                 }
                 _log.Error(sex);
             }
@@ -182,7 +190,7 @@ namespace UcAsp.RPC
                     DataEventArgs dex = DataEventArgs.Parse(state.Builder);
                     lock (ResultTask)
                     {
-
+                        state.Builder.ReSet();
                         ResultTask.AddOrUpdate(dex.TaskId, dex, (key, value) => value = dex);
                     }
                 }
@@ -199,6 +207,8 @@ namespace UcAsp.RPC
 
             catch (Exception ex)
             {
+                state.Builder.ReSet();
+                GC.Collect();
                 Console.WriteLine(ex);
                 _log.Error(ex);
             }

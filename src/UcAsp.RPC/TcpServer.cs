@@ -37,17 +37,7 @@ namespace UcAsp.RPC
             this._server.Bind(new IPEndPoint(IPAddress.Any, port));
             this._server.Listen(3000);
             _log.Info("开启服务：" + port);
-            #region 异步
-            //this._server.BeginAccept(new AsyncCallback(Accept), this._server);
-
-            #endregion
-            for (int i = 0; i < Environment.ProcessorCount * 2; i++)
-            {
-                //ThreadPool.QueueUserWorkItem(Start, null);
-                _startThread[i] = new Thread(new ParameterizedThreadStart(Start));
-                _startThread[i].Start(null);
-            }
-            // ThreadPool.QueueUserWorkItem(Start,null);
+            ThreadPool.QueueUserWorkItem(Start, null);
         }
         #region  同步
 
@@ -73,18 +63,16 @@ namespace UcAsp.RPC
         private void Accept(object socket)
         {
             Socket client = (Socket)socket;
-
+            StateObject state = new StateObject();
+            state.WorkSocket = client;
             try
             {
-                StateObject state = new StateObject();
-                state.WorkSocket = client;
-                
                 client.BeginReceive(state.Buffer, 0, StateObject.BufferSize, SocketFlags.None, ReceiveCallback, state);
-
-
             }
             catch (Exception ex)
             {
+                state.Builder.ReSet();
+                try { client.Dispose(); } catch (Exception e) { }
                 _log.Error(ex);
                 Console.WriteLine(ex);
                 IsStart = false;
@@ -101,16 +89,18 @@ namespace UcAsp.RPC
                 _server.Dispose();
             }
             catch (Exception ex)
-            { }
+            {
+                _log.Error(ex);
+            }
             foreach (KeyValuePair<string, Socket> kv in connection)
             {
                 try
                 {
                     kv.Value.Shutdown(SocketShutdown.Both); kv.Value.BeginDisconnect(true, null, null); kv.Value.Close(); kv.Value.Dispose();
-
                 }
                 catch (Exception ex)
                 {
+                    _log.Error(ex);
                     Console.WriteLine(ex);
                 }
             }
@@ -118,24 +108,23 @@ namespace UcAsp.RPC
             try
             {
                 token.Cancel();
-                for (int i = 0; i < Environment.ProcessorCount * 2; i++)
-                {
-                    _startThread[i].Abort();
 
-                }
             }
             catch (Exception ex)
-            { }
+            {
+                _log.Error(ex);
+            }
+            GC.Collect();
             GC.SuppressFinalize(this);
             Console.WriteLine("服务退出");
             _log.Error("服务退出");
         }
         private void ReceiveCallback(IAsyncResult result)
         {
+            StateObject state = (StateObject)result.AsyncState;
+            Socket handler = state.WorkSocket;
             try
             {
-                StateObject state = (StateObject)result.AsyncState;
-                Socket handler = state.WorkSocket;
                 int bytesRead = handler.EndReceive(result);
 
                 if (bytesRead > 0)
@@ -147,21 +136,30 @@ namespace UcAsp.RPC
                     {
                         DataEventArgs dex = DataEventArgs.Parse(state.Builder);
                         Call(handler, dex);
-
-                        StateObject runstate = new StateObject();
-                        runstate.WorkSocket = handler;
-                        handler.BeginReceive(runstate.Buffer, 0, StateObject.BufferSize, SocketFlags.None, ReceiveCallback, runstate);
+                        state.WorkSocket = handler;
+                        state.Builder.ReSet();
+                        handler.BeginReceive(state.Buffer, 0, StateObject.BufferSize, SocketFlags.None, ReceiveCallback, state);
                     }
                     else
                     {
-                       
+
                         handler.BeginReceive(state.Buffer, 0, StateObject.BufferSize, 0, new AsyncCallback(ReceiveCallback), state);
                     }
                 }
             }
             catch (SocketException ex)
             {
+                try
+                {
+                    state.Builder.ReSet();
+                    handler.Dispose();
+                }
+                catch (Exception e) { }
                 Console.WriteLine(ex);
+                _log.Error(ex);
+            }
+            catch (Exception ex)
+            {
                 _log.Error(ex);
             }
         }

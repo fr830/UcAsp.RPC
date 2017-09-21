@@ -17,21 +17,20 @@ namespace UcAsp.RPC
         private readonly ILog _log = LogManager.GetLogger(typeof(ApplicationContext));
         private static ServerBase _server = null;
         private static ServerBase _httpserver = null;
-        // public static IClient _clients = null;
         private static string _rootpath = string.Empty;
         private static ISerializer _serializer = new JsonSerializer();
-        public static int _taskId = 0;
+        internal static int _taskId = 0;
         private static bool _run = false;
         private static Dictionary<string, Type> _obj = new Dictionary<string, Type>();
         private static Dictionary<string, Tuple<string, MethodInfo, int>> _memberinfos = new Dictionary<string, Tuple<string, MethodInfo, int>>();
-        private static Dictionary<string, dynamic> _proxobj = new Dictionary<string, dynamic>();
+        private static Dictionary<string, dynamic> _proxobj = new Dictionary<string, dynamic>();// dynamic new { ClassName = info.ClassName, NameSpace = info.NameSpace, Client = _client };
         private static List<RegisterInfo> _registerInfo = new List<RegisterInfo>();
         private static string _config;
         CancellationTokenSource cts = new CancellationTokenSource();
         private Timer Pong;//= new Timer();
         private Timer Broad;// = new Timer();
-        Thread getBoardthread;
-        Socket clientBoard;
+        private Thread getBoardthread;
+        private Socket clientBoard;
         /// <summary>
         /// 客户端获取创建对象
         /// </summary>
@@ -388,42 +387,44 @@ namespace UcAsp.RPC
         {
             try
             {
-                // UdpClient client = new UdpClient(new IPEndPoint(IPAddress.Any, 7788));
-                /* if (clientBoard != null)
-                     return;
+                UdpClient client = new UdpClient(new IPEndPoint(IPAddress.Any, 7788));
+                if (clientBoard != null)
+                    return;
 
-                 clientBoard = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-                 clientBoard.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ExclusiveAddressUse, false);
-                 clientBoard.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-                 clientBoard.Bind(new IPEndPoint(IPAddress.Any, 7788));
-                 EndPoint endpoint = new IPEndPoint(IPAddress.Any, 0);
-                 while (true)
-                 {
+                clientBoard = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+                clientBoard.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ExclusiveAddressUse, false);
+                clientBoard.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+                clientBoard.Bind(new IPEndPoint(IPAddress.Any, 7788));
+                EndPoint endpoint = new IPEndPoint(IPAddress.Any, 0);
+                while (true)
+                {
 
-                     byte[] buf = new byte[1024];
-                     int l = clientBoard.ReceiveFrom(buf, ref endpoint);
-                     int port = int.Parse(Encoding.Default.GetString(buf, 0, l));
-                     IPAddress ip = ((IPEndPoint)endpoint).Address;
-                     bool flag = false;
+                    byte[] buf = new byte[1024];
+                    int l = clientBoard.ReceiveFrom(buf, ref endpoint);
+                    int port = int.Parse(Encoding.Default.GetString(buf, 0, l));
+                    IPAddress ip = ((IPEndPoint)endpoint).Address;
+                    bool flag = false;
+                    foreach (KeyValuePair<string, dynamic> kv in _proxobj)
+                    {
+                        foreach (ChannelPool cp in kv.Value.Client)
+                        {
+                            if (cp.IpPoint.Address.ToString() == ip.ToString() && cp.IpPoint.Port == port)
+                            {
+                                flag = true;
+                                continue;
+                            }
 
-                     foreach (ChannelPool cp in _clients.IpAddress)
-                     {
-                         if (cp.IpPoint.Address.ToString() == ip.ToString() && cp.IpPoint.Port == port)
-                         {
-                             flag = true;
-                             continue;
-                         }
+                        }
+                    }
 
-                     }
-
-                     if (!flag)
-                     {
-                         ServerPort sport = new ServerPort() { Ip = ip.ToString(), Port = port, Pool = 10 };
-                         AddClient(sport);
-                     }
+                    if (!flag)
+                    {
+                        ServerPort sport = new ServerPort() { Ip = ip.ToString(), Port = port, Pool = 10 };
+                        AddClient(sport);
+                    }
 
 
-                 }*/
+                }
 
             }
             catch (Exception ex)
