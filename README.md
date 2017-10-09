@@ -72,3 +72,19 @@ IFace.ITest clazz = context.GetProxyObject<IFace.ITest>();
 int o = (int)i;
 string x = clazz.R(ref o);
 ```
+### Model 添加标签
+```C#
+    [Serializable]
+    [ProtoContract]
+    public class model
+    {
+        [ProtoMember(1)]
+        public string Message { get; set; }
+
+        [ProtoMember(2)]
+        public int Code { get; set; }
+    }
+
+
+
+```
