@@ -10,23 +10,28 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-
+using UcAsp.RPC.ProtoBuf;
 namespace IFace
 {
     [Serializable]
+    [ProtoContract]
     public class Imodel
     {
         private string Program_Id = "6ed95b67-7a65-4238-bd94-a7de0b534694";
 
+        [ProtoMember(1)]
         public string Message { get; set; }
 
+        [ProtoMember(2)]
         public int Code { get; set; }
 
+       
         public string Codes(string m)
         {
             return m;
         }
     }
+    [ProtoContract]
     public class Event : EventArgs
     {
         public int C { get; set; }
@@ -34,7 +39,9 @@ namespace IFace
     [Serializable]
     public class Nvr
     {
+        [ProtoMember(1)]
         public string nv_ip { get; set; }
+        [ProtoMember(2)]
         public List<Imodel> chanel { get; set; }
 
     }

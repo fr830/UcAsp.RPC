@@ -55,7 +55,7 @@ namespace UcAsp.RPC
                     if (eType.Equals(pType) == false)
                     {
                         // 转换entity的类型
-                        Binary bin = this._serializer.ToBinary(entity);
+                        string bin = this._serializer.ToString(entity);
                         object pValue = this._serializer.ToEntity(bin, pType);
                         // 保存参数
                         parameterValues[i] = pValue;

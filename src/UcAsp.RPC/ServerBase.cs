@@ -96,7 +96,8 @@ namespace UcAsp.RPC
                             string name = MemberInfos[code].Item1;
                             MemberInfos[code] = new Tuple<string, MethodInfo, int>(MemberInfos[code].Item1, MemberInfos[code].Item2, MemberInfos[code].Item3 + 1);
                             MethodInfo method = MemberInfos[code].Item2;
-                            var parameters = this._serializer.ToEntity<List<object>>(e.Binary);
+                            string param = this._serializer.ToEntity<string>(e.Binary);
+                            var parameters = this._serializer.ToEntity<List<object>>(param);
                             if (parameters == null) parameters = new List<object>();
                             parameters = new MethodParam().CorrectParameters(method, parameters);
                             Object bll = ApplicationContext.GetObject(name);

@@ -169,7 +169,7 @@ namespace UcAsp.RPC
                 }
 
                 sb.AppendLine("            DataEventArgs e = new DataEventArgs();");
-                sb.AppendLine("            e.Binary = this.Serializer.ToBinary(entity);");
+                sb.AppendLine("            e.Binary = this.Serializer.ToBinary(this.Serializer.ToString(entity));");
                 sb.AppendLine("            e.CallHashCode = e.GetHashCode();");
                 sb.AppendLine("            e.StatusCode = StatusCode.Normal;");
 

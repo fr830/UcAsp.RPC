@@ -25,10 +25,33 @@ namespace UcAsp.RPC
         private static CancellationTokenSource cancelTokenSource = new CancellationTokenSource();
         private readonly ILog _log = LogManager.GetLogger(typeof(SocketClient));
         Monitor monitor = new Monitor();
+        private System.Timers.Timer timer = new System.Timers.Timer();
+
+
+        public SocketClient()
+        {
+            timer.Interval = 5000;
+            timer.Elapsed += Timer_Elapsed;
+            timer.Start();
+        }
+
+        private void Timer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
+        {
+            CheckServer();
+            if (_timeoutTask.Count > 50)
+            {
+                for (int i = 0; i < 10; i++)
+                {
+                    _timeoutTask.RemoveAt(0);
+                }
+
+            }
+        }
+
         public override void Exit()
         {
             cancelTokenSource.Cancel();
-
+            timer.Stop();
 
         }
         public override DataEventArgs GetResult(DataEventArgs e, ChannelPool channel)
@@ -121,20 +144,20 @@ namespace UcAsp.RPC
                 _client = channel.Client;
 
                 byte[] _bf = e.ToByteArray();
-
-
-
                 #region 異步
                 _client.BeginSend(_bf, 0, _bf.Length, SocketFlags.None, null, null);
                 #endregion
                 #region 異步接收
                 StateObject state = new StateObject();
+                RunStateObjects.TryAdd(e.TaskId, state);
                 state.WorkSocket = _client;
+                state.Builder.ReSet();
                 SocketError error;
                 _client.BeginReceive(state.Buffer, 0, StateObject.BufferSize, SocketFlags.None, out error, ReceiveCallback, state);
                 #endregion
                 watch.Stop();
                 monitor.Write(e.TaskId, "", "...", watch.ElapsedMilliseconds);
+                Channels[i].PingActives = DateTime.Now.Ticks;
             }
             catch (SocketException sex)
             {
@@ -144,19 +167,20 @@ namespace UcAsp.RPC
                     {
                         p.Available = false;
                     }
+
                 }
                 e.StatusCode = StatusCode.Error;
                 lock (ResultTask)
                 {
                     e.StatusCode = StatusCode.Serious;
-                    DataEventArgs timeout = _timeourTask.FirstOrDefault(o => o.TaskId == e.TaskId);
-                    if (timeout == null)
+                    DataEventArgs timout = _timeoutTask.FirstOrDefault(o => o.TaskId == e.TaskId);
+                    if (timout == null)
                     {
                         ResultTask.AddOrUpdate(e.TaskId, e, (key, value) => value = e);
                     }
                     else
                     {
-                        _timeourTask.Remove(timeout);
+                        _timeoutTask.Remove(timout);
                     }
                 }
                 _log.Error(sex);
@@ -166,7 +190,15 @@ namespace UcAsp.RPC
                 lock (ResultTask)
                 {
                     e.StatusCode = StatusCode.Serious;
-                    ResultTask.AddOrUpdate(e.TaskId, e, (key, value) => value = e);
+                    DataEventArgs timout = _timeoutTask.FirstOrDefault(o => o.TaskId == e.TaskId);
+                    if (timout == null)
+                    {
+                        ResultTask.AddOrUpdate(e.TaskId, e, (key, value) => value = e);
+                    }
+                    else
+                    {
+                        _timeoutTask.Remove(timout);
+                    }
                 }
                 _log.Error(ex);
             }
@@ -191,18 +223,24 @@ namespace UcAsp.RPC
                     lock (ResultTask)
                     {
                         state.Builder.ReSet();
-                        ResultTask.AddOrUpdate(dex.TaskId, dex, (key, value) => value = dex);
+                        try
+                        {
+                            DataEventArgs timout = _timeoutTask.FirstOrDefault(o => o.TaskId == dex.TaskId);
+                            if (timout == null)
+                            {
+                                ResultTask.AddOrUpdate(dex.TaskId, dex, (key, value) => value = dex);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            ResultTask.AddOrUpdate(dex.TaskId, dex, (key, value) => value = dex);
+                        }
                     }
                 }
                 else
                 {
                     handler.BeginReceive(state.Buffer, 0, StateObject.BufferSize, 0, new AsyncCallback(ReceiveCallback), state);
                 }
-
-
-
-
-
             }
 
             catch (Exception ex)

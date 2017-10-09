@@ -11,16 +11,20 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Reflection;
+using UcAsp.RPC.ProtoBuf;
 namespace UcAsp.RPC
 {
     [Serializable]
+   [ProtoContract]
     public class RegisterInfo
     {
+        [ProtoMember(1)]
         public string InterfaceName { get; set; }
-
+        [ProtoMember(2)]
         public string FaceNameSpace { get; set; }
-
+        [ProtoMember(3)]
         public string NameSpace { get; set; }
+        [ProtoMember(4)]
         public string ClassName { get; set; }
 
     }
