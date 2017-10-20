@@ -1,34 +1,36 @@
-﻿using System;
-using System.IO;
-using System.Xml;
-
-namespace UcAsp.RPC
+﻿namespace UcAsp.RPC
 {
+    using System;
+    using System.IO;
+    using System.Xml;
+
     public class Config : XmlBase
     {
+        private const string SectionType =
+            "System.Configuration.NameValueSectionHandler, System, Version=1.0.3300.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, Custom=null";
+
         // Fields
         private string _groupName = "profile";
-        private const string SectionType = "System.Configuration.NameValueSectionHandler, System, Version=1.0.3300.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, Custom=null";
 
         public Config()
         {
         }
 
-        public Config(string fileName) :
-            base(fileName)
+        public Config(string fileName)
+            : base(fileName)
         {
         }
 
-        public Config(string fileName, string groupName) :
-            base(fileName)
+        public Config(string fileName, string groupName)
+            : base(fileName)
         {
-            _groupName = groupName;
+            this._groupName = groupName;
         }
 
-        public Config(Config config) :
-            base(config)
+        public Config(Config config)
+            : base(config)
         {
-            _groupName = config._groupName;
+            this._groupName = config._groupName;
         }
 
         /// <summary>
@@ -38,7 +40,62 @@ namespace UcAsp.RPC
         {
             get
             {
-                return DefaultNameWithoutExtension + ".config";
+                return this.DefaultNameWithoutExtension + ".config";
+            }
+        }
+
+        public string GroupName
+        {
+            get
+            {
+                return this._groupName;
+            }
+
+            set
+            {
+                this.VerifyNotReadOnly();
+                if (this._groupName == value)
+                {
+                    return;
+                }
+
+                if (!this.RaiseChangeEvent(true, ProfileChangeType.Other, null, "GroupName", value))
+                {
+                    return;
+                }
+
+                this._groupName = value;
+                if (this._groupName != null)
+                {
+                    this._groupName = this._groupName.Replace(' ', '_');
+
+                    if (this._groupName.IndexOf(':') >= 0)
+                    {
+                        throw new Exception("GroupName may not contain a namespace prefix.");
+                    }
+                }
+
+                this.RaiseChangeEvent(false, ProfileChangeType.Other, null, "GroupName", value);
+            }
+        }
+
+        /// <summary>
+        ///   Gets the name of the GroupName plus a slash or an empty string is HasGroupName is false. </summary>
+        private string GroupNameSlash
+        {
+            get
+            {
+                return this.HasGroupName ? (this._groupName + "/") : string.Empty;
+            }
+        }
+
+        /// <summary>
+        ///   Gets whether we have a valid GroupName. </summary>
+        private bool HasGroupName
+        {
+            get
+            {
+                return this._groupName != null && this._groupName != string.Empty;
             }
         }
 
@@ -50,69 +107,233 @@ namespace UcAsp.RPC
             return new Config(this);
         }
 
-        public string GroupName
+        /// <summary>
+        ///   Retrieves the names of all the entries inside a section. </summary>
+        public override string[] GetEntryNames(string section)
         {
-            get
+            // Verify the section exists
+            if (!this.HasSection(section))
             {
-                return _groupName;
+                return null;
             }
-            set
+
+            this.VerifyAndAdjustSection(ref section);
+            XmlDocument doc = this.GetXmlDocument();
+            XmlElement root = doc.DocumentElement;
+
+            // Get the entry nodes
+            XmlNodeList entryNodes = root.SelectNodes(this.GroupNameSlash + section + "/add[@key]");
+            if (entryNodes == null)
             {
-                VerifyNotReadOnly();
-                if (_groupName == value)
-                    return;
+                return null;
+            }
 
-                if (!RaiseChangeEvent(true, ProfileChangeType.Other, null, "GroupName", value))
-                    return;
+            // Add all entry names to the string array			
+            string[] entries = new string[entryNodes.Count];
+            int i = 0;
 
-                _groupName = value;
-                if (_groupName != null)
+            foreach (XmlNode node in entryNodes)
+            {
+                entries[i++] = node.Attributes["key"].Value;
+            }
+
+            return entries;
+        }
+
+        public int GetGroupCount()
+        {
+            XmlDocument doc = this.GetXmlDocument();
+            if (doc == null)
+            {
+                return 0;
+            }
+
+            XmlElement root = doc.DocumentElement;
+            if (root == null)
+            {
+                return 0;
+            }
+
+            XmlNodeList note = root.SelectNodes(this._groupName);
+            return note.Count;
+        }
+
+        /// <summary>
+        ///   Retrieves the names of all the sections. </summary>
+        public override string[] GetSectionNames()
+        {
+            // Verify the document exists
+            XmlDocument doc = this.GetXmlDocument();
+            if (doc == null)
+            {
+                return null;
+            }
+
+            // Get the root node, if it exists
+            XmlElement root = doc.DocumentElement;
+            if (root == null)
+            {
+                return null;
+            }
+
+            // Get the group node
+            XmlNode groupNode = this.HasGroupName ? root.SelectSingleNode(this._groupName) : root;
+            if (groupNode == null)
+            {
+                return null;
+            }
+
+            // Get the section nodes
+            XmlNodeList sectionNodes = groupNode.ChildNodes;
+            if (sectionNodes == null)
+            {
+                return null;
+            }
+
+            // Add all section names to the string array			
+            string[] sections = new string[sectionNodes.Count];
+            int i = 0;
+
+            foreach (XmlNode node in sectionNodes)
+            {
+                sections[i++] = node.Name;
+            }
+
+            return sections;
+        }
+
+        /// <summary>
+        ///   Retrieves the value of an entry inside a section. </summary>
+        public override object GetValue(string section, string entry)
+        {
+            this.VerifyAndAdjustSection(ref section);
+            this.VerifyAndAdjustEntry(ref entry);
+
+            try
+            {
+                XmlDocument doc = this.GetXmlDocument();
+                XmlElement root = doc.DocumentElement;
+
+                XmlNode entryNode = root.SelectSingleNode(
+                    this.GroupNameSlash + section + "/add[@key=\"" + entry + "\"]");
+                return entryNode.Attributes["value"].Value;
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
+        }
+
+        public object GetValue(int i, string section, string entry)
+        {
+            this.VerifyAndAdjustSection(ref section);
+            this.VerifyAndAdjustEntry(ref entry);
+
+            try
+            {
+                XmlDocument doc = this.GetXmlDocument();
+                XmlElement root = doc.DocumentElement;
+                XmlNodeList list = root.SelectNodes(this._groupName);
+                XmlNode entryNode = list[i].SelectSingleNode(string.Format("{0}/add[@key=\"{1}\"]", section, entry));
+                if (entryNode == null)
                 {
-                    _groupName = _groupName.Replace(' ', '_');
-
-                    if (_groupName.IndexOf(':') >= 0)
-                        throw new Exception("GroupName may not contain a namespace prefix.");
+                    return null;
                 }
 
-                RaiseChangeEvent(false, ProfileChangeType.Other, null, "GroupName", value);
+                return entryNode.Attributes["value"].Value;
             }
-        }
-
-        /// <summary>
-        ///   Gets whether we have a valid GroupName. </summary>
-        private bool HasGroupName
-        {
-            get
+            catch (Exception ex)
             {
-                return _groupName != null && _groupName != "";
+                return null;
             }
         }
 
         /// <summary>
-        ///   Gets the name of the GroupName plus a slash or an empty string is HasGroupName is false. </summary>
-        private string GroupNameSlash
+        ///   Removes an entry from a section. </summary>
+        public override void RemoveEntry(string section, string entry)
         {
-            get
+            this.VerifyNotReadOnly();
+            this.VerifyAndAdjustSection(ref section);
+            this.VerifyAndAdjustEntry(ref entry);
+
+            // Verify the document exists
+            XmlDocument doc = this.GetXmlDocument();
+            if (doc == null)
             {
-                return (HasGroupName ? (_groupName + "/") : "");
+                return;
             }
+
+            // Get the entry's node, if it exists
+            XmlElement root = doc.DocumentElement;
+            XmlNode entryNode = root.SelectSingleNode(this.GroupNameSlash + section + "/add[@key=\"" + entry + "\"]");
+            if (entryNode == null)
+            {
+                return;
+            }
+
+            if (!this.RaiseChangeEvent(true, ProfileChangeType.RemoveEntry, section, entry, null))
+            {
+                return;
+            }
+
+            entryNode.ParentNode.RemoveChild(entryNode);
+            this.Save(doc);
+            this.RaiseChangeEvent(false, ProfileChangeType.RemoveEntry, section, entry, null);
         }
 
         /// <summary>
-        ///   Retrieves whether we don't have a valid GroupName and a given section is 
-        ///   equal to "appSettings". </summary>
-        private bool IsAppSettings(string section)
+        ///   Removes a section. </summary>
+        public override void RemoveSection(string section)
         {
-            return !HasGroupName && section != null && section == "appSettings";
-        }
+            this.VerifyNotReadOnly();
+            this.VerifyAndAdjustSection(ref section);
 
-        /// <summary>
-        ///   Verifies the given section name is not null and trims it. </summary>
-        protected override void VerifyAndAdjustSection(ref string section)
-        {
-            base.VerifyAndAdjustSection(ref section);
-            if (section.IndexOf(' ') >= 0)
-                section = section.Replace(' ', '_');
+            // Verify the document exists
+            XmlDocument doc = this.GetXmlDocument();
+            if (doc == null)
+            {
+                return;
+            }
+
+            // Get the root node, if it exists
+            XmlElement root = doc.DocumentElement;
+            if (root == null)
+            {
+                return;
+            }
+
+            // Get the section's node, if it exists
+            XmlNode sectionNode = root.SelectSingleNode(this.GroupNameSlash + section);
+            if (sectionNode == null)
+            {
+                return;
+            }
+
+            if (!this.RaiseChangeEvent(true, ProfileChangeType.RemoveSection, section, null, null))
+            {
+                return;
+            }
+
+            sectionNode.ParentNode.RemoveChild(sectionNode);
+
+            // Delete the configSections entry also			
+            if (!this.IsAppSettings(section))
+            {
+                sectionNode =
+                    root.SelectSingleNode(
+                        "configSections/"
+                        + (this.HasGroupName ? ("sectionGroup[@name=\"" + this._groupName + "\"]") : string.Empty)
+                        + "/section[@name=\"" + section + "\"]");
+                if (sectionNode == null)
+                {
+                    return;
+                }
+
+                sectionNode.ParentNode.RemoveChild(sectionNode);
+            }
+
+            this.Save(doc);
+            this.RaiseChangeEvent(false, ProfileChangeType.RemoveSection, section, null, null);
         }
 
         /// <summary>
@@ -122,31 +343,37 @@ namespace UcAsp.RPC
             // If the value is null, remove the entry
             if (value == null)
             {
-                RemoveEntry(section, entry);
+                this.RemoveEntry(section, entry);
                 return;
             }
 
-            VerifyNotReadOnly();
-            VerifyName();
-            VerifyAndAdjustSection(ref section);
-            VerifyAndAdjustEntry(ref entry);
+            this.VerifyNotReadOnly();
+            this.VerifyName();
+            this.VerifyAndAdjustSection(ref section);
+            this.VerifyAndAdjustEntry(ref entry);
 
-            if (!RaiseChangeEvent(true, ProfileChangeType.SetValue, section, entry, value))
+            if (!this.RaiseChangeEvent(true, ProfileChangeType.SetValue, section, entry, value))
+            {
                 return;
+            }
 
-            bool hasGroupName = HasGroupName;
-            bool isAppSettings = IsAppSettings(section);
+            bool hasGroupName = this.HasGroupName;
+            bool isAppSettings = this.IsAppSettings(section);
 
             // If the file does not exist, use the writer to quickly create it
-            if ((_buffer == null || _buffer.IsEmpty) && !File.Exists(Name))
+            if ((this._buffer == null || this._buffer.IsEmpty) && !File.Exists(this.Name))
             {
                 XmlTextWriter writer = null;
 
                 // If there's a buffer, write to it without creating the file
-                if (_buffer == null)
-                    writer = new XmlTextWriter(Name, Encoding);
+                if (this._buffer == null)
+                {
+                    writer = new XmlTextWriter(this.Name, this.Encoding);
+                }
                 else
-                    writer = new XmlTextWriter(new MemoryStream(), Encoding);
+                {
+                    writer = new XmlTextWriter(new MemoryStream(), this.Encoding);
+                }
 
                 writer.Formatting = Formatting.Indented;
 
@@ -159,19 +386,27 @@ namespace UcAsp.RPC
                     if (hasGroupName)
                     {
                         writer.WriteStartElement("sectionGroup");
-                        writer.WriteAttributeString("name", null, _groupName);
+                        writer.WriteAttributeString("name", null, this._groupName);
                     }
+
                     writer.WriteStartElement("section");
                     writer.WriteAttributeString("name", null, section);
                     writer.WriteAttributeString("type", null, SectionType);
                     writer.WriteEndElement();
 
                     if (hasGroupName)
+                    {
                         writer.WriteEndElement();
+                    }
+
                     writer.WriteEndElement();
                 }
+
                 if (hasGroupName)
-                    writer.WriteStartElement(_groupName);
+                {
+                    writer.WriteStartElement(this._groupName);
+                }
+
                 writer.WriteStartElement(section);
                 writer.WriteStartElement("add");
                 writer.WriteAttributeString("key", null, entry);
@@ -179,20 +414,25 @@ namespace UcAsp.RPC
                 writer.WriteEndElement();
                 writer.WriteEndElement();
                 if (hasGroupName)
+                {
                     writer.WriteEndElement();
+                }
+
                 writer.WriteEndElement();
 
-                if (_buffer != null)
-                    _buffer.Load(writer);
+                if (this._buffer != null)
+                {
+                    this._buffer.Load(writer);
+                }
+
                 writer.Close();
 
-                RaiseChangeEvent(false, ProfileChangeType.SetValue, section, entry, value);
+                this.RaiseChangeEvent(false, ProfileChangeType.SetValue, section, entry, value);
                 return;
             }
 
             // The file exists, edit it
-
-            XmlDocument doc = GetXmlDocument();
+            XmlDocument doc = this.GetXmlDocument();
             XmlElement root = doc.DocumentElement;
 
             XmlAttribute attribute = null;
@@ -204,18 +444,20 @@ namespace UcAsp.RPC
                 // Get the configSections element and add it if it's not there
                 XmlNode sectionsNode = root.SelectSingleNode("configSections");
                 if (sectionsNode == null)
+                {
                     sectionsNode = root.AppendChild(doc.CreateElement("configSections"));
+                }
 
                 XmlNode sectionGroupNode = sectionsNode;
                 if (hasGroupName)
                 {
                     // Get the sectionGroup element and add it if it's not there
-                    sectionGroupNode = sectionsNode.SelectSingleNode("sectionGroup[@name=\"" + _groupName + "\"]");
+                    sectionGroupNode = sectionsNode.SelectSingleNode("sectionGroup[@name=\"" + this._groupName + "\"]");
                     if (sectionGroupNode == null)
                     {
                         XmlElement element = doc.CreateElement("sectionGroup");
                         attribute = doc.CreateAttribute("name");
-                        attribute.Value = _groupName;
+                        attribute.Value = this._groupName;
                         element.Attributes.Append(attribute);
                         sectionGroupNode = sectionsNode.AppendChild(element);
                     }
@@ -243,15 +485,19 @@ namespace UcAsp.RPC
             XmlNode groupNode = root;
             if (hasGroupName)
             {
-                groupNode = root.SelectSingleNode(_groupName);
+                groupNode = root.SelectSingleNode(this._groupName);
                 if (groupNode == null)
-                    groupNode = root.AppendChild(doc.CreateElement(_groupName));
+                {
+                    groupNode = root.AppendChild(doc.CreateElement(this._groupName));
+                }
             }
 
             // Get the element with the section name and add it if it's not there
             sectionNode = groupNode.SelectSingleNode(section);
             if (sectionNode == null)
+            {
                 sectionNode = groupNode.AppendChild(doc.CreateElement(section));
+            }
 
             // Get the 'add' element and add it if it's not there
             XmlNode entryNode = sectionNode.SelectSingleNode("add[@key=\"" + entry + "\"]");
@@ -271,193 +517,27 @@ namespace UcAsp.RPC
             entryNode.Attributes.Append(attribute);
 
             // Save the file
-            Save(doc);
-            RaiseChangeEvent(false, ProfileChangeType.SetValue, section, entry, value);
+            this.Save(doc);
+            this.RaiseChangeEvent(false, ProfileChangeType.SetValue, section, entry, value);
         }
 
         /// <summary>
-        ///   Retrieves the value of an entry inside a section. </summary>
-        public override object GetValue(string section, string entry)
+        ///   Verifies the given section name is not null and trims it. </summary>
+        protected override void VerifyAndAdjustSection(ref string section)
         {
-            VerifyAndAdjustSection(ref section);
-            VerifyAndAdjustEntry(ref entry);
-
-            try
+            base.VerifyAndAdjustSection(ref section);
+            if (section.IndexOf(' ') >= 0)
             {
-                XmlDocument doc = GetXmlDocument();
-                XmlElement root = doc.DocumentElement;
-
-                XmlNode entryNode = root.SelectSingleNode(GroupNameSlash + section + "/add[@key=\"" + entry + "\"]");
-                return entryNode.Attributes["value"].Value;
+                section = section.Replace(' ', '_');
             }
-            catch (Exception ex)
-            {
-                return null;
-            }
-        }
-
-        public  object GetValue(int i,string section, string entry)
-        {
-            VerifyAndAdjustSection(ref section);
-            VerifyAndAdjustEntry(ref entry);
-
-            try
-            {
-                XmlDocument doc = GetXmlDocument();
-                XmlElement root = doc.DocumentElement;
-                XmlNodeList list = root.SelectNodes(_groupName);
-                XmlNode entryNode = list[i].SelectSingleNode(string.Format("{0}/add[@key=\"{1}\"]", section, entry));
-                if (entryNode == null)
-                    return null;
-                return entryNode.Attributes["value"].Value;
-            }
-            catch (Exception ex)
-            {
-                return null;
-            }
-        }
-
-
-
-        /// <summary>
-        ///   Removes an entry from a section. </summary>
-        public override void RemoveEntry(string section, string entry)
-        {
-            VerifyNotReadOnly();
-            VerifyAndAdjustSection(ref section);
-            VerifyAndAdjustEntry(ref entry);
-
-            // Verify the document exists
-            XmlDocument doc = GetXmlDocument();
-            if (doc == null)
-                return;
-
-            // Get the entry's node, if it exists
-            XmlElement root = doc.DocumentElement;
-            XmlNode entryNode = root.SelectSingleNode(GroupNameSlash + section + "/add[@key=\"" + entry + "\"]");
-            if (entryNode == null)
-                return;
-
-            if (!RaiseChangeEvent(true, ProfileChangeType.RemoveEntry, section, entry, null))
-                return;
-
-            entryNode.ParentNode.RemoveChild(entryNode);
-            Save(doc);
-            RaiseChangeEvent(false, ProfileChangeType.RemoveEntry, section, entry, null);
         }
 
         /// <summary>
-        ///   Removes a section. </summary>
-        public override void RemoveSection(string section)
+        ///   Retrieves whether we don't have a valid GroupName and a given section is 
+        ///   equal to "appSettings". </summary>
+        private bool IsAppSettings(string section)
         {
-            VerifyNotReadOnly();
-            VerifyAndAdjustSection(ref section);
-
-            // Verify the document exists
-            XmlDocument doc = GetXmlDocument();
-            if (doc == null)
-                return;
-
-            // Get the root node, if it exists
-            XmlElement root = doc.DocumentElement;
-            if (root == null)
-                return;
-
-            // Get the section's node, if it exists
-            XmlNode sectionNode = root.SelectSingleNode(GroupNameSlash + section);
-            if (sectionNode == null)
-                return;
-
-            if (!RaiseChangeEvent(true, ProfileChangeType.RemoveSection, section, null, null))
-                return;
-
-            sectionNode.ParentNode.RemoveChild(sectionNode);
-
-            // Delete the configSections entry also			
-            if (!IsAppSettings(section))
-            {
-                sectionNode = root.SelectSingleNode("configSections/" + (HasGroupName ? ("sectionGroup[@name=\"" + _groupName + "\"]") : "") + "/section[@name=\"" + section + "\"]");
-                if (sectionNode == null)
-                    return;
-
-                sectionNode.ParentNode.RemoveChild(sectionNode);
-            }
-
-            Save(doc);
-            RaiseChangeEvent(false, ProfileChangeType.RemoveSection, section, null, null);
-        }
-
-        /// <summary>
-        ///   Retrieves the names of all the entries inside a section. </summary>
-        public override string[] GetEntryNames(string section)
-        {
-            // Verify the section exists
-            if (!HasSection(section))
-                return null;
-
-            VerifyAndAdjustSection(ref section);
-            XmlDocument doc = GetXmlDocument();
-            XmlElement root = doc.DocumentElement;
-
-            // Get the entry nodes
-            XmlNodeList entryNodes = root.SelectNodes(GroupNameSlash + section + "/add[@key]");
-            if (entryNodes == null)
-                return null;
-
-            // Add all entry names to the string array			
-            string[] entries = new string[entryNodes.Count];
-            int i = 0;
-
-            foreach (XmlNode node in entryNodes)
-                entries[i++] = node.Attributes["key"].Value;
-
-            return entries;
-        }
-
-        /// <summary>
-        ///   Retrieves the names of all the sections. </summary>
-        public override string[] GetSectionNames()
-        {
-            // Verify the document exists
-            XmlDocument doc = GetXmlDocument();
-            if (doc == null)
-                return null;
-
-            // Get the root node, if it exists
-            XmlElement root = doc.DocumentElement;
-            if (root == null)
-                return null;
-
-            // Get the group node
-            XmlNode groupNode = (HasGroupName ? root.SelectSingleNode(_groupName) : root);
-            if (groupNode == null)
-                return null;
-
-            // Get the section nodes
-            XmlNodeList sectionNodes = groupNode.ChildNodes;
-            if (sectionNodes == null)
-                return null;
-
-            // Add all section names to the string array			
-            string[] sections = new string[sectionNodes.Count];
-            int i = 0;
-
-            foreach (XmlNode node in sectionNodes)
-                sections[i++] = node.Name;
-
-            return sections;
-        }
-
-        public int GetGroupCount()
-        {
-            XmlDocument doc = GetXmlDocument();
-            if (doc == null)
-                return 0;
-            XmlElement root = doc.DocumentElement;
-            if (root == null)
-                return 0;
-            XmlNodeList note = root.SelectNodes(_groupName);
-            return note.Count;
+            return !this.HasGroupName && section != null && section == "appSettings";
         }
     }
 }

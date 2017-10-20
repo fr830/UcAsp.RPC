@@ -8,21 +8,10 @@
 ***************************************************/
 using System;
 using System.Collections.Generic;
-using System.Configuration;
-using System.Linq;
-using System.Text;
 using System.Net;
-using System.Net.Sockets;
-using System.Diagnostics;
 using System.Threading;
-using System.IO;
-using System.Text.RegularExpressions;
-using System.Web;
 using System.Reflection;
-using Newtonsoft.Json;
 using log4net;
-using UcAsp.WebSocket;
-using UcAsp.WebSocket.Net;
 using UcAsp.WebSocket.Server;
 using UcAsp.RPC.Service;
 namespace UcAsp.RPC
@@ -41,23 +30,23 @@ namespace UcAsp.RPC
 
         public override void StartListen(int port)
         {
-            web = new WebServer("http://localhost:" + port + "/");
-            web.DocumentRootPath = System.AppDomain.CurrentDomain.BaseDirectory+"wwwroot";
+            this.web = new WebServer("http://localhost:" + port + "/");
+            this.web.DocumentRootPath = System.AppDomain.CurrentDomain.BaseDirectory + "wwwroot";
             IPAddress[] iplist = Dns.GetHostAddresses(Dns.GetHostName());
-            web.AddPrefixes("http://127.0.0.1:" + port + "/");
+            this.web.AddPrefixes("http://127.0.0.1:" + port + "/");
             for (int i = 0; i < iplist.Length; i++)
             {
-                web.AddPrefixes("http://" + iplist[i] + ":" + port + "/");
+                this.web.AddPrefixes("http://" + iplist[i] + ":" + port + "/");
             }
-            web.AddWebSocketService<ApiService>("/", () => new ApiService() { MemberInfos = MemberInfos }, null);
-            web.AddWebSocketService<ApiService>("/help", () => new ApiService() { MemberInfos = MemberInfos }, null);
-            web.AddWebSocketService<RegisterService>("/register", () => new RegisterService() { RegisterInfo = RegisterInfo }, null);
-            web.AddWebSocketService<ActionService>("/{md5}", () => new ActionService() { MemberInfos = MemberInfos }, new { md5 = "([a-zA-Z0-9]){32,32}" });
+            this.web.AddWebSocketService<ApiService>("/", () => new ApiService() { MemberInfos = MemberInfos }, null);
+            this.web.AddWebSocketService<ApiService>("/help", () => new ApiService() { MemberInfos = MemberInfos }, null);
+            this.web.AddWebSocketService<RegisterService>("/register", () => new RegisterService() { RegisterInfo = RegisterInfo }, null);
+            this.web.AddWebSocketService<ActionService>("/{md5}", () => new ActionService() { MemberInfos = MemberInfos }, new { md5 = "([a-zA-Z0-9]){32,32}" });
 
-            web.AddWebSocketService<ActionService>("/webapi/{clazz}/{method}", () => new ActionService() { MemberInfos = MemberInfos }, new { clazz = "[a-zA-Z0-9.]*", method = "[a-zA-Z0-9]*" });
-            web.AddWebSocketService<ActionService>("/websocket/call", () => new ActionService() { MemberInfos = MemberInfos }, null);
+            this.web.AddWebSocketService<ActionService>("/webapi/{clazz}/{method}", () => new ActionService() { MemberInfos = MemberInfos }, new { clazz = "[a-zA-Z0-9.]*", method = "[a-zA-Z0-9]*" });
+            this.web.AddWebSocketService<ActionService>("/websocket/call", () => new ActionService() { MemberInfos = MemberInfos }, null);
 
-            web.Start();
+            this.web.Start();
 
 
 
@@ -68,8 +57,8 @@ namespace UcAsp.RPC
             try
             {
                 base.Stop();
-                web.Stop();
-                token.Cancel();
+                this.web.Stop();
+                this.token.Cancel();
             }
             catch (Exception ex)
             {
@@ -83,7 +72,7 @@ namespace UcAsp.RPC
 
         protected virtual void Dispose(bool disposing)
         {
-            if (!disposedValue)
+            if (!this.disposedValue)
             {
                 if (disposing)
                 {
@@ -94,7 +83,7 @@ namespace UcAsp.RPC
                 // TODO: 释放未托管的资源(未托管的对象)并在以下内容中替代终结器。
                 // TODO: 将大型字段设置为 null。
 
-                disposedValue = true;
+                this.disposedValue = true;
             }
         }
 

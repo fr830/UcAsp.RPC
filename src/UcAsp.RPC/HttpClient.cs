@@ -32,7 +32,7 @@ namespace UcAsp.RPC
 
         public override void CallServiceMethod(DataEventArgs e)
         {
-            lock (ClientTask)
+            lock (this.ClientTask)
             {
 
                 if (ApplicationContext._taskId < int.MaxValue)
@@ -44,7 +44,7 @@ namespace UcAsp.RPC
                     ApplicationContext._taskId = 0;
                 }
                 e.TaskId = ApplicationContext._taskId;
-                ClientTask.Enqueue(e);
+                this.ClientTask.Enqueue(e);
             }
         }
 
@@ -61,7 +61,7 @@ namespace UcAsp.RPC
                     }
                     Thread.Sleep(5);
                     DataEventArgs er = new DataEventArgs();
-                    bool result = ResultTask.TryGetValue(e.TaskId, out er);
+                    bool result = this.ResultTask.TryGetValue(e.TaskId, out er);
                     if (result)
                     {
                         return er;
@@ -71,7 +71,7 @@ namespace UcAsp.RPC
                         if (e.TryTimes < 6)
                         {
                             e.TryTimes++;
-                            ClientTask.Enqueue(e);
+                            this.ClientTask.Enqueue(e);
                         }
                         else
                         {
@@ -91,34 +91,34 @@ namespace UcAsp.RPC
 
         public override void Run()
         {
-            heatbeat.Interval = 30000;
-            heatbeat.Elapsed -= Heatbeat_Elapsed;
-            heatbeat.Elapsed += Heatbeat_Elapsed;
-            heatbeat.Start();
+            this.heatbeat.Interval = 30000;
+            this.heatbeat.Elapsed -= Heatbeat_Elapsed;
+            this.heatbeat.Elapsed += Heatbeat_Elapsed;
+            this.heatbeat.Start();
             Task sendtask = new Task(() =>
             {
                 while (!cancelTokenSource.IsCancellationRequested)
                 {
                     Thread.Sleep(2);
                     DataEventArgs e;
-                    if (ClientTask.TryDequeue(out e))
+                    if (this.ClientTask.TryDequeue(out e))
                     {
                         try
                         {
-                            int i = new Random(e.GetHashCode()).Next(Channels.Count);
-                            ChannelPool channel = Channels[i];
+                            int i = new Random(e.GetHashCode()).Next(this.Channels.Count);
+                            ChannelPool channel = this.Channels[i];
                             int times = 0;
                             while (channel.ActiveHash == 1 && times < 300)
                             {
-                                i = new Random(e.GetHashCode()).Next(Channels.Count);
-                                channel = Channels[i];
+                                i = new Random(e.GetHashCode()).Next(this.Channels.Count);
+                                channel = this.Channels[i];
                                 Thread.Sleep(1);
                                 times++;
                             }
-                            Channels[i].ActiveHash = e.TaskId;
-                            Channels[i].RunTimes++;
-                            Channels[i].PingActives = DateTime.Now.Ticks;
-                            Call(e, i);
+                            this.Channels[i].ActiveHash = e.TaskId;
+                            this.Channels[i].RunTimes++;
+                            this.Channels[i].PingActives = DateTime.Now.Ticks;
+                            this.Call(e, i);
                         }
                         catch (Exception ex)
                         {
@@ -149,12 +149,12 @@ namespace UcAsp.RPC
             DataEventArgs ea = (DataEventArgs)obj;
             try
             {
-                if (RuningTask == null)
+                if (this.RuningTask == null)
                 {
-                    RuningTask = new ConcurrentDictionary<int, DataEventArgs>();
+                    this.RuningTask = new ConcurrentDictionary<int, DataEventArgs>();
                 }
-                RuningTask.AddOrUpdate(ea.TaskId, ea, (key, value) => value = ea);
-                string url = "http://" + Channels[len].IpPoint.Address.ToString() + ":" + (Channels[len].IpPoint.Port + 1);
+                this.RuningTask.AddOrUpdate(ea.TaskId, ea, (key, value) => value = ea);
+                string url = "http://" + this.Channels[len].IpPoint.Address.ToString() + ":" + (this.Channels[len].IpPoint.Port + 1);
                 Dictionary<string, string> header = new Dictionary<string, string>();
                 header.Add("Authorization", "Basic " + this.Authorization);
                 if (ea.ActionCmd == CallActionCmd.Register.ToString())
@@ -168,7 +168,7 @@ namespace UcAsp.RPC
                         dynamic data = JsonConvert.DeserializeObject<dynamic>(redata.Json);
                         ea.Json = data.data.ToString();
                         ea.Param = redata.Param;
-                        ResultTask.AddOrUpdate(ea.TaskId, ea, (key, value) => value = ea);
+                        this.ResultTask.AddOrUpdate(ea.TaskId, ea, (key, value) => value = ea);
                     }
                     else
                     {
@@ -176,15 +176,15 @@ namespace UcAsp.RPC
                         if (HttpStatusCode.Moved == result.Item1)
                         {
                             ea.Json = result.Item2;
-                            RuningTask.TryRemove(ea.TaskId, out outDea);
-                            Channels[len].Available = false;
-                            ClientTask.Enqueue(ea);
+                            this.RuningTask.TryRemove(ea.TaskId, out outDea);
+                            this.Channels[len].Available = false;
+                            this.ClientTask.Enqueue(ea);
                          
                         }
                         else
                         {
                             ea.Json = result.Item2;
-                            ResultTask.AddOrUpdate(ea.TaskId, ea, (key, value) => value = ea);
+                            this.ResultTask.AddOrUpdate(ea.TaskId, ea, (key, value) => value = ea);
                         }
                     }
 
@@ -203,7 +203,7 @@ namespace UcAsp.RPC
                         ea.StatusCode = StatusCode.Success;
                         ea.Json = redata.Json;
                         ea.Param = redata.Param;
-                        ResultTask.AddOrUpdate(ea.TaskId, ea, (key, value) => value = ea);
+                        this.ResultTask.AddOrUpdate(ea.TaskId, ea, (key, value) => value = ea);
                     }
                     else
                     {
@@ -211,9 +211,9 @@ namespace UcAsp.RPC
                         if (HttpStatusCode.Moved == result.Item1)
                         {
                             ea.Json = result.Item2;
-                            RuningTask.TryRemove(ea.TaskId, out outDea);
-                            Channels[len].Available = false;
-                            ClientTask.Enqueue(ea);
+                            this.RuningTask.TryRemove(ea.TaskId, out outDea);
+                            this.Channels[len].Available = false;
+                            this.ClientTask.Enqueue(ea);
 
                         }
                         else
@@ -232,8 +232,8 @@ namespace UcAsp.RPC
                 ea.TryTimes++;
                 if (ea.TryTimes < 3)
                 {
-                    RuningTask.TryRemove(ea.TaskId, out outDea);
-                    ClientTask.Enqueue(ea);
+                    this.RuningTask.TryRemove(ea.TaskId, out outDea);
+                    this.ClientTask.Enqueue(ea);
                     return;
                 }
 
@@ -244,12 +244,12 @@ namespace UcAsp.RPC
             {
                 for (int i = 0; i < Channels.Count; i++)
                 {
-                    if (Channels[i].ActiveHash == ea.TaskId)
+                    if (this.Channels[i].ActiveHash == ea.TaskId)
                     {
-                        Channels[i].ActiveHash = 0;
+                        this.Channels[i].ActiveHash = 0;
                     }
                 }
-                RuningTask.TryRemove(ea.TaskId, out outDea);
+                this.RuningTask.TryRemove(ea.TaskId, out outDea);
             }
         }
 
@@ -261,31 +261,31 @@ namespace UcAsp.RPC
         {
             Task t = new Task(() =>
             {
-                if (heatbeat.Enabled)
+                if (this.heatbeat.Enabled)
                 {
-                    heatbeat.Stop();
-                    heatbeat.Enabled = false;
+                    this.heatbeat.Stop();
+                    this.heatbeat.Enabled = false;
                     try
                     {
-                        for (int i = 0; i < Channels.Count; i++)
+                        for (int i = 0; i < this.Channels.Count; i++)
                         {
 
-                            string url = "http://" + Channels[i].IpPoint.Address.ToString() + ":" + (Channels[i].IpPoint.Port + 1);
+                            string url = "http://" + this.Channels[i].IpPoint.Address.ToString() + ":" + (this.Channels[i].IpPoint.Port + 1);
                             if (HttpPost.CheckHttp(url) == HttpStatusCode.OK)
                             {
-                                Channels[i].Available = true;
+                                this.Channels[i].Available = true;
                             }
                             else
                             {
-                                Channels[i].Available = false;
+                                this.Channels[i].Available = false;
                             }
 
                         }
                     }
                     finally
                     {
-                        heatbeat.Start();
-                        heatbeat.Enabled = true;
+                        this.heatbeat.Start();
+                        this.heatbeat.Enabled = true;
                     }
                 }
 
