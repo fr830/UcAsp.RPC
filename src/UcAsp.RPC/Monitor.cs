@@ -1,19 +1,10 @@
-﻿/***************************************************
-*创建人:rixiang.yu
-*创建时间:2017/9/11 13:11:44
-*功能说明:<Function>
-*版权所有:<Copyright>
-*Frameworkversion:4.6.1
-*CLR版本：4.0.30319.42000
-***************************************************/
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UcAsp.WebSocket;
 using System.IO;
-
 namespace UcAsp.RPC
 {
     public class Monitor
@@ -57,7 +48,7 @@ namespace UcAsp.RPC
             }
         }
 
-        public void Write(long taskid, string spacename, string method, long milli)
+        public void Write(long taskid, string spacename, string method, long milli, string size)
         {
 
             if (flagmonitor)
@@ -69,7 +60,7 @@ namespace UcAsp.RPC
                     log.File = path + filename + ".rpt";
                 }
 
-                log.Monitor(taskid + "    " + spacename + " " + method + "  " + (milli).ToString());
+                log.Monitor(taskid + "  " + spacename + "   " + method + "  " + (milli).ToString() + "    " + size);
 
             }
         }

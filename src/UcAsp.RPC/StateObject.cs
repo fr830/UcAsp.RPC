@@ -15,13 +15,12 @@ namespace UcAsp.RPC
 {
     public class StateObject
     {
-        internal Socket WorkSocket = null;
+        public Socket WorkSocket = null;
 
-        internal const int BufferSize = 1024 * 3;
+        public const int BufferSize = 1024;
 
-        internal byte[] Buffer = new byte[BufferSize];
+        public byte[] Buffer = new byte[BufferSize];
 
-        internal ByteBuilder Builder = new ByteBuilder(1);
-
+        public ByteBuilder Builder = new ByteBuilder(1);
     }
 }

@@ -14,7 +14,7 @@ namespace UcAsp.RPC
     public interface IServer
     {
         // Dictionary<string, Type> TypeDic { get; set; }
-        Dictionary<string, Tuple<string, MethodInfo,int>> MemberInfos { get; set; }
+        Dictionary<string, Tuple<string, MethodInfo, int, long>> MemberInfos { get; set; }
         List<RegisterInfo> RegisterInfo { get; set; }
         // event EventHandler<DataEventArgs> OnReceive;
         void StartListen(int port);

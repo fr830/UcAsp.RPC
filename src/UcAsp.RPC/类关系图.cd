@@ -1,0 +1,234 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1">
+  <Class Name="ISCS.WCS.RPC.Config" Collapsed="true">
+    <Position X="5.5" Y="3.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAICAAAAIAAEAgAQAAAAAAAAAAAgEAgAAJiAAAAAABE=</HashCode>
+      <FileName>ApplicationConfig\Config.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="ISCS.WCS.RPC.ProfileChangedArgs" Collapsed="true">
+    <Position X="0.5" Y="6.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>ABgUAAAAAAAAAAAAAAEAAAABAAAAAAAAAAAgAIAAAAA=</HashCode>
+      <FileName>ApplicationConfig\Events.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="ISCS.WCS.RPC.ProfileChangingArgs" Collapsed="true">
+    <Position X="0.5" Y="8" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAACAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>ApplicationConfig\Events.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="ISCS.WCS.RPC.Profile" Collapsed="true">
+    <Position X="5.5" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>ABIIIAAAIQIABgAABBAAAASAAIIhAAkAAJCIAAACABA=</HashCode>
+      <FileName>ApplicationConfig\Profile.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="ISCS.WCS.RPC.XmlBase" Collapsed="true">
+    <Position X="5.5" Y="1.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAACAIAgAAAAAAAAAAAAAAAAkAAAAAAAAAAgAAAAQAA=</HashCode>
+      <FileName>ApplicationConfig\XmlBase.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="ISCS.WCS.RPC.XmlBuffer" Collapsed="true" BaseTypeListCollapsed="true">
+    <Position X="11.5" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AABAgAAgACCBBAAAAAAAQAABgAAAAAAAAAAAAACIEAA=</HashCode>
+      <FileName>ApplicationConfig\XmlBuffer.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" Collapsed="true" />
+  </Class>
+  <Class Name="ISCS.WCS.RPC.ApplicationContext" Collapsed="true" BaseTypeListCollapsed="true">
+    <Position X="8" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>BAAIAIAAKCCCM0iAQAAAAQAABAAQCIAAIIACgOCVAAA=</HashCode>
+      <FileName>ApplicationContext.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" Collapsed="true" />
+  </Class>
+  <Class Name="ISCS.WCS.RPC.Binary" Collapsed="true">
+    <Position X="9.75" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAgAAAAAEAAAAAAAAAAAAAAAAAACAAAAAAAQAA=</HashCode>
+      <FileName>Binary.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="ISCS.WCS.RPC.ByteBuilder" Collapsed="true">
+    <Position X="11.5" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>IAIABAASQAAAJEAACAAAAAQCAAAAAEAQAAAAAoBAIEA=</HashCode>
+      <FileName>ByteBuilder.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="ISCS.WCS.RPC.ChannelPool" Collapsed="true">
+    <Position X="13.25" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AABAAAwAAAAAAAAAAAAAAABAAAEAAAAAAAAAAAAAAAQ=</HashCode>
+      <FileName>ChannelPool.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="ISCS.WCS.RPC.ClientBase" Collapsed="true">
+    <Position X="1.75" Y="3.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AIBAAAAIIBAAAAAAIACAAIQAAIwAAAAAIEEAgAAAACI=</HashCode>
+      <FileName>ClientBase.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="ISCS.WCS.RPC.DataEventArgs" Collapsed="true">
+    <Position X="8" Y="1.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAQgEAAAIAAAAEAAAIAAABEAAEgAgABAIAAAAAAEIoA=</HashCode>
+      <FileName>DataEventArgs.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="ISCS.WCS.RPC.HttpClient" Collapsed="true">
+    <Position X="0.5" Y="4.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAQAAIAAAAAEAACAAAAMAAAAEACEAAIEAAAAAAACI=</HashCode>
+      <FileName>HttpClient.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="ISCS.WCS.RPC.HttpServer" Collapsed="true">
+    <Position X="0.5" Y="1.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>BQMAQAAAACAFAEAARAAAAAQAABQCgAAAIAABAkAAAAA=</HashCode>
+      <FileName>HttpServer.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="ISCS.WCS.RPC.JsonSerializer" Collapsed="true" BaseTypeListCollapsed="true">
+    <Position X="9.75" Y="1.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>IAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAEAAAAAAA=</HashCode>
+      <FileName>JsonSerializer.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" Collapsed="true" />
+  </Class>
+  <Class Name="ISCS.WCS.RPC.Proxy" Collapsed="true">
+    <Position X="11.5" Y="1.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>FAECAAAAAAQAAEAAQAAAAAAAAGAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Proxy.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="ISCS.WCS.RPC.ProxyObject" Collapsed="true">
+    <Position X="13.25" Y="1.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAGAAACAAAAAAAAAACAAAAAAAAAAAAAI=</HashCode>
+      <FileName>ProxyObject.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="ISCS.WCS.RPC.RegisterInfo" Collapsed="true">
+    <Position X="8" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AABAAAAAAACAAAAAAAAAAAAAAAAAAAAAAAAAAAAACBA=</HashCode>
+      <FileName>RegisterInfo.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="ISCS.WCS.RPC.ServerBase" Collapsed="true">
+    <Position X="1.75" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AQAAQAAAIAAAAECAKEAAAAQABDAACAAAIAEAgAAFAAA=</HashCode>
+      <FileName>ServerBase.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="ISCS.WCS.RPC.ServerPort" Collapsed="true">
+    <Position X="9.75" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAACAAACAAAAAAAAAAAIAA=</HashCode>
+      <FileName>ServerPort.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="ISCS.WCS.RPC.TcpClient" Collapsed="true">
+    <Position X="2.75" Y="4.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAQAAIEAAQAEAICAAAAMAAAAEAAEAAIEAAAAAAACI=</HashCode>
+      <FileName>TcpClient.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="ISCS.WCS.RPC.TcpServer" Collapsed="true">
+    <Position X="2.75" Y="1.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AYEAAAAAACAAAEAAQAARAAAAAAAAAAAAIAAgAAAAAAA=</HashCode>
+      <FileName>TcpServer.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Interface Name="ISCS.WCS.RPC.IProfile" Collapsed="true">
+    <Position X="5.5" Y="6" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAABgAABAAAAAQAAIIAAAgAAJAIAAAAAAA=</HashCode>
+      <FileName>ApplicationConfig\IProfile.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="ISCS.WCS.RPC.IReadOnlyProfile" Collapsed="true">
+    <Position X="5.5" Y="4.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>ABIIAAAAIAIAAAAAAAAAAAQAAAAAAAAAAACAAAAAAAA=</HashCode>
+      <FileName>ApplicationConfig\IReadOnlyProfile.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="ISCS.WCS.RPC.IClient" Collapsed="true">
+    <Position X="8" Y="3.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AIBAAAAIIBAAAAAAIACAAIQAAAwAAAAAIEAAgAAAACI=</HashCode>
+      <FileName>IClient.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="ISCS.WCS.RPC.ISerializer" Collapsed="true">
+    <Position X="9.75" Y="3.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>IAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAEAAAAAAA=</HashCode>
+      <FileName>ISerializer.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="ISCS.WCS.RPC.IServer" Collapsed="true">
+    <Position X="11.5" Y="3.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AQAAAAAAAAAAAAAAAAAAAAAAABAAAAAAIAEAgAAAAAA=</HashCode>
+      <FileName>IServer.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Enum Name="ISCS.WCS.RPC.ProfileChangeType" Collapsed="true">
+    <Position X="9.75" Y="4.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>BAAAAAAAAAAAAgAAAAAAAAQAAAAAAAgAABAIAAAAAAA=</HashCode>
+      <FileName>ApplicationConfig\Events.cs</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="ISCS.WCS.RPC.CallActionCmd" Collapsed="true">
+    <Position X="8" Y="4.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAQAAAAACAAAAAAEAAAAAAAAARAAAAIAAAAAAAAAA=</HashCode>
+      <FileName>CallActionCmd.cs</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="ISCS.WCS.RPC.StatusCode" Collapsed="true">
+    <Position X="11.5" Y="4.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAQIAAAAAAAAAAgAIAABAAACAAAAAAAA=</HashCode>
+      <FileName>StatusCode.cs</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Delegate Name="ISCS.WCS.RPC.ProfileChangingHandler" Collapsed="true">
+    <Position X="9.75" Y="5.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAQAAEAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>ApplicationConfig\Events.cs</FileName>
+    </TypeIdentifier>
+  </Delegate>
+  <Delegate Name="ISCS.WCS.RPC.ProfileChangedHandler" Collapsed="true">
+    <Position X="8" Y="5.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAQAAAAA=</HashCode>
+      <FileName>ApplicationConfig\Events.cs</FileName>
+    </TypeIdentifier>
+  </Delegate>
+  <Font Name="Microsoft YaHei UI" Size="9" />
+</ClassDiagram>

@@ -21,11 +21,14 @@ namespace UcAsp.RPC
         /// 是否出现在接口中
         /// </summary>
         public bool NoRest { get; set; }
-
+        /// <summary>
+        /// 
+        /// 长连接
+        /// </summary>
         public bool KeepAlive { get; set; }
 
         /// <summary>
-        /// 启动运行方法，只能使用void 和无参数的方法
+        /// 启动运行
         /// </summary>
         public bool IsRun { get; set; }
         public Restful()
@@ -46,13 +49,14 @@ namespace UcAsp.RPC
         {
             this.KeepAlive = keepAlive;
         }
-        public Restful(string method, string path, bool noRest, bool keepAlive,bool isRun) : this(method, path, noRest, keepAlive)
+
+        public Restful(string method, string path, bool noRest, bool keepAlive, bool isRun) : this(method, path, noRest, keepAlive)
         {
             this.IsRun = isRun;
         }
         public Restful(string path)
         {
-            if (path == "register")
+            if (path == "register" || path == "webapi")
             {
                 Exception ex = new Exception("register路径是系统保留，请更换！");
                 throw (ex);

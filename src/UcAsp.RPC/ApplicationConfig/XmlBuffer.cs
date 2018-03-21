@@ -2,7 +2,7 @@
 using System.IO;
 using System.Xml;
 
-namespace UcAsp.RPC
+namespace  UcAsp.RPC
 {
 
     /// <summary>

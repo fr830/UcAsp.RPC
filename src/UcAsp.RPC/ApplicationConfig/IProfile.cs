@@ -1,6 +1,6 @@
 ﻿using System.Data;
 
-namespace UcAsp.RPC
+namespace  UcAsp.RPC
 {
     public interface IProfile : IReadOnlyProfile
     {

@@ -11,11 +11,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using UcAsp.RPC.ProtoBuf;
-namespace UcAsp.RPC
+namespace  UcAsp.RPC
 {
+    [ProtoContract]
     [Serializable]
-   [ProtoContract]
     public class RegisterInfo
     {
         [ProtoMember(1)]

@@ -1,6 +1,6 @@
 using System;
 
-namespace UcAsp.RPC
+namespace  UcAsp.RPC
 {	
 	/// <summary>
 	///   Types of changes that may be made to a Profile object. 

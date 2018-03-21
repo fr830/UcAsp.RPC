@@ -12,14 +12,14 @@ using System.Linq;
 using System.Text;
 using System.IO;
 using log4net;
-namespace UcAsp.RPC
+namespace  UcAsp.RPC
 {
 
     /// <summary>
     /// 二进制数据
     /// </summary>
     /// 
-   // [Serializable]
+    [Serializable]
     public class Binary
     {
         private readonly ILog _log = LogManager.GetLogger(typeof(Binary));

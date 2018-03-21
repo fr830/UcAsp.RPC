@@ -17,9 +17,9 @@ using System.Threading.Tasks;
 using System.IO;
 using System.Collections.Concurrent;
 using log4net;
-using System.IO.Compression;
 using System.Diagnostics;
 using Newtonsoft.Json;
+using System.IO.Compression;
 namespace UcAsp.RPC
 {
     public class HttpClient : ClientBase
@@ -29,201 +29,73 @@ namespace UcAsp.RPC
         private readonly ILog _log = LogManager.GetLogger(typeof(TcpClient));
         private const int buffersize = 1024 * 5;
         private System.Timers.Timer heatbeat = new System.Timers.Timer();
+        private Monitor monitr = new Monitor();
 
-        public override void CallServiceMethod(DataEventArgs e)
-        {
-            lock (this.ClientTask)
-            {
 
-                if (ApplicationContext._taskId < int.MaxValue)
-                {
-                    ApplicationContext._taskId++;
-                }
-                else
-                {
-                    ApplicationContext._taskId = 0;
-                }
-                e.TaskId = ApplicationContext._taskId;
-                this.ClientTask.Enqueue(e);
-            }
-        }
-
-        public override DataEventArgs GetResult(DataEventArgs e)
-        {
-            int time = 0;
-            Task<DataEventArgs> chektask = new Task<DataEventArgs>(() =>
-            {
-                while (true)
-                {
-                    if (cancelTokenSource.IsCancellationRequested)
-                    {
-                        return null;
-                    }
-                    Thread.Sleep(5);
-                    DataEventArgs er = new DataEventArgs();
-                    bool result = this.ResultTask.TryGetValue(e.TaskId, out er);
-                    if (result)
-                    {
-                        return er;
-                    }
-                    if (time > 10000)
-                    {
-                        if (e.TryTimes < 6)
-                        {
-                            e.TryTimes++;
-                            this.ClientTask.Enqueue(e);
-                        }
-                        else
-                        {
-                            e.StatusCode = StatusCode.TimeOut;
-                            return e;
-                        }
-                    }
-                    time++;
-
-                }
-            }, cancelTokenSource.Token);
-            chektask.Start();
-            DataEventArgs data = chektask.Result;
-
-            return data;
-        }
-
-        public override void Run()
-        {
-            this.heatbeat.Interval = 30000;
-            this.heatbeat.Elapsed -= Heatbeat_Elapsed;
-            this.heatbeat.Elapsed += Heatbeat_Elapsed;
-            this.heatbeat.Start();
-            Task sendtask = new Task(() =>
-            {
-                while (!cancelTokenSource.IsCancellationRequested)
-                {
-                    Thread.Sleep(2);
-                    DataEventArgs e;
-                    if (this.ClientTask.TryDequeue(out e))
-                    {
-                        try
-                        {
-                            int i = new Random(e.GetHashCode()).Next(this.Channels.Count);
-                            ChannelPool channel = this.Channels[i];
-                            int times = 0;
-                            while (channel.ActiveHash == 1 && times < 300)
-                            {
-                                i = new Random(e.GetHashCode()).Next(this.Channels.Count);
-                                channel = this.Channels[i];
-                                Thread.Sleep(1);
-                                times++;
-                            }
-                            this.Channels[i].ActiveHash = e.TaskId;
-                            this.Channels[i].RunTimes++;
-                            this.Channels[i].PingActives = DateTime.Now.Ticks;
-                            this.Call(e, i);
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine(ex);
-                            _log.Error(ex);
-                        }
-
-                    }
-
-                }
-
-            }, cancelTokenSource.Token);
-            sendtask.Start();
-        }
 
         private void Heatbeat_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
-            //CheckServer();
+            CheckServer();
         }
 
         public override void Exit()
         {
             cancelTokenSource.Cancel();
         }
-        private void Call(object obj, int len)
+        public override void Call(object obj, int len)
         {
+
             DataEventArgs outDea = new DataEventArgs();
             DataEventArgs ea = (DataEventArgs)obj;
             try
             {
-                if (this.RuningTask == null)
+                if (RuningTask == null)
                 {
-                    this.RuningTask = new ConcurrentDictionary<int, DataEventArgs>();
+                    RuningTask = new ConcurrentDictionary<int, DataEventArgs>();
                 }
-                this.RuningTask.AddOrUpdate(ea.TaskId, ea, (key, value) => value = ea);
-                string url = "http://" + this.Channels[len].IpPoint.Address.ToString() + ":" + (this.Channels[len].IpPoint.Port + 1);
+                RuningTask.AddOrUpdate(ea.TaskId, ea, (key, value) => value = ea);
+                string url = "http://" + Channels[len].IpPoint.Address.ToString() + ":" + (Channels[len].IpPoint.Port + 1);
                 Dictionary<string, string> header = new Dictionary<string, string>();
                 header.Add("Authorization", "Basic " + this.Authorization);
-                if (ea.ActionCmd == CallActionCmd.Register.ToString())
+
+                int p = ea.ActionParam.LastIndexOf(".");
+                List<object> eabinary = _serializer.ToEntity<List<object>>(ea.Binary);
+                string code = ea.ActionParam.Substring(p + 1);
+                Dictionary<string, string> param = new Dictionary<string, string>();
+                param.Add("", JsonConvert.SerializeObject(eabinary));
+                var result = HttpPost.Post(url + "/" + code, param, header);
+                DataEventArgs redata = JsonConvert.DeserializeObject<DataEventArgs>(result.Item2);
+               
+                if (result.Item1 == HttpStatusCode.OK)
                 {
+                    ea.StatusCode = StatusCode.Success;
+                    dynamic dyjs = JsonConvert.DeserializeObject<dynamic>(redata.Json);
 
-                    Tuple<HttpStatusCode, string> result = HttpPost.Post(url + "/" + CallActionCmd.Register.ToString(), null, header);
-                    DataEventArgs redata = JsonConvert.DeserializeObject<DataEventArgs>(result.Item2);
-                    if (result.Item1 == HttpStatusCode.OK)
-                    {
-                        ea.StatusCode = StatusCode.Success;
-                        dynamic data = JsonConvert.DeserializeObject<dynamic>(redata.Json);
-                        ea.Json = data.data.ToString();
-                        ea.Param = redata.Param;
-                        this.ResultTask.AddOrUpdate(ea.TaskId, ea, (key, value) => value = ea);
-                    }
-                    else
-                    {
-                        ea.StatusCode = StatusCode.Error;
-                        if (HttpStatusCode.Moved == result.Item1)
-                        {
-                            ea.Json = result.Item2;
-                            this.RuningTask.TryRemove(ea.TaskId, out outDea);
-                            this.Channels[len].Available = false;
-                            this.ClientTask.Enqueue(ea);
-                         
-                        }
-                        else
-                        {
-                            ea.Json = result.Item2;
-                            this.ResultTask.AddOrUpdate(ea.TaskId, ea, (key, value) => value = ea);
-                        }
-                    }
+                    ea.Json = dyjs.data.ToString();
 
+                    ea.Param = redata.Param;
+                    ResultTask.AddOrUpdate(ea.TaskId, ea, (key, value) => value = ea);
                 }
                 else
                 {
-                    int p = ea.ActionParam.LastIndexOf(".");
-                    List<object> eabinary = _serializer.ToEntity<List<object>>(ea.Binary);
-                    string code = ea.ActionParam.Substring(p + 1);
-                    Dictionary<string, string> param = new Dictionary<string, string>();
-                    param.Add("", JsonConvert.SerializeObject(eabinary));
-                    var result = HttpPost.Post(url + "/" + code, param, header);
-                    DataEventArgs redata = JsonConvert.DeserializeObject<DataEventArgs>(result.Item2);
-                    if (result.Item1 == HttpStatusCode.OK)
+                    ea.StatusCode = StatusCode.Error;
+                    if (HttpStatusCode.Moved == result.Item1)
                     {
-                        ea.StatusCode = StatusCode.Success;
-                        ea.Json = redata.Json;
-                        ea.Param = redata.Param;
-                        this.ResultTask.AddOrUpdate(ea.TaskId, ea, (key, value) => value = ea);
+                        ea.Json = result.Item2;
+                        RuningTask.TryRemove(ea.TaskId, out outDea);
+                        Channels[len].Available = false;
+                        ClientTask.Enqueue(ea);
+                        CheckServer();
+
                     }
                     else
                     {
-                        ea.StatusCode = StatusCode.Error;
-                        if (HttpStatusCode.Moved == result.Item1)
-                        {
-                            ea.Json = result.Item2;
-                            this.RuningTask.TryRemove(ea.TaskId, out outDea);
-                            this.Channels[len].Available = false;
-                            this.ClientTask.Enqueue(ea);
-
-                        }
-                        else
-                        {
-                            ea.Json = result.Item2;
-                            ResultTask.AddOrUpdate(ea.TaskId, ea, (key, value) => value = ea);
-                        }
+                        ea.Json = result.Item2;
+                        ResultTask.AddOrUpdate(ea.TaskId, ea, (key, value) => value = ea);
                     }
-
                 }
+
+
             }
             catch (Exception ex)
             {
@@ -232,8 +104,8 @@ namespace UcAsp.RPC
                 ea.TryTimes++;
                 if (ea.TryTimes < 3)
                 {
-                    this.RuningTask.TryRemove(ea.TaskId, out outDea);
-                    this.ClientTask.Enqueue(ea);
+                    RuningTask.TryRemove(ea.TaskId, out outDea);
+                    ClientTask.Enqueue(ea);
                     return;
                 }
 
@@ -244,54 +116,93 @@ namespace UcAsp.RPC
             {
                 for (int i = 0; i < Channels.Count; i++)
                 {
-                    if (this.Channels[i].ActiveHash == ea.TaskId)
+                    if (Channels[i].ActiveHash == ea.TaskId)
                     {
-                        this.Channels[i].ActiveHash = 0;
+                        Channels[i].ActiveHash = 0;
                     }
                 }
-                this.RuningTask.TryRemove(ea.TaskId, out outDea);
+                RuningTask.TryRemove(ea.TaskId, out outDea);
             }
         }
+        /*     public override bool Connect(string ip, int port, int pool)
+             {
+                 bool flag = true;
+                 for (int i = 0; i < pool; i++)
+                 {
+                     try
+                     {
+                         IPEndPoint ep = new IPEndPoint(IPAddress.Parse(ip), port);
+                         ChannelPool channel = new ChannelPool() { Available = true, IpPoint = ep, PingActives = 0, RunTimes = 0 };
+                         IpAddress.Add(channel);
 
-        public override DataEventArgs GetResult(DataEventArgs e, ChannelPool channel)
-        {
-            throw new NotImplementedException();
-        }
+                     }
+                     catch (Exception ex)
+                     {
+                         flag = false;
+                         _log.Error(ex);
+                     }
+                 }
+                 return flag;
+             }
+             */
         public override void CheckServer()
         {
             Task t = new Task(() =>
             {
-                if (this.heatbeat.Enabled)
+                if (heatbeat.Enabled)
                 {
-                    this.heatbeat.Stop();
-                    this.heatbeat.Enabled = false;
+                    heatbeat.Stop();
+                    heatbeat.Enabled = false;
                     try
                     {
-                        for (int i = 0; i < this.Channels.Count; i++)
+                        for (int i = 0; i < Channels.Count; i++)
                         {
 
-                            string url = "http://" + this.Channels[i].IpPoint.Address.ToString() + ":" + (this.Channels[i].IpPoint.Port + 1);
+                            string url = "http://" + Channels[i].IpPoint.Address.ToString() + ":" + (Channels[i].IpPoint.Port + 1);
                             if (HttpPost.CheckHttp(url) == HttpStatusCode.OK)
                             {
-                                this.Channels[i].Available = true;
+                                Channels[i].Available = true;
                             }
                             else
                             {
-                                this.Channels[i].Available = false;
+                                Channels[i].Available = false;
                             }
 
                         }
                     }
                     finally
                     {
-                        this.heatbeat.Start();
-                        this.heatbeat.Enabled = true;
+                        heatbeat.Start();
+                        heatbeat.Enabled = true;
                     }
                 }
 
             });
 
             t.Start();
+
+        }
+
+        public override DataEventArgs GetResult(DataEventArgs e, ChannelPool channel)
+        {
+            string url = "http://" + channel.IpPoint.Address.ToString() + ":" + (channel.IpPoint.Port + 1);
+            Dictionary<string, string> header = new Dictionary<string, string>();
+            header.Add("Authorization", "Basic " + this.Authorization);
+            Tuple<HttpStatusCode, string> result = HttpPost.Post(url + "/" + e.ActionCmd.ToString(), null, header);
+            DataEventArgs redata = JsonConvert.DeserializeObject<DataEventArgs>(result.Item2);
+            if (result.Item1 == HttpStatusCode.OK)
+            {
+                redata.StatusCode = StatusCode.Success;
+                redata.Json = redata.Json;
+                redata.Param = redata.Param;
+                return redata;
+            }
+            else
+            {
+                e.StatusCode = StatusCode.Error;
+                e.Json = result.Item2;
+                return e;
+            }
 
         }
 
@@ -347,7 +258,13 @@ namespace UcAsp.RPC
                     System.IO.Stream writer = request.GetRequestStream();
                     writer.Write(payload, 0, payload.Length);
                     System.Net.HttpWebResponse response = (System.Net.HttpWebResponse)request.GetResponse();
-                    string responseText = GZipUntil.UnZip(response.GetResponseStream());
+                    string responseText = string.Empty;
+                    GZipStream gzip = new GZipStream(response.GetResponseStream(), CompressionMode.Decompress);//解压缩
+                    using (StreamReader reader = new StreamReader(gzip, Encoding.UTF8))//中文编码处理
+                    {
+                        responseText = reader.ReadToEnd();
+                    }
+
                     writer.Close();
 
                     return new Tuple<HttpStatusCode, string>(response.StatusCode, responseText);

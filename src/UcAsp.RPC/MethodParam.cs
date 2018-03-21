@@ -32,34 +32,39 @@ namespace UcAsp.RPC
                 {
                     // 传递的参数值
                     object entity = parameterValues[i];
-                    // 传递参数的类型
-                    Type eType = entity.GetType();
+                    if (entity != null)
+                    {
+                        // 传递参数的类型
+                        Type eType = entity.GetType();
 
-                    Type[] ParameterTypes = new Type[method.GetParameters().Length];
-                    for (int x = 0; x < method.GetParameters().Length; x++)
-                    {
-                        string paratype = method.GetParameters()[x].ParameterType.FullName;
-                        if (paratype.EndsWith("&"))
+                        Type[] ParameterTypes = new Type[method.GetParameters().Length];
+                        for (int x = 0; x < method.GetParameters().Length; x++)
                         {
-                            paratype = paratype.Replace("&", "");
+                            string paratype = method.GetParameters()[x].ParameterType.FullName;
+                            if (paratype.EndsWith("&"))
+                            {
+                                paratype = paratype.Replace("&", "");
+                            }
+                            ParameterTypes[x] = Type.GetType(paratype);// method.GetParameters()[x].ParameterType;
+                            if (ParameterTypes[x] == null)
+                            {
+                                ParameterTypes[x] = method.GetParameters()[x].ParameterType;
+                            }
                         }
-                        ParameterTypes[x] = Type.GetType(paratype);// method.GetParameters()[x].ParameterType;
-                        if (ParameterTypes[x] == null)
+                        // 目标方法参数类型
+                        Type pType = ParameterTypes[i];
+                        // 类型不一致，需要转换类型
+                        if (eType.Equals(pType) == false)
                         {
-                            ParameterTypes[x]= method.GetParameters()[x].ParameterType; 
+                            // 转换entity的类型
+                            string param = this._serializer.ToString(entity);
+                            object pValue = this._serializer.ToEntity(param, pType);
+                            // 保存参数
+                            parameterValues[i] = pValue;
                         }
                     }
-                    // 目标方法参数类型
-                    Type pType = ParameterTypes[i];
-                    // 类型不一致，需要转换类型
-                    if (eType.Equals(pType) == false)
-                    {
-                        // 转换entity的类型
-                        string bin = this._serializer.ToString(entity);
-                        object pValue = this._serializer.ToEntity(bin, pType);
-                        // 保存参数
-                        parameterValues[i] = pValue;
-                    }
+                    else
+                    { parameterValues[i] = null; }
                 }
             }
 

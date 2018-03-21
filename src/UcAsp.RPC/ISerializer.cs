@@ -34,10 +34,14 @@ namespace UcAsp.RPC
         /// 序列化为二进制
         /// </summary>
         /// <param name="entity">实体</param>
+
         /// <returns></returns>
         Binary ToBinary(object entity);
 
+        Binary ToBinary(object entity,Type type);
+
         string ToString(object entity);
+
 
         object ToEntity(string json, Type type);
 

@@ -2,7 +2,7 @@
 using System.Text;
 using System.Xml;
 
-namespace UcAsp.RPC
+namespace  UcAsp.RPC
 {
     /// <summary>
     ///   Abstract base class for all XML-base Profile classes.  Xml and Config

@@ -16,13 +16,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.IO;
 using System.Collections.Concurrent;
+using System.Dynamic;
 using log4net;
 
 namespace UcAsp.RPC
 {
     public abstract class ClientBase : IClient
     {
-
         private static CancellationTokenSource cancelTokenSource = new CancellationTokenSource();
         private readonly ILog _log = LogManager.GetLogger(typeof(ClientBase));
 
@@ -191,7 +191,7 @@ namespace UcAsp.RPC
                 return arg;
 
             }
-            _log.Info(e.TaskId + "超时");
+            _log.Info(e.TaskId+"超时");
             _timeoutTask.Add(e);
             e.StatusCode = StatusCode.TimeOut;
             return e;
@@ -228,5 +228,6 @@ namespace UcAsp.RPC
             }
             return dic;
         }
+
     }
 }

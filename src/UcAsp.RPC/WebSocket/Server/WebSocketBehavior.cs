@@ -54,8 +54,9 @@ namespace UcAsp.WebSocket.Server
         private string _protocol;
         private WebSocketSessionManager _sessions;
         private DateTime _startTime;
+        private DateTime _lastTime;
         private WebSocket _websocket;
-
+        private bool _keepSession;
         #endregion
         public virtual void Run(HttpListenerContext context) { }
 
@@ -66,7 +67,8 @@ namespace UcAsp.WebSocket.Server
         /// </summary>
         protected WebSocketBehavior()
         {
-            _startTime = DateTime.MaxValue;
+            _startTime = DateTime.Now;
+            _lastTime = DateTime.Now;
         }
 
         #endregion
@@ -103,6 +105,17 @@ namespace UcAsp.WebSocket.Server
             }
         }
 
+        public bool KeepSession
+        {
+            get
+            {
+                return _keepSession;
+            }
+            set
+            {
+                this._keepSession = value;
+            }
+        }
         #endregion
 
         #region  Ù–‘
@@ -321,6 +334,18 @@ namespace UcAsp.WebSocket.Server
             }
         }
 
+
+        public DateTime LastTime
+        {
+            get
+            {
+                return _lastTime;
+            }
+            set
+            {
+                this._lastTime = value;
+            }
+        }
         /// <summary>
         /// Gets the state of the <see cref="WebSocket"/> used in a session.
         /// </summary>
@@ -428,6 +453,7 @@ namespace UcAsp.WebSocket.Server
                 return;
             }
             var method = context.Request.HttpMethod;
+            _httpcontext = context;
             if (null == _sessions)
             {
                 _sessions = sessions;
@@ -739,24 +765,28 @@ namespace UcAsp.WebSocket.Server
 
         protected void AddCookie(HttpListenerContext context)
         {
-
-            Cookie cookie = context.Request.Cookies["SessionId"];
-            if (null == cookie)
+            if (KeepSession)
             {
-                _id = _sessions.Add(this);
-                Cookie session = new Cookie { Name = "SessionId", Value = _id };
-                context.Response.AppendCookie(session);
-                _startTime = DateTime.Now;
-            }
-            else
-            {
-                if (null == _sessions[cookie.Value])
+                Cookie cookie = context.Request.Cookies["SessionId"];
+                if (null == cookie)
                 {
                     _id = _sessions.Add(this);
                     Cookie session = new Cookie { Name = "SessionId", Value = _id };
-                    context.Response.AppendCookie(session);
-                    _startTime = DateTime.Now;
+                    context.Response.SetCookie(session);
+                    _lastTime = DateTime.Now;
                 }
+                else
+                {
+                    if (null == _sessions[cookie.Value])
+                    {
+                        _id = _sessions.Add(this);
+
+                        Cookie session = new Cookie { Name = "SessionId", Value = _id };
+                        context.Response.SetCookie(session);
+                        _lastTime = DateTime.Now;
+                    }
+                }
+                _lastTime = DateTime.Now;
             }
         }
         #endregion

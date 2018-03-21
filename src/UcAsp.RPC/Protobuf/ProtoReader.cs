@@ -53,9 +53,9 @@ namespace UcAsp.RPC.ProtoBuf
         /// <param name="source">The source stream</param>
         /// <param name="model">The model to use for serialization; this can be null, but this will impair the ability to deserialize sub-objects</param>
         /// <param name="context">Additional context about this serialization operation</param>
-        public ProtoReader(Stream source, TypeModel model, SerializationContext context) 
+        public ProtoReader(Stream source, TypeModel model, SerializationContext context)
         {
-            
+
             Init(this, source, model, context, TO_EOF);
         }
 
@@ -113,7 +113,7 @@ namespace UcAsp.RPC.ProtoBuf
             reader.internStrings = true;
             reader.wireType = WireType.None;
             reader.trapCount = 1;
-            if(reader.netCache == null) reader.netCache = new NetObjectCache();            
+            if (reader.netCache == null) reader.netCache = new NetObjectCache();
         }
 
         private SerializationContext context;
@@ -138,7 +138,7 @@ namespace UcAsp.RPC.ProtoBuf
                 stringInterner.Clear();
                 stringInterner = null;
             }
-            if(netCache != null) netCache.Clear();
+            if (netCache != null) netCache.Clear();
         }
         internal int TryReadUInt32VariantWithoutMoving(bool trimNegative, out uint value)
         {
@@ -235,7 +235,7 @@ namespace UcAsp.RPC.ProtoBuf
                     throw CreateWireTypeException();
             }
         }
-        
+
         /// <summary>
         /// Returns the position of the current reader (note that this is not necessarily the same as the position
         /// in the underlying stream, if multiple readers are used on the same stream)
@@ -482,7 +482,7 @@ namespace UcAsp.RPC.ProtoBuf
             return value;
         }
 #else
-        private System.Collections.Generic.Dictionary<string,string> stringInterner;
+        private System.Collections.Generic.Dictionary<string, string> stringInterner;
         private string Intern(string value)
         {
             if (value == null) return null;
@@ -491,7 +491,7 @@ namespace UcAsp.RPC.ProtoBuf
             if (stringInterner == null)
             {
                 stringInterner = new System.Collections.Generic.Dictionary<string, string>();
-                stringInterner.Add(value, value);        
+                stringInterner.Add(value, value);
             }
             else if (stringInterner.TryGetValue(value, out found))
             {
@@ -646,8 +646,8 @@ namespace UcAsp.RPC.ProtoBuf
                     reader.blockEnd64 = value64;
                     reader.depth--;
                     break;
-                /*default:
-                    throw reader.BorkedIt(); */
+                    /*default:
+                        throw reader.BorkedIt(); */
             }
         }
 
@@ -691,7 +691,7 @@ namespace UcAsp.RPC.ProtoBuf
             {
                 wireType = (WireType)(tag & 7);
                 fieldNumber = (int)(tag >> 3);
-                if(fieldNumber < 1) throw new ProtoException("Invalid field in source data: " + fieldNumber.ToString());
+                if (fieldNumber < 1) throw new ProtoException("Invalid field in source data: " + fieldNumber.ToString());
             }
             else
             {
@@ -773,7 +773,7 @@ namespace UcAsp.RPC.ProtoBuf
             switch (wireType)
             {
                 case WireType.Fixed32:
-                    if(available < 4) Ensure(4, true);
+                    if (available < 4) Ensure(4, true);
                     available -= 4;
                     ioIndex += 4;
                     position64 += 4;
@@ -989,7 +989,7 @@ namespace UcAsp.RPC.ProtoBuf
         public static int ReadLengthPrefix(Stream source, bool expectHeader, PrefixStyle style, out int fieldNumber)
         {
             int bytesRead;
-           return ReadLengthPrefix(source, expectHeader, style, out fieldNumber, out  bytesRead);
+            return ReadLengthPrefix(source, expectHeader, style, out fieldNumber, out bytesRead);
         }
         /// <summary>
         /// Reads a little-endian encoded integer. An exception is thrown if the data is not all available.
@@ -1017,7 +1017,7 @@ namespace UcAsp.RPC.ProtoBuf
         public static int DirectReadVarintInt32(Stream source)
         {
             ulong val;
-            int bytes = TryReadUInt64Variant(source, out  val);
+            int bytes = TryReadUInt64Variant(source, out val);
             if (bytes <= 0) throw EoF(null);
             return checked((int)val);
         }
@@ -1028,7 +1028,7 @@ namespace UcAsp.RPC.ProtoBuf
         {
             int read;
             if (source == null) throw new ArgumentNullException("source");
-            while(count > 0 && (read = source.Read(buffer, offset, count)) > 0)
+            while (count > 0 && (read = source.Read(buffer, offset, count)) > 0)
             {
                 count -= read;
                 offset += read;
@@ -1060,7 +1060,7 @@ namespace UcAsp.RPC.ProtoBuf
         /// </summary>
         public static int ReadLengthPrefix(Stream source, bool expectHeader, PrefixStyle style, out int fieldNumber, out int bytesRead)
         {
-            if(style == PrefixStyle.None)
+            if (style == PrefixStyle.None)
             {
                 bytesRead = fieldNumber = 0;
                 return int.MaxValue; // avoid the long.maxvalue causing overflow
@@ -1156,7 +1156,7 @@ namespace UcAsp.RPC.ProtoBuf
             if ((value & 0x80) == 0) { return 1; }
             value &= 0x7F;
             int bytesRead = 1, shift = 7;
-            while(bytesRead < 9)
+            while (bytesRead < 9)
             {
                 b = source.ReadByte();
                 if (b < 0) throw EoF(null);
@@ -1167,7 +1167,7 @@ namespace UcAsp.RPC.ProtoBuf
             }
             b = source.ReadByte();
             if (b < 0) throw EoF(null);
-            if((b & 1) == 0) // only use 1 bit from the last byte
+            if ((b & 1) == 0) // only use 1 bit from the last byte
             {
                 value |= ((ulong)b & 0x7F) << shift;
                 return ++bytesRead;
@@ -1321,14 +1321,14 @@ namespace UcAsp.RPC.ProtoBuf
             trapCount--;
         }
 
-        
+
         /// <summary>
         /// Utility method, not intended for public use; this helps maintain the root object is complex scenarios
         /// </summary>
         public static void NoteObject(object value, ProtoReader reader)
         {
             if (reader == null) throw new ArgumentNullException("reader");
-            if(reader.trapCount != 0)
+            if (reader.trapCount != 0)
             {
                 reader.netCache.RegisterTrappedObject(value);
                 reader.trapCount--;
@@ -1370,7 +1370,7 @@ namespace UcAsp.RPC.ProtoBuf
             if (parent == null) throw new ArgumentNullException("parent");
             TypeModel model = parent.Model;
             SerializationContext ctx = parent.Context;
-            if(model == null) throw new InvalidOperationException("Types cannot be merged unless a type-model has been specified");
+            if (model == null) throw new InvalidOperationException("Types cannot be merged unless a type-model has been specified");
             using (MemoryStream ms = new MemoryStream())
             {
                 model.Serialize(ms, from, ctx);
@@ -1406,7 +1406,7 @@ namespace UcAsp.RPC.ProtoBuf
         }
         internal static void Recycle(ProtoReader reader)
         {
-            if(reader != null)
+            if (reader != null)
             {
                 reader.Dispose();
                 lastReader = reader;
@@ -1451,6 +1451,6 @@ namespace UcAsp.RPC.ProtoBuf
         }
 #endif
 
-#endregion
+        #endregion
     }
 }

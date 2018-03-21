@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading;
 using UcAsp.WebSocket.Net;
 using UcAsp.WebSocket.Server;
+using log4net;
 namespace UcAsp.WebSocket.Server
 {
     /// <summary>
@@ -22,7 +23,7 @@ namespace UcAsp.WebSocket.Server
 
         private volatile bool _clean;
         private Route _hosts;
-        private Logger _log;
+        private readonly ILog _log = LogManager.GetLogger(typeof(WebSocketServiceManager));
         private volatile ServerState _state;
         private object _sync;
         private TimeSpan _waitTime;
@@ -31,9 +32,9 @@ namespace UcAsp.WebSocket.Server
 
         #region 内部构造函数
 
-        internal WebSocketServiceManager(Logger log)
+        internal WebSocketServiceManager(ILog log)
         {
-            _log = log;
+            // _log = log;
 
             _clean = true;
             _hosts = new Route();
@@ -355,7 +356,7 @@ namespace UcAsp.WebSocket.Server
                 if (_hosts.TryGetValue(path, out host))
                     throw new ArgumentException("Already in use.", "path");
 
-                host = new WebSocketServiceHost<TBehavior>(path, creator, null, _log);
+                host = new WebSocketServiceHost<TBehavior>(path, creator, null, new Logger());
 
                 if (!_clean)
                     host.KeepClean = false;
@@ -488,7 +489,7 @@ namespace UcAsp.WebSocket.Server
                     throw new ArgumentException("Already in use.", "path");
 
                 host = new WebSocketServiceHost<TBehavior>(
-                         path, () => new TBehavior(), initializer, _log
+                         path, () => new TBehavior(), initializer, new Logger()
                        );
 
                 if (!_clean)

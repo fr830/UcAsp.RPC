@@ -117,7 +117,7 @@ namespace UcAsp.WebSocket.Net
         _socket.SetSocketOption (SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
 
       _socket.Bind (endpoint);
-      _socket.Listen (500);
+      _socket.Listen (5000);
       _socket.BeginAccept (onAccept, this);
     }
 

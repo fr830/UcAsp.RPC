@@ -27,5 +27,6 @@ namespace UcAsp.RPC
         public Socket Client { get; set; }
 
         public int ActiveHash { get; set; }
+
     }
 }

@@ -18,6 +18,7 @@ using System.Threading.Tasks;
 using System.Diagnostics;
 using System.Collections.Concurrent;
 using System.Net.NetworkInformation;
+
 namespace UcAsp.RPC
 {
     public class SocketClient : ClientBase
@@ -156,7 +157,7 @@ namespace UcAsp.RPC
                 _client.BeginReceive(state.Buffer, 0, StateObject.BufferSize, SocketFlags.None, out error, ReceiveCallback, state);
                 #endregion
                 watch.Stop();
-                monitor.Write(e.TaskId, "", "...", watch.ElapsedMilliseconds);
+                monitor.Write(e.TaskId, e.ActionCmd, "...", watch.ElapsedMilliseconds, _bf.LongLength.ToString());
                 Channels[i].PingActives = DateTime.Now.Ticks;
             }
             catch (SocketException sex)
@@ -274,6 +275,5 @@ namespace UcAsp.RPC
             }
         }
     }
-
 
 }

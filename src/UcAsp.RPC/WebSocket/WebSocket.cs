@@ -124,7 +124,7 @@ namespace UcAsp.WebSocket
       _protocol = protocol;
 
       _closeContext = context.Close;
-      _logger = context.Log;
+      _logger = new Logger();
       _message = messages;
       _secure = context.IsSecureConnection;
       _stream = context.Stream;

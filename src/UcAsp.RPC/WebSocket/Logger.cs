@@ -202,7 +202,8 @@ namespace UcAsp.WebSocket
         private static void defaultOutput(LogData data, string path)
         {
             var log = data.ToString();
-            Console.WriteLine(log);
+            if (data.Level != LogLevel.Monitor)
+                Console.WriteLine(log);
             if (path != null && path.Length > 0)
                 writeToFile(log, path);
         }
@@ -217,7 +218,12 @@ namespace UcAsp.WebSocket
                 LogData data = null;
                 try
                 {
-                    data = new LogData(level, new StackFrame(2, true), message);
+                    if (level == LogLevel.Monitor)
+                    {
+                        data = new LogData(level, new StackFrame(3, true), message);
+                    }
+                    else { data = new LogData(level, new StackFrame(2, true), message); }
+
                     _output(data, _file);
                 }
                 catch (Exception ex)
@@ -325,6 +331,7 @@ namespace UcAsp.WebSocket
         {
             output(message, LogLevel.Monitor);
         }
+
         /// <summary>
         /// Outputs <paramref name="message"/> as a log with <see cref="LogLevel.Warn"/>.
         /// </summary>

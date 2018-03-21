@@ -23,20 +23,22 @@ namespace UcAsp.RPC.Tests
         public void Initial()
         {
             string m = DateTime.Now.ToUniversalTime().ToString("ddMMyyyyhhmmss");
-            //ApplicationContext context = new ApplicationContext();
+           
         }
-       // [TestMethod()]
+        [TestMethod]
         public void GetObjectTypeTest()
         {
+            ApplicationContext context = new ApplicationContext();
+            context.Start(AppDomain.CurrentDomain.BaseDirectory + "Application.config", AppDomain.CurrentDomain.BaseDirectory);
             //Assembly assl = Assembly.LoadFrom(@"E:\DEV\UcAsp.RPC\UcAsp.RPCTests\bin\Debug\IFace.dll");
             //Type[] types=assl.GetTypes();
             //ApplicationContext context = new ApplicationContext();
 
-          //  IFace.ITest clazz = context.GetProxyObject<IFace.ITest>();
+            //  IFace.ITest clazz = context.GetProxyObject<IFace.ITest>();
             //
-           // clazz.Get("MM", 1);
+            // clazz.Get("MM", 1);
             //List<string> m = clazz.Good("M", "MM","MMM");
-           
+
             // IFace.IClass clazz = context.GetObject<IFace.IClass>("ClaZZ");
             //string mesage = clazz.Get("Yu", 1);
 

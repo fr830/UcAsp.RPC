@@ -13,7 +13,7 @@ using System.Net;
 using System.Net.Sockets;
 using log4net;
 using System.Collections;
-namespace UcAsp.RPC
+namespace  UcAsp.RPC
 {
     [Serializable]
     public class DataEventArgs : EventArgs
@@ -85,13 +85,13 @@ namespace UcAsp.RPC
             {
                 ipLength = Encoding.UTF8.GetByteCount(RemoteIpAddress);
             }
-            int capacity = ConstLength + cmdLength + paramLength + idLength + errLength + ipLength+ pavalLength;
+            int capacity = ConstLength + cmdLength + paramLength + idLength + errLength + ipLength + pavalLength;
 
             if (this.Binary != null && this.Binary.Buffer != null)
             {
                 capacity = capacity + this.Binary.Buffer.Length; // +实体数据长
             }
-            
+
             ByteBuilder builder = new ByteBuilder(capacity);
             builder.Add(BitConverter.GetBytes(capacity));
             builder.Add(BitConverter.GetBytes(cmdLength));
@@ -116,7 +116,7 @@ namespace UcAsp.RPC
 
             builder.Add(Encoding.UTF8.GetBytes(this.HttpSessionId));
 
-           
+
 
             if (!string.IsNullOrEmpty(RemoteIpAddress))
             {
@@ -190,9 +190,9 @@ namespace UcAsp.RPC
                     lastError = Encoding.UTF8.GetString(errBinary);
                 }
 
-                ArrayList Param =new JsonSerializer().ToEntity<ArrayList>( Encoding.UTF8.GetString(recvBuilder.ReadRange(pavalLength)));
+                ArrayList Param = new JsonSerializer().ToEntity<ArrayList>(Encoding.UTF8.GetString(recvBuilder.ReadRange(pavalLength)));
                 // 实体长
-                int entityLength = totalLength - ConstLength - cmdLength - paramLength - idLength - errLength - ipLength-pavalLength;
+                int entityLength = totalLength - ConstLength - cmdLength - paramLength - idLength - errLength - ipLength - pavalLength;
                 // 实体数据
                 Binary entityBinary = new Binary(recvBuilder.ReadRange(entityLength));
                 // 校验长
@@ -203,7 +203,7 @@ namespace UcAsp.RPC
                 {
 
                     // 返回数据事件包给发送者
-                    return new DataEventArgs() { Binary = entityBinary, Param=Param, LastError = lastError, RemoteIpAddress = ipAddress, TryTimes = tryTimes, StatusCode = (StatusCode)statusCode, TaskId = taskId, ActionCmd = cmd, CallHashCode = hashCode, ActionParam = param, HttpSessionId = id };
+                    return new DataEventArgs() { Binary = entityBinary, Param = Param, LastError = lastError, RemoteIpAddress = ipAddress, TryTimes = tryTimes, StatusCode = (StatusCode)statusCode, TaskId = taskId, ActionCmd = cmd, CallHashCode = hashCode, ActionParam = param, HttpSessionId = id };
                 }
                 else
                 {

@@ -9,6 +9,9 @@ using System.Net;
 using Timer = System.Timers.Timer;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Collections.Concurrent;
+using UcAsp.RPC.Service;
+
 namespace UcAsp.RPC
 {
     [Serializable]
@@ -19,51 +22,20 @@ namespace UcAsp.RPC
         private static ServerBase _httpserver = null;
         private static string _rootpath = string.Empty;
         private static ISerializer _serializer = new JsonSerializer();
-        internal static int _taskId = 0;
+        public static int _taskId = 0;
         private static bool _run = false;
         private static Dictionary<string, Type> _obj = new Dictionary<string, Type>();
-        private static Dictionary<string, Tuple<string, MethodInfo, int>> _memberinfos = new Dictionary<string, Tuple<string, MethodInfo, int>>();
-        private static Dictionary<string, dynamic> _proxobj = new Dictionary<string, dynamic>();// dynamic new { ClassName = info.ClassName, NameSpace = info.NameSpace, Client = _client };
+        private static Dictionary<string, Tuple<string, MethodInfo, int, long>> _memberinfos = new Dictionary<string, Tuple<string, MethodInfo, int, long>>();
+        private static Dictionary<string, dynamic> _proxobj = new Dictionary<string, dynamic>();
+        private static ConcurrentDictionary<string, object> _clazz = new ConcurrentDictionary<string, object>();
         private static List<RegisterInfo> _registerInfo = new List<RegisterInfo>();
         private static string _config;
         CancellationTokenSource cts = new CancellationTokenSource();
         private Timer Pong;//= new Timer();
         private Timer Broad;// = new Timer();
-        private Thread getBoardthread;
-        private Socket clientBoard;
-        /// <summary>
-        /// 客户端获取创建对象
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="className"></param>
-        /// <returns></returns>
-        public T GetProxyObject<T>()
-        {
-            Type asssembly = typeof(T);
-            string name = asssembly.FullName;
-            if (_proxobj.ContainsKey(name))
-            {
-                dynamic _client = _proxobj[name];
+        Thread getBoardthread;
+        Socket clientBoard;
 
-                string nameSpace = _client.NameSpace;
-                string className = _client.ClassName;
-                object clazz = Proxy.GetObjectType<T>(nameSpace, className);
-                Type type = clazz.GetType();
-
-                PropertyInfo property = type.GetProperty("Client");
-                if (property != null && property.CanWrite)
-                {
-                    property.SetValue(clazz, _client.Client, null);
-                }
-                return (T)clazz;
-            }
-            else
-            {
-                _log.Error("未配置" + name);
-                throw new Exception("未配置" + name);
-
-            }
-        }
         #region 监控
         public DateTime LastRunTime()
         {
@@ -73,8 +45,9 @@ namespace UcAsp.RPC
             }
             else
             {
-                return DateTime.Parse("0001/01/01 00:00");
+                return ActionService.LastRunTime;
             }
+
         }
         public string LastError()
         {
@@ -84,21 +57,23 @@ namespace UcAsp.RPC
             }
             else
             {
-                return "服务不存在";
+                return ActionService.LastError;
             }
+
         }
 
         public string LastMethod()
         {
-            if (_server != null)
-            {
-                return _server.LastMethod;
-            }
-            else
-            {
-                return "服务不存在";
-            }
+            //if (actionService != null)
+            //{
+            //    return ActionService.LastMethod;
+            //}
+            //else
+            //{
+            //    return "服务不存在";
+            //}
 
+            return ActionService.LastMethod;
         }
         public string LastParam()
         {
@@ -109,7 +84,18 @@ namespace UcAsp.RPC
             }
             else
             {
-                return "服务不存在";
+                return ActionService.LastParam;
+            }
+        }
+        public string ManagerUrl()
+        {
+            if (_httpserver != null)
+            {
+                return _httpserver.ManagerUrl();
+            }
+            else
+            {
+                return null;
             }
         }
 
@@ -125,6 +111,45 @@ namespace UcAsp.RPC
             }
         }
         #endregion
+
+        /// <summary>
+        /// 客户端获取创建对象
+        /// </summary>
+        /// <typeparam name="T">接口</typeparam>
+        /// <returns></returns>
+        public T GetProxyObject<T>()
+        {
+            Type asssembly = typeof(T);
+            string name = asssembly.FullName;
+            if (_proxobj.ContainsKey(name))
+            {
+                dynamic _client = _proxobj[name];
+
+                string nameSpace = _client.NameSpace;
+                string className = _client.ClassName;
+                object clazz;
+                if (!_clazz.TryGetValue(nameSpace + "." + className, out clazz))
+                {
+                    clazz = Proxy.GetObjectType<T>(nameSpace, className);
+
+                    Type type = clazz.GetType();
+                    PropertyInfo property = type.GetProperty("Client");
+                    if (property != null && property.CanWrite)
+                    {
+                        property.SetValue(clazz, _client.Client, null);
+                    }
+                    _clazz.AddOrUpdate(nameSpace + "." + className, clazz, (key, value) => value = clazz);
+                }
+                return (T)clazz;
+            }
+            else
+            {
+                _log.Error("未配置" + name);
+                throw new Exception("未配置" + name);
+
+            }
+        }
+
         public T GetProxyObject<T>(IPEndPoint ep)
         {
 
@@ -152,10 +177,14 @@ namespace UcAsp.RPC
 
             }
         }
+
         /// <summary>
-        /// 
+        /// Initializes a new instance of the <see cref="ApplicationContext"/> class. 
+        /// 初始化
         /// </summary>
-        /// <param name="configpath">config 绝对路径</param>
+        /// <param name="configpath">
+        /// config 绝对路径
+        /// </param>
         public ApplicationContext(string configpath)
         {
             _config = configpath;
@@ -175,7 +204,6 @@ namespace UcAsp.RPC
             }
             _config = _rootpath + config;
             Start(_config, _rootpath);
-
         }
 
         ~ApplicationContext()
@@ -190,6 +218,7 @@ namespace UcAsp.RPC
                 _rootpath = _rootpath + "\\";
             }
             _config = _rootpath + "Application.config";
+            // Start(_config, _rootpath);
         }
         public void Start(string configpath, string rootpath)
         {
@@ -272,9 +301,6 @@ namespace UcAsp.RPC
                 getBoardthread = new Thread(new ThreadStart(GetBorad));
                 getBoardthread.Start();
             }
-
-
-
         }
         private void InitializeServer(Config config)
         {
@@ -297,26 +323,25 @@ namespace UcAsp.RPC
                             _obj.Add(action, t);
                         }
 
-                        for (int i = 0; i < _interface.Length; i++)
-                        {
-                            RegisterInfo reg = new RegisterInfo() { ClassName = t.Name, NameSpace = t.Namespace, FaceNameSpace = _interface[i].Namespace, InterfaceName = _interface[i].Name };
-                            _registerInfo.Add(reg);
-                        }
 
+                        RegisterInfo reg = new RegisterInfo() { ClassName = t.Name, NameSpace = t.Namespace, FaceNameSpace = _interface[0].Namespace, InterfaceName = _interface[0].Name };
+                        _registerInfo.Add(reg);
 
                         ///添加方法
+                        Type[] tx = t.GetInterfaces();
                         MethodInfo[] infos = t.GetMethods();
                         foreach (MethodInfo info in infos)
                         {
+
+                            if (info.DeclaringType.Name != reg.ClassName)
+                                continue;
                             string method = Proxy.GetMethodMd5Code(info);
                             _log.Info(string.Format("{0}.{1}", method, info.Name));
                             if (!_memberinfos.ContainsKey(method))
                             {
-                                //md5格式
-                                Tuple<string, MethodInfo, int> tuple = new Tuple<string, MethodInfo, int>(action, info, 0);
 
+                                Tuple<string, MethodInfo, int,long> tuple = new Tuple<string, MethodInfo, int,long>(action, info, 0,0);
                                 _memberinfos.Add(method, tuple);
-
                                 object[] attr = info.GetCustomAttributes(typeof(Restful), true);
                                 if (attr.Length > 0)
                                 {
@@ -327,7 +352,6 @@ namespace UcAsp.RPC
                                         info.Invoke(_runObj, null);
                                     }
                                 }
-
                             }
                         }
                     }
@@ -387,7 +411,7 @@ namespace UcAsp.RPC
         {
             try
             {
-                UdpClient client = new UdpClient(new IPEndPoint(IPAddress.Any, 7788));
+
                 if (clientBoard != null)
                     return;
 
@@ -396,25 +420,28 @@ namespace UcAsp.RPC
                 clientBoard.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
                 clientBoard.Bind(new IPEndPoint(IPAddress.Any, 7788));
                 EndPoint endpoint = new IPEndPoint(IPAddress.Any, 0);
-                while (true)
+                while (!cts.Token.IsCancellationRequested)
                 {
 
+                    Dictionary<string, dynamic> dic = new Dictionary<string, dynamic>(_proxobj);
                     byte[] buf = new byte[1024];
                     int l = clientBoard.ReceiveFrom(buf, ref endpoint);
                     int port = int.Parse(Encoding.Default.GetString(buf, 0, l));
                     IPAddress ip = ((IPEndPoint)endpoint).Address;
                     bool flag = false;
-                    foreach (KeyValuePair<string, dynamic> kv in _proxobj)
+
+                    foreach (KeyValuePair<string, dynamic> cp in dic)
                     {
-                        foreach (ChannelPool cp in kv.Value.Client)
+                        foreach (ChannelPool p in cp.Value.Client.Channels)
                         {
-                            if (cp.IpPoint.Address.ToString() == ip.ToString() && cp.IpPoint.Port == port)
+                            if (p.IpPoint.Address.ToString() == ip.ToString() && p.IpPoint.Port == port)
                             {
                                 flag = true;
-                                continue;
+                                break;
                             }
-
                         }
+                        if (flag == true)
+                            break;
                     }
 
                     if (!flag)
@@ -425,6 +452,7 @@ namespace UcAsp.RPC
 
 
                 }
+
 
             }
             catch (Exception ex)
@@ -452,12 +480,8 @@ namespace UcAsp.RPC
             {
                 _client = new HttpClient();
             }
-            _client.ClientTask = new System.Collections.Concurrent.ConcurrentQueue<DataEventArgs>();
-            _client.ResultTask = new System.Collections.Concurrent.ConcurrentDictionary<int, DataEventArgs>();
-            _client.RuningTask = new System.Collections.Concurrent.ConcurrentDictionary<int, DataEventArgs>();
-            _client.Channels = new List<ChannelPool>();
 
-            ChannelPool channlepool = new ChannelPool { IpPoint = new IPEndPoint(IPAddress.Parse(ip), port) };
+            ChannelPool channlepool = new ChannelPool { IpPoint = new IPEndPoint(IPAddress.Parse(ip), port), Available = true };
             _client.Channels.Add(channlepool);
             _client.Authorization = Convert.ToBase64String(Encoding.ASCII.GetBytes(username + ":" + password));
             DataEventArgs vali = new DataEventArgs { ActionCmd = CallActionCmd.Validate.ToString(), ActionParam = _client.Authorization, TaskId = 0 };
@@ -490,43 +514,53 @@ namespace UcAsp.RPC
             {
                 for (int i = 0; i < pool; i++)
                 {
-                    ChannelPool channel = new ChannelPool { IpPoint = new IPEndPoint(IPAddress.Parse(ip), port) };
+                    ChannelPool channel = new ChannelPool { IpPoint = new IPEndPoint(IPAddress.Parse(ip), port), Available = true };
                     _client.Channels.Add(channel);
                 }
                 foreach (RegisterInfo info in registerInfos)
                 {
+
                     lock (_proxobj)
                     {
-                        string assname = string.Format("{0}.{1}", info.FaceNameSpace, info.InterfaceName);
-                        dynamic val = new { ClassName = info.ClassName, NameSpace = info.NameSpace, Client = _client };
-                        if (!_proxobj.ContainsKey(assname))
+                        try
                         {
-                            _proxobj.Add(assname, val);
-                        }
-                        else
-                        {
-                            bool pc = false;
-                            foreach (ChannelPool p in _proxobj[assname].Channels)
-                            {
-                                if (p.IpPoint == channlepool.IpPoint)
-                                {
-                                    pc = true;
-                                }
-                            }
-                            if (!pc)
-                            {
-                                _proxobj[assname].Channels.Add(channlepool);
-                                for (int i = 0; i < 10; i++)
-                                {
-                                    ChannelPool channel = new ChannelPool { IpPoint = new IPEndPoint(IPAddress.Parse(ip), port) };
-                                    _proxobj[assname].Channels.Add(channel);
-                                }
-                            }
+                            string assname = string.Format("{0}.{1}", info.FaceNameSpace, info.InterfaceName);
 
+                            dynamic val = new { ClassName = info.ClassName, NameSpace = info.NameSpace, Client = _client };
+                            if (!_proxobj.ContainsKey(assname))
+                            {
+                                _proxobj.Add(assname, val);
+                            }
+                            else
+                            {
+                                bool pc = false;
+                                foreach (ChannelPool p in _proxobj[assname].Client.Channels)
+                                {
+                                    if (p.IpPoint == channlepool.IpPoint)
+                                    {
+                                        pc = true;
+                                    }
+                                }
+                                if (!pc)
+                                {
+                                    _proxobj[assname].Client.Channels.Add(channlepool);
+                                    for (int i = 0; i < 10; i++)
+                                    {
+                                        ChannelPool channel = new ChannelPool { IpPoint = new IPEndPoint(IPAddress.Parse(ip), port), Available = true };
+                                        _proxobj[assname].Client.Channels.Add(channel);
+                                    }
+                                }
+
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine(ex);
                         }
                     }
                 }
             }
+
         }
         public static object GetObject(string className)
         {
@@ -534,7 +568,6 @@ namespace UcAsp.RPC
             {
                 Type type = _obj[className];
                 object obj = Activator.CreateInstance(type);
-
                 return obj;
             }
             return null;
@@ -572,7 +605,6 @@ namespace UcAsp.RPC
                 }
                 catch { }
             }
-
             if (_server != null)
             {
                 _server.Stop();
@@ -587,7 +619,6 @@ namespace UcAsp.RPC
             {
                 Console.WriteLine("停止 服务");
             });
-
         }
     }
 }

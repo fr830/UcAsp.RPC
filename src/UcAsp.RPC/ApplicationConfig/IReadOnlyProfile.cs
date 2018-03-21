@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Data;
 
-namespace UcAsp.RPC
+namespace  UcAsp.RPC
 {
     public interface IReadOnlyProfile : ICloneable
     {

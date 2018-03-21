@@ -10,25 +10,26 @@ using System.Text;
 using System.Threading;
 using UcAsp.WebSocket.Net;
 using UcAsp.WebSocket.Net.WebSockets;
-
+using log4net;
+using System.Threading.Tasks;
 namespace UcAsp.WebSocket.Server
 {
     public class WebServer
     {
         #region Private Fields
-
+        private readonly ILog _log = LogManager.GetLogger(typeof(WebServer));
         private System.Net.IPAddress _address;
         private string _docRootPath;
         private string _hostname;
         private HttpListener _listener;
-        private Logger _log;
+        //private Logger _log;
         private int _port;
         private Thread _receiveThread;
         private bool _secure;
         private WebSocketServiceManager _services;
         private volatile ServerState _state;
         private object _sync;
-        private Dictionary<string, string> _mime = new Dictionary<string, string>();
+
         #endregion
 
         #region Public Constructors
@@ -482,7 +483,7 @@ namespace UcAsp.WebSocket.Server
         /// <value>
         /// A <see cref="Logger"/> that provides the logging function.
         /// </value>
-        public Logger Log
+        public ILog Log
         {
             get
             {
@@ -855,35 +856,19 @@ namespace UcAsp.WebSocket.Server
           string hostname, System.Net.IPAddress address, int port, bool secure
         )
         {
+
             _hostname = hostname;
             _address = address;
             _port = port;
             _secure = secure;
 
-            _docRootPath = "./Public";
+            _docRootPath = "./wwwroot";
             _listener = createListener(_hostname, _port, _secure);
-            _log = _listener.Log;
+
             _services = new WebSocketServiceManager(_log);
             _sync = new object();
-            _mime.Add("gif", "image/gif");
-            _mime.Add("jpeg", "image/jpeg");
-            _mime.Add("jpg", "image/jpeg");
-            _mime.Add("tif", "image/tif");
-            _mime.Add("png", "image/png");
-            _mime.Add("txt", "text/plain");
-            _mime.Add("html", "text/xml");
-            _mime.Add("htm", "text/xml");
-            _mime.Add("js", "application/x-javascript");
-            _mime.Add("css", "text/css");
-            _mime.Add("avi", "video/x-msvideo");
-            _mime.Add("zip", "application/zip");
-            _mime.Add("rar", "application/x-rar-compressed");
-            _mime.Add("flv", "flv-application/octet-stream");
-            _mime.Add("mp4", "application/octet-stream");
-            _mime.Add("svg", "image/svg+xml");
-            _mime.Add("woff", "application/x-font-woff");
-            _mime.Add("woff2", "application/x-font-woff");
-            _mime.Add("ttf", "application/octet-stream");
+            ThreadPool.SetMaxThreads(5000, 5000);
+
         }
 
         private void processRequest(HttpListenerContext context)
@@ -891,31 +876,24 @@ namespace UcAsp.WebSocket.Server
             WebSocketServiceHost host;
             if (!_services.InternalTryGetServiceHost(context.Request.RawUrl.ToLower(), out host))
             {
-                string url = context.Request.RawUrl.ToLower();
-                string mime = "image/jpeg";
-                string[] l = url.Split('.');
-
-                string ext = "txt";
-                if (l.Length >= 2)
-                {
-                    if (_mime.ContainsKey(l[l.Length - 1]))
-                    {
-                        mime = _mime[l[l.Length - 1]];
-                    }
-                }
                 string localpath = System.Web.HttpUtility.UrlDecode(context.Request.RawUrl, System.Text.Encoding.UTF8).Replace("/", "\\");
+                string ext = localpath.Split('.')[localpath.Split('.').Length - 1].ToLower();
                 string path = _docRootPath + localpath;
                 bool isExit = File.Exists(path);
                 if (isExit)
                 {
                     byte[] buffer = GetFile(localpath);
-                  //  context.Response.AddHeader("Content-Type", mime);
+                    if (ext == "html" || ext == "htm")
+                    {
+                        context.Response.Headers.Add("Content-Type", "text/html");
+                    }
                     context.Response.WriteContent(buffer);
+
                 }
                 else
                 {
                     context.Response.WriteContent(Encoding.UTF8.GetBytes("NOTFOUND"));
-                    context.Response.Close(HttpStatusCode.NotFound);
+
                 }
                 return;
             }
@@ -946,28 +924,51 @@ namespace UcAsp.WebSocket.Server
                 try
                 {
                     ctx = _listener.GetContext();
-                    ThreadPool.QueueUserWorkItem(
-                      state =>
-                      {
-                          try
-                          {
-                              if (ctx.Request.IsUpgradeTo("websocket"))
-                              {
-                                  processRequest(ctx.AcceptWebSocket(null));
-                                  return;
-                              }
+                    //ThreadPool.QueueUserWorkItem(
+                    //  state =>
+                    //  {
+                    //      try
+                    //      {
+                    //          if (ctx.Request.IsUpgradeTo("websocket"))
+                    //          {
+                    //              processRequest(ctx.AcceptWebSocket(null));
+                    //              return;
+                    //          }
 
-                              processRequest(ctx);
-                          }
-                          catch (Exception ex)
-                          {
-                              _log.Fatal(ex.Message);
-                              _log.Debug(ex.ToString());
+                    //          processRequest(ctx);
+                    //      }
+                    //      catch (Exception ex)
+                    //      {
+                    //          _log.Fatal(ex.Message);
+                    //          _log.Debug(ex.ToString());
 
-                              ctx.Connection.Close(true);
-                          }
-                      }
-                    );
+                    //          ctx.Connection.Close(true);
+                    //      }
+                    //  }
+                    //);
+                    Task task = new Task(() =>
+                    {
+                        try
+                        {
+                            if (ctx.Request.IsUpgradeTo("websocket"))
+                            {
+                                processRequest(ctx.AcceptWebSocket(null));
+                                return;
+                            }
+
+                            processRequest(ctx);
+                        }
+                        catch (Exception ex)
+                        {
+                            _log.Fatal(ex.Message);
+                            _log.Debug(ex.ToString());
+
+                            ctx.Connection.Close(true);
+                        }
+                    });
+                    task.Start();
+
+
                 }
                 catch (HttpListenerException)
                 {
@@ -1272,8 +1273,18 @@ namespace UcAsp.WebSocket.Server
                 var msg = "It includes either or both query and fragment components.";
                 throw new ArgumentException(msg, "path");
             }
-
-            _services.Add<TBehavior>(path, creator, rule);
+            if (path.IndexOfAny(new[] { '|' }) > -1)
+            {
+                string[] p = path.Split('|');
+                foreach (string s in p)
+                {
+                    AddWebSocketService(s, creator, rule);
+                }
+            }
+            else
+            {
+                _services.Add<TBehavior>(path, creator, rule);
+            }
         }
         public void AddPrefixes(string url)
         {

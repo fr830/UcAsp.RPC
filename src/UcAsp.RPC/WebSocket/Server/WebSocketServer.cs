@@ -9,7 +9,7 @@ using System.Text;
 using System.Threading;
 using UcAsp.WebSocket.Net;
 using UcAsp.WebSocket.Net.WebSockets;
-
+using log4net;
 namespace UcAsp.WebSocket.Server
 {
     /// <summary>
@@ -29,7 +29,7 @@ namespace UcAsp.WebSocket.Server
         private bool _dnsStyle;
         private string _hostname;
         private TcpListener _listener;
-        private Logger _log;
+        private ILog _log = LogManager.GetLogger(typeof(HttpListener));
         private int _port;
         private string _realm;
         private string _realmInUse;
@@ -475,7 +475,7 @@ namespace UcAsp.WebSocket.Server
         /// <value>
         /// A <see cref="Logger"/> that provides the logging function.
         /// </value>
-        public Logger Log
+        public ILog Log
         {
             get
             {
@@ -854,8 +854,8 @@ namespace UcAsp.WebSocket.Server
             _authSchemes = AuthenticationSchemes.Anonymous;
             _dnsStyle = Uri.CheckHostName(hostname) == UriHostNameType.Dns;
             _listener = new TcpListener(address, port);
-            
-            _log = new Logger();
+
+
             _services = new WebSocketServiceManager(_log);
             _sync = new object();
         }
@@ -908,7 +908,7 @@ namespace UcAsp.WebSocket.Server
                           try
                           {
                               var ctx =
-                      cl.GetWebSocketContext(null, _secure, _sslConfigInUse, _log);
+                      cl.GetWebSocketContext(null, _secure, _sslConfigInUse, new Logger());
 
                               if (!ctx.Authenticate(_authSchemes, _realmInUse, _userCredFinder))
                                   return;
@@ -1244,7 +1244,7 @@ namespace UcAsp.WebSocket.Server
         ///   <paramref name="path"/> is already in use.
         ///   </para>
         /// </exception>
-        public void AddWebSocketService<TBehaviorWithNew>(string path,dynamic rule) where TBehaviorWithNew : WebSocketBehavior, new()
+        public void AddWebSocketService<TBehaviorWithNew>(string path, dynamic rule) where TBehaviorWithNew : WebSocketBehavior, new()
         {
             _services.AddService<TBehaviorWithNew>(path, null, rule);
         }

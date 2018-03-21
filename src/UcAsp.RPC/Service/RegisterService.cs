@@ -31,13 +31,25 @@ namespace UcAsp.RPC.Service
         private void Send(HttpRequestEventArgs ev)
         {
             string reginfo = JsonConvert.SerializeObject(RegisterInfo);
-
             DataEventArgs reg = new DataEventArgs();
             reg.Param = new System.Collections.ArrayList();
-            reg.Json = reginfo;
-            byte[] _buffer = GZipUntil.GetZip(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(reg)));
-            ev.Response.AddHeader("Content-Encoding", "gzip");
-            ev.Response.WriteContent(_buffer);
+            if (ev.Request.RawUrl.ToString().ToLower() == "/register")
+            {
+
+                reg.Json = reginfo;
+                reg.StatusCode = StatusCode.Success;
+                byte[] _buffer = GZipUntil.GetZip(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(reg)));
+                ev.Response.AddHeader("Content-Encoding", "gzip");
+                ev.Response.WriteContent(_buffer);
+            }
+            else
+            {
+                reg.HttpSessionId = Guid.NewGuid().ToString("N");
+                reg.StatusCode = StatusCode.Success;
+                byte[] _buffer = GZipUntil.GetZip(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(reg)));
+                ev.Response.AddHeader("Content-Encoding", "gzip");
+                ev.Response.WriteContent(_buffer);
+            }
         }
     }
 }

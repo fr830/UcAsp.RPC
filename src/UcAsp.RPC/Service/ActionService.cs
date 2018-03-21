@@ -17,26 +17,42 @@ using Newtonsoft.Json;
 using System.IO;
 using System.Reflection;
 using System.Threading;
+using Newtonsoft.Json.Linq;
 using log4net;
+using System.Diagnostics;
+
 namespace UcAsp.RPC.Service
 {
 
     public class ActionService : WebSocketBehavior
     {
+        private static int taskId = 0;
         private readonly ILog _log = LogManager.GetLogger(typeof(ActionService));
         CancellationTokenSource source = new CancellationTokenSource();
         CancellationToken token;
         private Dictionary<string, DateTime> RunCall = new Dictionary<string, DateTime>();
-        public Dictionary<string, Tuple<string, MethodInfo, int>> MemberInfos { get; set; }
+        public Dictionary<string, Tuple<string, MethodInfo, int, long>> MemberInfos { get; set; }
+        private static Monitor monitor = new Monitor();
+        Stopwatch wath = new Stopwatch();
+        public static DateTime LastRunTime = DateTime.Now;
+        public static string LastError = "";
+        public static string LastMethod = "";
+        public static string LastParam = "";
+
+        public int Timer = 0;
         protected override void OnPost(HttpRequestEventArgs ev)
         {
+            long size = 0;
+            Sessions.KeepClean = true;
+            KeepSession = false;
+            wath.Start();
             string content = string.Empty;
             using (StreamReader reader = new StreamReader(ev.Request.InputStream))
             {
                 content = reader.ReadToEnd();
+                _log.Error(content);
             }
             string rpc = ev.Request.Headers["UcAsp.Net_RPC"];
-
             string url = ev.Request.RawUrl;
             if (!url.EndsWith("/"))
             {
@@ -56,32 +72,52 @@ namespace UcAsp.RPC.Service
                 code = rurl[1];
             }
             bool keeplive = false;
+
             DataEventArgs ea = new DataEventArgs();
+
+            dynamic parameters = new List<object>();
             try
             {
-                var parameters = JsonConvert.DeserializeObject<dynamic>(content);
+                parameters = JsonConvert.DeserializeObject<dynamic>(content);
                 if (parameters == null) parameters = new List<object>();
                 ea = Call(name, methodname, code, parameters, ref keeplive);
             }
             catch (Exception ex)
             {
-                ea.StatusCode = StatusCode.Error;
-                ea.LastError = ex.Message;
                 _log.Error(ex);
+                ea.StatusCode = StatusCode.Serious;
+                ea.LastError = ex.Message;
             }
+
             if (rpc == "true")
             {
                 byte[] buffer = GZipUntil.GetZip(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(ea)));
+                size = buffer.LongLength;
                 ev.Response.AddHeader("Content-Encoding", "gzip");
                 ev.Response.WriteContent(buffer);
             }
             else
             {
-                byte[] _bf = GZipUntil.GetZip(Encoding.UTF8.GetBytes(ea.Json));
-                ev.Response.AddHeader("Content-Encoding", "gzip");
-                ev.Response.WriteContent(_bf);
-            }
+                if (ea.StatusCode != StatusCode.Success)
+                {
+                    byte[] _bf = GZipUntil.GetZip(Encoding.UTF8.GetBytes("{\"code\":" + (int)ea.StatusCode + ",\"msg\":\"" + ea.LastError + "\"}"));
+                    ev.Response.AddHeader("Content-Encoding", "gzip");
+                    ev.Response.WriteContent(_bf);
+                    size = _bf.LongLength;
+                }
+                else
+                {
+                    byte[] _bf = GZipUntil.GetZip(Encoding.UTF8.GetBytes(ea.Json));
+                    ev.Response.AddHeader("Content-Encoding", "gzip");
+                    ev.Response.WriteContent(_bf);
+                    size = _bf.LongLength;
 
+                }
+
+            }
+            wath.Stop();
+            long milli = wath.ElapsedMilliseconds;
+            monitor.Write(ea.TaskId, name, methodname + "." + code, milli, size.ToString());
 
         }
         /// <summary>
@@ -93,23 +129,47 @@ namespace UcAsp.RPC.Service
         {
             if (e.Data != "@heart")
             {
+
+                Stopwatch wath = new Stopwatch();
+                wath.Start();
                 DataEventArgs ea = new DataEventArgs();
+                WebSocketSessionManager session = Sessions;
                 try
                 {
-                    var data = JsonConvert.DeserializeObject<dynamic>(e.Data);
+                    dynamic data = JsonConvert.DeserializeObject<JToken>(e.Data);
                     string name = data.clazz;
                     string methodname = data.method;
                     var parameters = data.param;
                     bool keeplive = false;
                     ea = Call(name, methodname, null, parameters, ref keeplive);
+                    if (keeplive)
+                    {
+                        DateTime outTime;
+                        if (!RunCall.TryGetValue(name + "." + methodname, out outTime))
+                        {
+                            Thread th = new Thread(new ParameterizedThreadStart(KeepLiveCall));
+                            th.Start(new CallPara { Name = name, MethodName = methodname, Parameters = parameters });
+                            RunCall.Add(name + "." + methodname, DateTime.Now);
+                        }
+                    }
+                    wath.Stop();
+                    long milli = wath.ElapsedMilliseconds;
+                    monitor.Write(ea.TaskId, name, methodname, milli, e.Data.Length.ToString());
                 }
                 catch (Exception ex)
                 {
-                    ea.StatusCode = StatusCode.Error;
-                    ea.LastError = ex.Message;
+                    Console.WriteLine(ex);
                     _log.Error(ex);
+                    ea.StatusCode = StatusCode.Serious;
+                    ea.LastError = ex.Message;
                 }
-                Send(ea.Json);
+                finally
+                {
+
+
+                    Console.WriteLine(ea.Json);
+                    Send(ea.Json);
+                }
             }
         }
         private void KeepLiveCall(object obj)
@@ -124,9 +184,14 @@ namespace UcAsp.RPC.Service
                     bool keeplive = false;
                     CallPara para = (CallPara)obj;
                     DataEventArgs ea = Call(para.Name, para.MethodName, null, para.Parameters, ref keeplive);
+
                     if (ea.Json != null && ea.Json != "null")
                     {
-                        this.Send(ea.Json);
+                        var data = JsonConvert.DeserializeObject<dynamic>(ea.Json);
+                        if (data.data != null)
+                        {
+                            this.Send(ea.Json);
+                        }
                     }
 
                     Thread.Sleep(50);
@@ -172,22 +237,31 @@ namespace UcAsp.RPC.Service
 
         protected DataEventArgs Call(string name, string methodname, string code, dynamic parameters, ref bool keeplive)
         {
+
+            LastParam = parameters.ToString();
+            _log.Error(parameters.ToString());
+            LastRunTime = DateTime.Now;
+            LastMethod = methodname;
+
             DataEventArgs ea = new DataEventArgs();
+            taskId++;
+            ea.TaskId = taskId;
             if (string.IsNullOrEmpty(name) && string.IsNullOrEmpty(code))
             {
                 ea.StatusCode = StatusCode.NoExit;
                 ea.LastError = "方法不存在";
-                ea.Json = "{\"code\":" + (int)ea.StatusCode + ",\"msg\":\"" + ea.LastError + "\"}";
+                ea.Json = "{\"responseCode\":" + (int)ea.StatusCode + ",\"responseMsg\":\"" + ea.LastError + "\"}";
                 return ea;
             }
             if (string.IsNullOrEmpty(methodname) && string.IsNullOrEmpty(code))
             {
                 ea.StatusCode = StatusCode.NoExit;
                 ea.LastError = "方法不存在";
-                ea.Json = "{\"code\":" + (int)ea.StatusCode + ",\"msg\":\"" + ea.LastError + "\"}";
+                ea.Json = "{\"responseCode\":" + (int)ea.StatusCode + ",\"responseMsg\":\"" + ea.LastError + "\"}";
                 return ea;
             }
             MethodInfo method = null;
+            string keyvl = string.Empty;
             if (string.IsNullOrEmpty(code))
             {
                 #region 地址请求
@@ -195,13 +269,17 @@ namespace UcAsp.RPC.Service
                 {
                     lock (MemberInfos)
                     {
-                        foreach (KeyValuePair<string, Tuple<string, MethodInfo, int>> kv in MemberInfos)
+                       
+                        foreach (KeyValuePair<string, Tuple<string, MethodInfo, int, long>> kv in MemberInfos)
                         {
                             object[] clazz = kv.Value.Item2.DeclaringType.GetCustomAttributes(typeof(Restful), true);
                             string clazzpath = string.Empty;
                             if (clazz != null && clazz.Length > 0 && ((Restful)clazz[0]).Path != null)
                             {
-                                clazzpath = ((Restful)clazz[0]).Path.ToLower();
+                                if (((Restful)clazz[0]).Path != null)
+                                {
+                                    clazzpath = ((Restful)clazz[0]).Path.ToLower();
+                                }
                             }
 
                             string clazzname = kv.Value.Item1.ToString().ToLower();
@@ -217,9 +295,8 @@ namespace UcAsp.RPC.Service
                                     if (rf.Path != null)
                                     {
                                         path = rf.Path.ToLower();
+                                        keeplive = rf.KeepAlive;
                                     }
-                                    keeplive = rf.KeepAlive;
-
                                 }
 
                                 if (kvmethod == methodname.ToLower() || (!string.IsNullOrEmpty(path) && path == methodname.ToLower()))
@@ -236,7 +313,7 @@ namespace UcAsp.RPC.Service
                                     }
                                     catch (Exception ex)
                                     {
-
+                                        Console.WriteLine(ex.Message);
                                         break;
                                     }
                                     parameters = param;
@@ -250,20 +327,23 @@ namespace UcAsp.RPC.Service
                                     }
                                     if (kv.Value.Item2.GetParameters().Length == param.Count)
                                     {
+                                        keyvl = kv.Key;
                                         name = kv.Value.Item1;
                                         method = kv.Value.Item2;
-                                        MemberInfos[kv.Key] = new Tuple<string, MethodInfo, int>(MemberInfos[kv.Key].Item1, MemberInfos[kv.Key].Item2, MemberInfos[kv.Key].Item3 + 1);
+
                                         break;
                                     }
 
                                 }
                             }
                         }
+
                     }
                 }
                 catch (Exception ex)
                 {
                     _log.Error(ex);
+                    Console.WriteLine(ex);
                 }
                 #endregion
             }
@@ -283,24 +363,36 @@ namespace UcAsp.RPC.Service
             {
                 ea.StatusCode = StatusCode.NoExit;
                 ea.LastError = "方法不存在";
-                ea.Json = "{\"code\":" + (int)ea.StatusCode + ",\"msg\":\"" + ea.LastError + "\"}";
+                ea.Json = "{\"responseCode\":" + (int)ea.StatusCode + ",\"responseMsg\":\"" + ea.LastError + "\"}";
                 return ea;
             }
 
-            parameters = new MethodParam().CorrectParameters(method, parameters);
-            object[] arrparam = parameters.ToArray();
-            Object bll = ApplicationContext.GetObject(name);
-            var result = method.Invoke(bll, arrparam);
-            JsonSerializerSettings jsonsetting = new JsonSerializerSettings();
-            jsonsetting.Formatting = Formatting.Indented;
-
-            string data = JsonConvert.SerializeObject(result, jsonsetting);
-            ea.Param = new System.Collections.ArrayList();
-            ea.Json = data;
-            for (int i = 0; i < arrparam.Length; i++)
+            try
             {
-                ea.Param.Add(arrparam[i]);
+                parameters = new MethodParam().CorrectParameters(method, parameters);
+                object[] arrparam = parameters.ToArray();
+                Object bll = ApplicationContext.GetObject(name);
+                var result = method.Invoke(bll, arrparam);
+                JsonSerializerSettings jsonsetting = new JsonSerializerSettings();
+                jsonsetting.Formatting = Formatting.Indented;
+                string data = JsonConvert.SerializeObject(result, jsonsetting);
+                ea.StatusCode = StatusCode.Success;
+                ea.Param = new System.Collections.ArrayList();
+                ea.Json = "{\"responseCode\":" + (int)StatusCode.Success + ",\"responseMsg\":\"成功\",\"responseData\":" + data + "}";
+                for (int i = 0; i < arrparam.Length; i++)
+                {
+                    ea.Param.Add(arrparam[i]);
+                }
+                Console.WriteLine(ea.TaskId);
             }
+            catch (Exception ex)
+            {
+                _log.Error(ex);
+                Console.WriteLine(ex);
+                ea.LastError = ex.InnerException.Message + "\r\n" + ex.Message;
+                ea.StatusCode = StatusCode.Serious;
+            }
+            MemberInfos[keyvl] = new Tuple<string, MethodInfo, int, long>(MemberInfos[keyvl].Item1, MemberInfos[keyvl].Item2, MemberInfos[keyvl].Item3 + 1, MemberInfos[keyvl].Item3 + ea.Json.Length);
             return ea;
         }
 

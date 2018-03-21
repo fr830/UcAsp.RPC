@@ -19,6 +19,8 @@ using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Diagnostics;
 using System.Threading;
+using System.Net;
+using Newtonsoft.Json.Linq;
 namespace UcAsp.RPC
 {
     public class ServerBase : IServer
@@ -26,7 +28,7 @@ namespace UcAsp.RPC
         private readonly ILog _log = LogManager.GetLogger(typeof(ServerBase));
         public ISerializer _serializer = new JsonSerializer();
         public const int buffersize = 1024 * 5;
-
+        private Stopwatch wath = new Stopwatch();
         public DateTime LastRunTime = DateTime.Now;
         public string LastError = "";
         public string LastMethod = "";
@@ -34,10 +36,11 @@ namespace UcAsp.RPC
         public int Timer = 0;
         private long _endsend = DateTime.Now.Ticks;
         public string Authorization { get; set; }
-        public virtual Dictionary<string, Tuple<string, MethodInfo, int>> MemberInfos
+        public virtual Dictionary<string, Tuple<string, MethodInfo, int, long>> MemberInfos
         { get; set; }
         public virtual List<RegisterInfo> RegisterInfo { get; set; }
-
+        public virtual string ManagerUrl() { return null; }
+        private Monitor monitr = new Monitor();
         public bool IsStart
         {
             get;
@@ -49,18 +52,17 @@ namespace UcAsp.RPC
             IsStart = true;
 
         }
-  
 
         public virtual void Call(Socket socket, Object obj)
         {
             Timer++;
-            Stopwatch wath = new Stopwatch();
+
             wath.Start();
             DataEventArgs e = (DataEventArgs)obj;
-            Console.WriteLine(e.TaskId);
             LastParam = _serializer.ToString(e);
             LastRunTime = DateTime.Now;
             LastMethod = e.ActionParam;
+            string code = string.Empty;
             if (e.ActionCmd == CallActionCmd.Register.ToString())
             {
                 e.Binary = this._serializer.ToBinary(RegisterInfo);
@@ -74,14 +76,13 @@ namespace UcAsp.RPC
             }
             else if (e.ActionCmd == CallActionCmd.Validate.ToString())
             {
-
-                e.HttpSessionId =  Guid.NewGuid().ToString("N");
+                e.HttpSessionId = Guid.NewGuid().ToString("N");
             }
             else if (e.ActionCmd == CallActionCmd.Call.ToString())
             {
                 int p = e.ActionParam.LastIndexOf(".");
 
-                string code = e.ActionParam.Substring(p + 1);
+                code = e.ActionParam.Substring(p + 1);
                 if (string.IsNullOrEmpty(code))
                 {
                     e.StatusCode = StatusCode.Serious;
@@ -94,14 +95,14 @@ namespace UcAsp.RPC
                         try
                         {
                             string name = MemberInfos[code].Item1;
-                            MemberInfos[code] = new Tuple<string, MethodInfo, int>(MemberInfos[code].Item1, MemberInfos[code].Item2, MemberInfos[code].Item3 + 1);
+                            MemberInfos[code] = new Tuple<string, MethodInfo, int, long>(MemberInfos[code].Item1, MemberInfos[code].Item2, MemberInfos[code].Item3 + 1, MemberInfos[code].Item4 + e.Binary.Buffer.LongLength);
                             MethodInfo method = MemberInfos[code].Item2;
                             string param = this._serializer.ToEntity<string>(e.Binary);
-                            var parameters = this._serializer.ToEntity<List<object>>(param);
+                            object parameters = this._serializer.ToEntity<List<object>>(param);
                             if (parameters == null) parameters = new List<object>();
-                            parameters = new MethodParam().CorrectParameters(method, parameters);
+                            parameters = new MethodParam().CorrectParameters(method, (List<object>)parameters);
                             Object bll = ApplicationContext.GetObject(name);
-                            object[] arrparam = parameters.ToArray();
+                            object[] arrparam = ((List<object>)parameters).ToArray();
                             var result = method.Invoke(bll, arrparam);
                             if (!method.ReturnType.Equals(typeof(void)))
                             {
@@ -111,7 +112,7 @@ namespace UcAsp.RPC
                                     e.Param = new System.Collections.ArrayList();
                                 }
                                 for (int i = 0; i < arrparam.Length; i++)
-                                {                                    
+                                {
                                     e.Param.Add(arrparam[i]);
                                 }
                             }
@@ -126,7 +127,6 @@ namespace UcAsp.RPC
                         catch (Exception ex)
                         {
                             _log.Error(ex);
-                            Console.WriteLine(ex);
                             e.LastError = ex.Message;
                             if (ex.InnerException != null)
                             {
@@ -152,6 +152,7 @@ namespace UcAsp.RPC
             Send(socket, e);
             wath.Stop();
             _log.Info(e.ActionParam + ":" + e.CallHashCode + ":" + e.TaskId + ":" + wath.ElapsedMilliseconds);
+            monitr.Write(e.TaskId, "", "." + code, wath.ElapsedMilliseconds, e.Binary.Buffer.LongLength.ToString());
         }
 
 

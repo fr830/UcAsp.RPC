@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Data;
 
-namespace UcAsp.RPC
+namespace  UcAsp.RPC
 {
     /// <summary>
     ///   Abstract base class for all Profile classes in this namespace. 
@@ -24,20 +24,20 @@ namespace UcAsp.RPC
 
         protected Profile()
         {
-            this._name = DefaultName;
+            _name = DefaultName;
         }
 
         protected Profile(string name)
         {
-            this._name = name;
+            _name = name;
         }
 
         protected Profile(Profile profile)
         {
             _name = profile._name;
-            this._readOnly = profile._readOnly;
-            this.Changing = profile.Changing;
-            this.Changed = profile.Changed;
+            _readOnly = profile._readOnly;
+            Changing = profile.Changing;
+            Changed = profile.Changed;
         }
 
         /// <summary>
@@ -47,15 +47,15 @@ namespace UcAsp.RPC
         {
             get
             {
-                return this._name;
+                return _name;
             }
             set
             {
-                this.VerifyNotReadOnly();
-                if (this._name == value.Trim())
+                VerifyNotReadOnly();
+                if (_name == value.Trim())
                     return;
 
-                if (!this.RaiseChangeEvent(true, ProfileChangeType.Name, null, null, value))
+                if (!RaiseChangeEvent(true, ProfileChangeType.Name, null, null, value))
                     return;
 
                 _name = value.Trim();
@@ -75,15 +75,15 @@ namespace UcAsp.RPC
 
             set
             {
-                this.VerifyNotReadOnly();
+                VerifyNotReadOnly();
                 if (_readOnly == value)
                     return;
 
-                if (!this.RaiseChangeEvent(true, ProfileChangeType.ReadOnly, null, null, value))
+                if (!RaiseChangeEvent(true, ProfileChangeType.ReadOnly, null, null, value))
                     return;
 
-                this._readOnly = value;
-                this.RaiseChangeEvent(false, ProfileChangeType.ReadOnly, null, null, value);
+                _readOnly = value;
+                RaiseChangeEvent(false, ProfileChangeType.ReadOnly, null, null, value);
             }
         }
 
@@ -103,15 +103,15 @@ namespace UcAsp.RPC
 
         public virtual string GetValue(string section, string entry, string defaultValue)
         {
-            object value = this.GetValue(section, entry);
-            if (!this.HasEntry(section, entry)) this.SetValue(section, entry, defaultValue);
+            object value = GetValue(section, entry);
+            if (!HasEntry(section, entry)) SetValue(section, entry, defaultValue);
             return (value == null ? defaultValue : value.ToString());
         }
 
         public virtual int GetValue(string section, string entry, int defaultValue)
         {
             object value = GetValue(section, entry);
-            if (!this.HasEntry(section, entry)) this.SetValue(section, entry, defaultValue);
+            if (!HasEntry(section, entry)) SetValue(section, entry, defaultValue);
             if (value == null)
                 return defaultValue;
 
@@ -127,8 +127,8 @@ namespace UcAsp.RPC
 
         public virtual double GetValue(string section, string entry, double defaultValue)
         {
-            object value = this.GetValue(section, entry);
-            if (!this.HasEntry(section, entry)) this.SetValue(section, entry, defaultValue);
+            object value = GetValue(section, entry);
+            if (!HasEntry(section, entry)) SetValue(section, entry, defaultValue);
             if (value == null)
                 return defaultValue;
 
@@ -144,8 +144,8 @@ namespace UcAsp.RPC
 
         public virtual bool GetValue(string section, string entry, bool defaultValue)
         {
-            object value = this.GetValue(section, entry);
-            if (!this.HasEntry(section, entry)) this.SetValue(section, entry, defaultValue);
+            object value = GetValue(section, entry);
+            if (!HasEntry(section, entry)) SetValue(section, entry, defaultValue);
             if (value == null)
                 return defaultValue;
             if (value is string)
@@ -172,23 +172,23 @@ namespace UcAsp.RPC
 
         public virtual bool HasEntry(string section, string entry)
         {
-            string[] entries = this.GetEntryNames(section);
+            string[] entries = GetEntryNames(section);
 
             if (entries == null)
                 return false;
 
-            this.VerifyAndAdjustEntry(ref entry);
+            VerifyAndAdjustEntry(ref entry);
             return Array.IndexOf(entries, entry) >= 0;
         }
 
         public virtual bool HasSection(string section)
         {
-            string[] sections = this.GetSectionNames();
+            string[] sections = GetSectionNames();
 
             if (sections == null)
                 return false;
 
-            this.VerifyAndAdjustSection(ref section);
+            VerifyAndAdjustSection(ref section);
             return Array.IndexOf(sections, section) >= 0;
         }
 
@@ -210,13 +210,13 @@ namespace UcAsp.RPC
 
         public virtual DataSet GetDataSet()
         {
-            this.VerifyName();
+            VerifyName();
 
-            string[] sections = this.GetSectionNames();
+            string[] sections = GetSectionNames();
             if (sections == null)
                 return null;
 
-            DataSet ds = new DataSet(this.Name);
+            DataSet ds = new DataSet(Name);
 
             // Add a table for each section
             foreach (string section in sections)
@@ -231,7 +231,7 @@ namespace UcAsp.RPC
                 int i = 0;
                 foreach (string entry in entries)
                 {
-                    object value = this.GetValue(section, entry);
+                    object value = GetValue(section, entry);
 
                     columns[i] = new DataColumn(entry, value.GetType());
                     values[i++] = value;
@@ -317,23 +317,23 @@ namespace UcAsp.RPC
             if (changing)
             {
                 // Don't even bother if there are no handlers.
-                if (this.Changing == null)
+                if (Changing == null)
                     return true;
 
                 ProfileChangingArgs e = new ProfileChangingArgs(changeType, section, entry, value);
-                this.OnChanging(e);
+                OnChanging(e);
                 return !e.Cancel;
             }
 
             // Don't even bother if there are no handlers.
             if (Changed != null)
-                this.OnChanged(new ProfileChangedArgs(changeType, section, entry, value));
+                OnChanged(new ProfileChangedArgs(changeType, section, entry, value));
             return true;
         }
 
         protected virtual void OnChanging(ProfileChangingArgs e)
         {
-            if (this.Changing == null)
+            if (Changing == null)
                 return;
 
             foreach (ProfileChangingHandler handler in Changing.GetInvocationList())
@@ -348,8 +348,8 @@ namespace UcAsp.RPC
 
         protected virtual void OnChanged(ProfileChangedArgs e)
         {
-            if (this.Changed != null)
-                this.Changed(this, e);
+            if (Changed != null)
+                Changed(this, e);
         }
     }
 }

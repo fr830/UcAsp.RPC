@@ -11,7 +11,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using log4net;
-namespace UcAsp.RPC
+namespace  UcAsp.RPC
 { /// <summary>
   /// 可变长byte集合
   /// </summary>
