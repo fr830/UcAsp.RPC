@@ -19,7 +19,7 @@ namespace Face
         private string Program_Id = "c55f679a-8596-4a93-9aa3-591c33e90c0c";
         public int GetMore(int code)
         {
-            throw new Exception("错误");
+           // throw new Exception("错误");
             return code;
         }
         [Restful(Path = "model")]

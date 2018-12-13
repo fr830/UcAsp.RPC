@@ -13,7 +13,10 @@ using System.Net;
 using System.Net.Sockets;
 using log4net;
 using System.Collections;
-namespace  UcAsp.RPC
+
+using Newtonsoft.Json;
+
+namespace UcAsp.RPC
 {
     [Serializable]
     public class DataEventArgs : EventArgs
@@ -21,6 +24,8 @@ namespace  UcAsp.RPC
         private readonly static ILog _log = LogManager.GetLogger(typeof(DataEventArgs));
         /// tcp传输 二进制数据
         /// </summary>
+        /// 
+
         public Binary Binary { get; set; }
         /// <summary>
         /// http传输采用json
@@ -73,7 +78,7 @@ namespace  UcAsp.RPC
         /// <returns></returns>
         public byte[] ToByteArray()
         {
-            string param = new JsonSerializer().ToString(Param);
+            string param = new ProtoSerializer().ToString(Param);
             int cmdLength = this.ActionCmd.Length;
             int paramLength = Encoding.UTF8.GetByteCount(this.ActionParam);
             int idLength = Encoding.UTF8.GetByteCount(HttpSessionId);
@@ -147,8 +152,8 @@ namespace  UcAsp.RPC
         /// <returns></returns>
         public static DataEventArgs Parse(ByteBuilder recvBuilder)
         {
-            int count = recvBuilder.Count;
-            int total = recvBuilder.GetInt32(0);
+            long count = recvBuilder.Count;
+            long total = recvBuilder.GetInt32(0);
             // 数据一定要大于等于固定长度  包长小于等于数据长度
             if (recvBuilder.Count >= ConstLength && recvBuilder.GetInt32(0) <= recvBuilder.Count)
             {
@@ -190,7 +195,7 @@ namespace  UcAsp.RPC
                     lastError = Encoding.UTF8.GetString(errBinary);
                 }
 
-                ArrayList Param = new JsonSerializer().ToEntity<ArrayList>(Encoding.UTF8.GetString(recvBuilder.ReadRange(pavalLength)));
+                ArrayList Param = new ProtoSerializer().ToEntity<ArrayList>(Encoding.UTF8.GetString(recvBuilder.ReadRange(pavalLength)));
                 // 实体长
                 int entityLength = totalLength - ConstLength - cmdLength - paramLength - idLength - errLength - ipLength - pavalLength;
                 // 实体数据

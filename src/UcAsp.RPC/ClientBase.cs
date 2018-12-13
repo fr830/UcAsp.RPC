@@ -25,7 +25,7 @@ namespace UcAsp.RPC
     {
         private static CancellationTokenSource cancelTokenSource = new CancellationTokenSource();
         private readonly ILog _log = LogManager.GetLogger(typeof(ClientBase));
-
+        public virtual ISerializer Serializer { get { return new ProtoSerializer(); } }
         private ConcurrentQueue<DataEventArgs> _clientTask = new ConcurrentQueue<DataEventArgs>();
         private ConcurrentDictionary<int, DataEventArgs> _resultTask = new ConcurrentDictionary<int, DataEventArgs>();
         private ConcurrentDictionary<int, DataEventArgs> _runingTask = new ConcurrentDictionary<int, DataEventArgs>();
@@ -191,7 +191,7 @@ namespace UcAsp.RPC
                 return arg;
 
             }
-            _log.Info(e.TaskId+"超时");
+            _log.Info(e.TaskId + "超时");
             _timeoutTask.Add(e);
             e.StatusCode = StatusCode.TimeOut;
             return e;

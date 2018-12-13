@@ -26,23 +26,23 @@ namespace  UcAsp.RPC
         /// <summary>
         /// 默认容量
         /// </summary>
-        private int _defaultCapacity = 0;
+        private long _defaultCapacity = 0;
 
         /// <summary>
         /// 容量
         /// </summary>
-        public int Capacity { get; private set; }
+        public long Capacity { get; private set; }
 
         public object SyncLock { get; private set; }
 
         /// <summary>
         /// 有效数据长度
         /// </summary>
-        public int Count { get; private set; }
+        public long Count { get; private set; }
 
 
 
-        public ByteBuilder(int capacity)
+        public ByteBuilder(long capacity)
         {
             this.Capacity = capacity;
             this._defaultCapacity = capacity;
@@ -68,16 +68,17 @@ namespace  UcAsp.RPC
         /// <param name="srcArray">数据</param>
         /// <param name="index">起始位置</param>
         /// <param name="count">复制长度</param>
-        public void Add(byte[] srcArray, int index, int count)
+        public void Add(byte[] srcArray, long index, long count)
         {
             lock (this.SyncLock)
             {
+                try { 
                 if (srcArray == null)
                 {
                     return;
                 }
 
-                int newLength = this.Count + count;
+                long newLength = this.Count + count;
                 if (newLength > this.Capacity)
                 {
                     while (newLength > this.Capacity)
@@ -99,6 +100,11 @@ namespace  UcAsp.RPC
                     _log.Error(ex);
                 }
                 this.Count = newLength;
+                }
+                catch(Exception ex)
+                {
+                    Console.WriteLine(ex);
+                }
             }
         }
 
@@ -108,7 +114,7 @@ namespace  UcAsp.RPC
         /// <param name="destArray">目标数组</param>
         /// <param name="index">目标数据索引</param>
         /// <param name="count">剪切长度</param>
-        public void CutTo(byte[] destArray, int index, int count)
+        public void CutTo(byte[] destArray, long index, long count)
         {
             lock (this.SyncLock)
             {
@@ -121,7 +127,7 @@ namespace  UcAsp.RPC
         /// 从0位置清除指定长度的字节
         /// </summary>
         /// <param name="count"></param>
-        public void RemoveRange(int count)
+        public void RemoveRange(long count)
         {
             lock (this.SyncLock)
             {
@@ -136,7 +142,7 @@ namespace  UcAsp.RPC
         /// <param name="destArray">目标数组</param>
         /// <param name="index">目标数据索引</param>
         /// <param name="count">复制长度</param>
-        public void CopyTo(byte[] destArray, int index, int count)
+        public void CopyTo(byte[] destArray, long index, long count)
         {
             lock (this.SyncLock)
             {
@@ -181,7 +187,7 @@ namespace  UcAsp.RPC
         /// </summary>
         /// <param name="index">字节所在索引</param>
         /// <returns></returns>
-        public byte GetByte(int index)
+        public byte GetByte(long index)
         {
             lock (this.SyncLock)
             {

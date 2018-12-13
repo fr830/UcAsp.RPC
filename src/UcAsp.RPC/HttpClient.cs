@@ -18,21 +18,37 @@ using System.IO;
 using System.Collections.Concurrent;
 using log4net;
 using System.Diagnostics;
-using Newtonsoft.Json;
 using System.IO.Compression;
 namespace UcAsp.RPC
 {
     public class HttpClient : ClientBase
     {
-        private ISerializer _serializer = new JsonSerializer();
+        public override ISerializer Serializer => new JsonSerializer();
         private static CancellationTokenSource cancelTokenSource = new CancellationTokenSource();
         private readonly ILog _log = LogManager.GetLogger(typeof(TcpClient));
         private const int buffersize = 1024 * 5;
         private System.Timers.Timer heatbeat = new System.Timers.Timer();
-        private Monitor monitr = new Monitor();
+        int i = 0;
+        private int _chanl = 0;
+
+        public override void Run()
+        {
+        }
+        public override void CallServiceMethod(DataEventArgs de)
+        {
+            if (Channels.Count == 1)
+            {
+                _chanl = 0;
+            }
+            else
+            {
+                i++;
+                _chanl = i % (Channels.Count - 1);
+            }
 
 
-
+            // base.CallServiceMethod(de);
+        }
         private void Heatbeat_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
             CheckServer();
@@ -59,17 +75,17 @@ namespace UcAsp.RPC
                 header.Add("Authorization", "Basic " + this.Authorization);
 
                 int p = ea.ActionParam.LastIndexOf(".");
-                List<object> eabinary = _serializer.ToEntity<List<object>>(ea.Binary);
+                List<object> eabinary = Serializer.ToEntity<List<object>>(ea.Binary);
                 string code = ea.ActionParam.Substring(p + 1);
                 Dictionary<string, string> param = new Dictionary<string, string>();
-                param.Add("", JsonConvert.SerializeObject(eabinary));
+                param.Add("", Serializer.ToString(eabinary));
                 var result = HttpPost.Post(url + "/" + code, param, header);
-                DataEventArgs redata = JsonConvert.DeserializeObject<DataEventArgs>(result.Item2);
-               
+                DataEventArgs redata = Serializer.ToEntity<DataEventArgs>(result.Item2);
+
                 if (result.Item1 == HttpStatusCode.OK)
                 {
                     ea.StatusCode = StatusCode.Success;
-                    dynamic dyjs = JsonConvert.DeserializeObject<dynamic>(redata.Json);
+                    dynamic dyjs = Serializer.ToEntity<dynamic>(redata.Json);
 
                     ea.Json = dyjs.data.ToString();
 
@@ -182,14 +198,40 @@ namespace UcAsp.RPC
             t.Start();
 
         }
+        public override DataEventArgs GetResult(DataEventArgs e)
+        {
+            int p = e.ActionParam.LastIndexOf(".");
+            string code = e.ActionParam.Substring(p + 1);
+            List<object> eabinary = Serializer.ToEntity<List<object>>(e.Binary);
+            Dictionary<string, string> param = new Dictionary<string, string>();
+            param.Add("", Serializer.ToString(eabinary));
+            string url = "http://" + Channels[_chanl].IpPoint.Address.ToString() + ":" + (Channels[_chanl].IpPoint.Port + 1);
+            Dictionary<string, string> header = new Dictionary<string, string>();
+            header.Add("Authorization", "Basic " + this.Authorization);
+            Tuple<HttpStatusCode, string> result = HttpPost.Post(url + "/" + e.ActionCmd.ToString() + "/" + code, param, header);
+            DataEventArgs redata = Serializer.ToEntity<DataEventArgs>(result.Item2);
+            if (result.Item1 == HttpStatusCode.OK)
+            {
+                redata.StatusCode = StatusCode.Success;
+                redata.Json = redata.Json;
+                redata.Param = redata.Param;
+                return redata;
+            }
+            else
+            {
+                e.StatusCode = StatusCode.Error;
+                e.Json = result.Item2;
+                return e;
+            }
 
+        }
         public override DataEventArgs GetResult(DataEventArgs e, ChannelPool channel)
         {
             string url = "http://" + channel.IpPoint.Address.ToString() + ":" + (channel.IpPoint.Port + 1);
             Dictionary<string, string> header = new Dictionary<string, string>();
             header.Add("Authorization", "Basic " + this.Authorization);
             Tuple<HttpStatusCode, string> result = HttpPost.Post(url + "/" + e.ActionCmd.ToString(), null, header);
-            DataEventArgs redata = JsonConvert.DeserializeObject<DataEventArgs>(result.Item2);
+            DataEventArgs redata = Serializer.ToEntity<DataEventArgs>(result.Item2);
             if (result.Item1 == HttpStatusCode.OK)
             {
                 redata.StatusCode = StatusCode.Success;

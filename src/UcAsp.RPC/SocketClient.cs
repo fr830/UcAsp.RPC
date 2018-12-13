@@ -23,9 +23,10 @@ namespace UcAsp.RPC
 {
     public class SocketClient : ClientBase
     {
+        public override ISerializer Serializer => new ProtoSerializer();
         private static CancellationTokenSource cancelTokenSource = new CancellationTokenSource();
         private readonly ILog _log = LogManager.GetLogger(typeof(SocketClient));
-        Monitor monitor = new Monitor();
+        //  Monitor monitor = new Monitor();
         private System.Timers.Timer timer = new System.Timers.Timer();
 
 
@@ -96,7 +97,7 @@ namespace UcAsp.RPC
                 e.StatusCode = StatusCode.TimeOut;
                 return e;
             }
-            catch (SocketException)
+            catch (SocketException se)
             {
                 foreach (ChannelPool p in Channels)
                 {
@@ -109,7 +110,7 @@ namespace UcAsp.RPC
                 return e;
             }
 
-            catch (Exception)
+            catch (Exception ex)
             {
                 e.StatusCode = StatusCode.Error;
                 return e;
@@ -157,7 +158,7 @@ namespace UcAsp.RPC
                 _client.BeginReceive(state.Buffer, 0, StateObject.BufferSize, SocketFlags.None, out error, ReceiveCallback, state);
                 #endregion
                 watch.Stop();
-                monitor.Write(e.TaskId, e.ActionCmd, "...", watch.ElapsedMilliseconds, _bf.LongLength.ToString());
+                //monitor.Write(e.TaskId, e.ActionCmd, "...", watch.ElapsedMilliseconds, _bf.LongLength.ToString());
                 Channels[i].PingActives = DateTime.Now.Ticks;
             }
             catch (SocketException sex)

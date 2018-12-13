@@ -11,19 +11,21 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
 using UcAsp.RPC.Service;
+using Microsoft.AspNetCore.Hosting;
 
 namespace UcAsp.RPC
 {
     [Serializable]
     public class ApplicationContext : IDisposable
     {
+        private WebHostBuilder _ocelotBuilder;
+        private IWebHost _ocelotHost;
         private readonly ILog _log = LogManager.GetLogger(typeof(ApplicationContext));
         private static ServerBase _server = null;
-        private static ServerBase _httpserver = null;
+        public static HttpServer HttpServer = null;
         private static string _rootpath = string.Empty;
-        private static ISerializer _serializer = new JsonSerializer();
+        private static ISerializer _serializer = new ProtoSerializer();
         public static int _taskId = 0;
-        private static bool _run = false;
         private static Dictionary<string, Type> _obj = new Dictionary<string, Type>();
         private static Dictionary<string, Tuple<string, MethodInfo, int, long>> _memberinfos = new Dictionary<string, Tuple<string, MethodInfo, int, long>>();
         private static Dictionary<string, dynamic> _proxobj = new Dictionary<string, dynamic>();
@@ -45,7 +47,7 @@ namespace UcAsp.RPC
             }
             else
             {
-                return ActionService.LastRunTime;
+                return ActionBehavior.LastRunTime;
             }
 
         }
@@ -57,7 +59,7 @@ namespace UcAsp.RPC
             }
             else
             {
-                return ActionService.LastError;
+                return ActionBehavior.LastError;
             }
 
         }
@@ -73,7 +75,7 @@ namespace UcAsp.RPC
             //    return "服务不存在";
             //}
 
-            return ActionService.LastMethod;
+            return ActionBehavior.LastMethod;
         }
         public string LastParam()
         {
@@ -84,14 +86,14 @@ namespace UcAsp.RPC
             }
             else
             {
-                return ActionService.LastParam;
+                return ActionBehavior.LastParam;
             }
         }
         public string ManagerUrl()
         {
-            if (_httpserver != null)
+            if (HttpServer != null)
             {
-                return _httpserver.ManagerUrl();
+                return HttpServer.ManagerUrl();
             }
             else
             {
@@ -340,7 +342,7 @@ namespace UcAsp.RPC
                             if (!_memberinfos.ContainsKey(method))
                             {
 
-                                Tuple<string, MethodInfo, int,long> tuple = new Tuple<string, MethodInfo, int,long>(action, info, 0,0);
+                                Tuple<string, MethodInfo, int, long> tuple = new Tuple<string, MethodInfo, int, long>(action, info, 0, 0);
                                 _memberinfos.Add(method, tuple);
                                 object[] attr = info.GetCustomAttributes(typeof(Restful), true);
                                 if (attr.Length > 0)
@@ -364,13 +366,14 @@ namespace UcAsp.RPC
             string password = (string)config.GetValue("server", "password");
             string username = (string)config.GetValue("server", "username");
             _server = new TcpServer();
-            _httpserver = new HttpServer();
+            HttpServer = new HttpServer();
 
-            _server.MemberInfos = _httpserver.MemberInfos = _memberinfos;
-            _server.RegisterInfo = _httpserver.RegisterInfo = _registerInfo;
-            _httpserver.Authorization = _server.Authorization = Convert.ToBase64String(Encoding.ASCII.GetBytes(username + ":" + password));
+            _server.MemberInfos = HttpServer.MemberInfos = _memberinfos;
+            _server.RegisterInfo = HttpServer.RegisterInfo = _registerInfo;
+            HttpServer.Authorization = _server.Authorization = Convert.ToBase64String(Encoding.ASCII.GetBytes(username + ":" + password));
             _server.StartListen(port);
-            _httpserver.StartListen(port + 1);
+            HttpServer.StartListen(port + 1);
+            Console.WriteLine(port + 1);
             Broad.Interval = 30000;
             Broad.Elapsed -= Broad_Elapsed;
             Broad.Elapsed += Broad_Elapsed;
@@ -478,6 +481,7 @@ namespace UcAsp.RPC
             }
             else
             {
+
                 _client = new HttpClient();
             }
 
@@ -512,6 +516,7 @@ namespace UcAsp.RPC
             }
             if (registerInfos != null)
             {
+
                 for (int i = 0; i < pool; i++)
                 {
                     ChannelPool channel = new ChannelPool { IpPoint = new IPEndPoint(IPAddress.Parse(ip), port), Available = true };
@@ -609,9 +614,9 @@ namespace UcAsp.RPC
             {
                 _server.Stop();
             }
-            if (_httpserver != null)
+            if (HttpServer != null)
             {
-                _httpserver.Stop();
+                HttpServer.Stop();
             }
             GC.SuppressFinalize(this);
             cts.Cancel();

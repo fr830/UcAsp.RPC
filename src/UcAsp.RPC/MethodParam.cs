@@ -15,7 +15,7 @@ namespace UcAsp.RPC
 {
     public class MethodParam
     {
-        public ISerializer _serializer = new JsonSerializer();
+        public ISerializer _serializer = new ProtoSerializer();
         /// <summary>
         /// 纠正参数的值
         /// Json序列化为List(object)后,object的类型和参数的类型不一致
