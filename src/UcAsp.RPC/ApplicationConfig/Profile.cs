@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Data;
 
-namespace  UcAsp.RPC
+namespace UcAsp.RPC
 {
     /// <summary>
     ///   Abstract base class for all Profile classes in this namespace. 
@@ -274,7 +274,7 @@ namespace  UcAsp.RPC
             {
                 try
                 {
-                    string file = AppDomain.CurrentDomain.SetupInformation.ConfigurationFile;
+                    string file = AppDomain.CurrentDomain.BaseDirectory + "\\s" + AppDomain.CurrentDomain.FriendlyName + ".config";
                     return file.Substring(0, file.LastIndexOf('.'));
                 }
                 catch

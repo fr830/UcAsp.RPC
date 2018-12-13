@@ -30,6 +30,18 @@ namespace UcAsp.RPC
             }
             return gizpbytes;
         }
+        public static Stream GetStreamZip(byte[] buffer)
+        {
+            using (MemoryStream cms = new MemoryStream())
+            {
+                using (GZipStream gzip = new GZipStream(cms, CompressionMode.Compress))
+                {
+                    //将数据写入基础流，同时会被压缩
+                    gzip.Write(buffer, 0, buffer.Length);
+                }
+                return cms;
+            }
+        }
 
         public static string UnZip(Stream stream)
         {

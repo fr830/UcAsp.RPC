@@ -26,7 +26,7 @@ namespace UcAsp.RPC
     public class ServerBase : IServer
     {
         private readonly ILog _log = LogManager.GetLogger(typeof(ServerBase));
-        public ISerializer _serializer = new JsonSerializer();
+        public ISerializer _serializer = new ProtoSerializer();
         public const int buffersize = 1024 * 5;
         private Stopwatch wath = new Stopwatch();
         public DateTime LastRunTime = DateTime.Now;
@@ -40,7 +40,7 @@ namespace UcAsp.RPC
         { get; set; }
         public virtual List<RegisterInfo> RegisterInfo { get; set; }
         public virtual string ManagerUrl() { return null; }
-        private Monitor monitr = new Monitor();
+       // private Monitor monitr = new Monitor();
         public bool IsStart
         {
             get;
@@ -152,7 +152,7 @@ namespace UcAsp.RPC
             Send(socket, e);
             wath.Stop();
             _log.Info(e.ActionParam + ":" + e.CallHashCode + ":" + e.TaskId + ":" + wath.ElapsedMilliseconds);
-            monitr.Write(e.TaskId, "", "." + code, wath.ElapsedMilliseconds, e.Binary.Buffer.LongLength.ToString());
+            //monitr.Write(e.TaskId, "", "." + code, wath.ElapsedMilliseconds, e.Binary.Buffer.LongLength.ToString());
         }
 
 

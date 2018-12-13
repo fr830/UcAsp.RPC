@@ -12,7 +12,9 @@ using System.Linq;
 using System.Text;
 using System.IO;
 using log4net;
-namespace  UcAsp.RPC
+using System.Collections;
+
+namespace UcAsp.RPC
 {
 
     /// <summary>
@@ -33,69 +35,67 @@ namespace  UcAsp.RPC
         {
             get
             {
-                if (this.IsZip)
-                {
-                    byte[] gbuffer = null;
-                    using (MemoryStream dms = new MemoryStream())
-                    {
-                        using (MemoryStream cms = new MemoryStream(this._buffer))
-                        {
+                //if (this.IsZip)
+                //{
+                //    List<byte> gbuffer = new List<byte>();
 
-                            using (System.IO.Compression.GZipStream gzip = new System.IO.Compression.GZipStream(cms, System.IO.Compression.CompressionMode.Decompress))
-                            {
+                //    using (MemoryStream cms = new MemoryStream(this._buffer))
+                //    {
 
-                                byte[] bytes = new byte[1024];
-                                int glen = 0;
-                                try
-                                {
-                                    //读取压缩流，同时会被解压
-                                    while ((glen = gzip.Read(bytes, 0, bytes.Length)) > 0)
-                                    {
-                                        dms.Write(bytes, 0, glen);
-                                    }
-                                }
-                                catch (Exception ex)
-                                {
-                                    _log.Error(ex);
-                                    Console.WriteLine(ex);
-                                }
-                                gbuffer = dms.ToArray();
+                //        using (System.IO.Compression.GZipStream gzip = new System.IO.Compression.GZipStream(cms, System.IO.Compression.CompressionMode.Decompress))
+                //        {
 
-                            }
-                        }
+                //            byte[] bytes = new byte[1024];
+                //            int glen = 0;
+                //            try
+                //            {
+                //                //读取压缩流，同时会被解压
+                //                while ((glen = gzip.Read(bytes, 0, bytes.Length)) > 0)
+                //                {
+                //                    gbuffer.AddRange(bytes);
+                //                }
+                //            }
+                //            catch (Exception ex)
+                //            {
+                //                _log.Error(ex);
+                //                Console.WriteLine(ex);
+                //            }
 
-                    }
-                    return gbuffer;
-                }
-                else
-                {
+                //        }
+
+
+                //    }
+                //    return gbuffer.ToArray();
+                //}
+                //else
+                //{
                     return this._buffer;
-                }
+                //}
             }
             set
             {
 
-                if (value.Length < 5000)
-                {
+                //if (value.Length < 5000)
+                //{
                     this._buffer = value;
                     this.IsZip = false;
 
-                }
-                else
-                {
-                    this.IsZip = true;
-                    byte[] gizpbytes = null;
-                    using (MemoryStream cms = new MemoryStream())
-                    {
-                        using (System.IO.Compression.GZipStream gzip = new System.IO.Compression.GZipStream(cms, System.IO.Compression.CompressionMode.Compress))
-                        {
-                            //将数据写入基础流，同时会被压缩
-                            gzip.Write(value, 0, value.Length);
-                        }
-                        gizpbytes = cms.ToArray();
-                    }
-                    this._buffer = gizpbytes;
-                }
+                //}
+                //else
+                //{
+                //    this.IsZip = true;
+                //    byte[] gizpbytes = null;
+                //    using (MemoryStream cms = new MemoryStream())
+                //    {
+                //        using (System.IO.Compression.GZipStream gzip = new System.IO.Compression.GZipStream(cms, System.IO.Compression.CompressionMode.Compress))
+                //        {
+                //            //将数据写入基础流，同时会被压缩
+                //            gzip.Write(value, 0, value.Length);
+                //        }
+                //        gizpbytes = cms.ToArray();
+                //    }
+                //    this._buffer = gizpbytes;
+                //}
             }
         }
 
@@ -105,27 +105,27 @@ namespace  UcAsp.RPC
         /// <param name="buffer">数据</param>
         public Binary(byte[] buffer)
         {
-            if (buffer.Length < 5000)
-            {
+            //if (buffer.Length < 5000)
+            //{
                 this._buffer = buffer;
                 this.IsZip = false;
 
-            }
-            else
-            {
-                this.IsZip = true;
-                byte[] gizpbytes = null;
-                using (MemoryStream cms = new MemoryStream())
-                {
-                    using (System.IO.Compression.GZipStream gzip = new System.IO.Compression.GZipStream(cms, System.IO.Compression.CompressionMode.Compress))
-                    {
-                        //将数据写入基础流，同时会被压缩
-                        gzip.Write(buffer, 0, buffer.Length);
-                    }
-                    gizpbytes = cms.ToArray();
-                }
-                this._buffer = gizpbytes;
-            }
+            //}
+            //else
+            //{
+            //    this.IsZip = true;
+            //    byte[] gizpbytes = null;
+            //    using (MemoryStream cms = new MemoryStream())
+            //    {
+            //        using (System.IO.Compression.GZipStream gzip = new System.IO.Compression.GZipStream(cms, System.IO.Compression.CompressionMode.Compress))
+            //        {
+            //            //将数据写入基础流，同时会被压缩
+            //            gzip.Write(buffer, 0, buffer.Length);
+            //        }
+            //        gizpbytes = cms.ToArray();
+            //    }
+            //    this._buffer = gizpbytes;
+            //}
         }
     }
 }

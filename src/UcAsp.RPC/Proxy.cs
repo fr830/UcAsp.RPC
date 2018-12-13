@@ -50,6 +50,7 @@ namespace UcAsp.RPC
 
                 CompilerParameters paras = new CompilerParameters();
                 paras.ReferencedAssemblies.Add("System.dll");
+                paras.ReferencedAssemblies.Add("netstandard.dll");
                 paras.ReferencedAssemblies.Add(rootpath + "UcAsp.RPC.dll");
                 paras.ReferencedAssemblies.Add(rootpath + "log4net.dll");
                 if (RelationDll != null)
@@ -99,8 +100,8 @@ namespace UcAsp.RPC
             sb.AppendLine("using System.Collections.Generic;\r\n");
             sb.AppendLine("using System.Reflection;\r\n");
             sb.AppendLine("using System.Threading.Tasks;\r\n");
-            sb.AppendLine("using  UcAsp.RPC;\r\n");
-            sb.AppendLine("using UcAsp.WebSocket;\r\n");
+            sb.AppendLine("using UcAsp.RPC;\r\n");
+
             sb.AppendLine("using log4net;\r\n");
             sb.AppendLine("using System.Diagnostics;\r\n");
             if (RelationDll != null)
@@ -118,7 +119,7 @@ namespace UcAsp.RPC
             sb.AppendLine("    {\r\n");
             sb.AppendLine("public delegate DataEventArgs GetHandler(DataEventArgs e);");
             sb.AppendFormat("private readonly ILog _log = LogManager.GetLogger(typeof({0}));\r\n", nameClass);
-            sb.AppendLine("private Monitor monitr = new Monitor();");
+            // sb.AppendLine("private Monitor monitr = new Monitor();");
 
             foreach (PropertyInfo p in pi)
             {
@@ -170,7 +171,7 @@ namespace UcAsp.RPC
                 }
 
                 sb.AppendLine("            DataEventArgs e = new DataEventArgs();");
-                sb.AppendLine("            e.Binary = this.Serializer.ToBinary(this.Serializer.ToString(entity));");
+                sb.AppendLine("            e.Binary = GetBinary(entity);");
                 sb.AppendLine("            e.CallHashCode = e.GetHashCode();");
                 sb.AppendLine("            e.T = typeof(" + GetTypeName(method.ReturnType) + ");");
                 string action = string.Format("{0}.{1}.{2}", method.DeclaringType.FullName, method.Name, GetMethodMd5Code(method));
@@ -179,8 +180,8 @@ namespace UcAsp.RPC
                 sb.AppendLine("            e.ActionCmd = CallActionCmd.Call.ToString();\r\n");
                 sb.AppendLine("       DataEventArgs data=new DataEventArgs();");
                 sb.AppendLine("        try{\r\n");
-                sb.AppendLine("       Run.CallServiceMethod(e);");
-                sb.AppendLine("             data = Run.GetResult(e);\r\n");
+                sb.AppendLine("       Client.CallServiceMethod(e);");
+                sb.AppendLine("             data = Client.GetResult(e);\r\n");
                 sb.AppendLine("       }catch (Exception ex)\r\n");
                 sb.AppendLine("       { Console.WriteLine(ex);}\r\n");
                 sb.AppendLine("            if (data.StatusCode != StatusCode.Success) {\r\n ");
@@ -189,7 +190,7 @@ namespace UcAsp.RPC
                 sb.AppendLine("                throw (ex);\r\n");
                 sb.AppendLine("            }\r\n");
                 sb.AppendLine("wath.Stop();");
-                sb.AppendLine("monitr.Write(data.TaskId,\"" + nameClass + "\",\"" + method.Name + "\" , wath.ElapsedMilliseconds, e.Binary.Buffer.LongLength.ToString()); ");
+                //  sb.AppendLine("monitr.Write(data.TaskId,\"" + nameClass + "\",\"" + method.Name + "\" , wath.ElapsedMilliseconds, e.Binary.Buffer.LongLength.ToString()); ");
                 // sb.AppendLine("try{\r\n");
                 for (int i = 0; i < arrparam.Count; i++)
                 {
@@ -205,20 +206,20 @@ namespace UcAsp.RPC
                     }
                     else
                     {
-                        sb.AppendLine(arrparam[i] + " =  new JsonSerializer().ToEntity<" + arrType[i].Replace("ref", "").Replace("out", "").Trim() + ">(data.Param[" + i + "].ToString());");
+                        sb.AppendLine(arrparam[i] + " =  Client.Serializer.ToEntity<" + arrType[i].Replace("ref", "").Replace("out", "").Trim() + ">(data.Param[" + i + "].ToString());");
                     }
                 }
                 if (IsVoid(method.ReturnType) == false)
                 {
                     sb.AppendLine(" if (!string.IsNullOrEmpty(e.Json))");
                     sb.AppendLine("{");
-                    sb.AppendLine(string.Format("            return this.Serializer.ToEntity<{0}>(e.Json);\r\n", GetTypeName(method.ReturnType)));
+                    sb.AppendLine(string.Format("            return Client.Serializer.ToEntity<{0}>(e.Json);\r\n", GetTypeName(method.ReturnType)));
 
                     sb.AppendLine("}");
                     sb.AppendLine(" else");
                     sb.AppendLine("{");
 
-                    sb.AppendLine(string.Format("return this.Serializer.ToEntity<{0}>(data.Binary);\r\n", GetTypeName(method.ReturnType)));
+                    sb.AppendLine(string.Format("return Client.Serializer.ToEntity<{0}>(data.Binary);\r\n", GetTypeName(method.ReturnType)));
 
                     sb.AppendLine(" }");
 

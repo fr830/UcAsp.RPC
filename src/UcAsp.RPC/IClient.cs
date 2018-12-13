@@ -15,7 +15,7 @@ namespace UcAsp.RPC
         List<ChannelPool> Channels { get; set; }
 
 
-
+        ISerializer Serializer { get;  }
         void CallServiceMethod(DataEventArgs de);
 
         DataEventArgs GetResult(DataEventArgs e);

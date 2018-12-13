@@ -21,17 +21,20 @@ using System.Web;
 using System.Reflection;
 using Newtonsoft.Json;
 using log4net;
-using UcAsp.WebSocket.Server;
 using UcAsp.RPC.Service;
-
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.Builder;
 namespace UcAsp.RPC
 {
     public class HttpServer : ServerBase, IDisposable
     {
+
+        private WebHostBuilder _ocelotBuilder;
+        private IWebHost _ocelotHost;
         private readonly ILog _log = LogManager.GetLogger(typeof(HttpServer));
         CancellationTokenSource token = new CancellationTokenSource();
-        private WebServer web;
-        private string _httpversion;
         private string _url = string.Empty;
         private string _mimetype = string.Empty;
         public override string ManagerUrl()
@@ -39,40 +42,54 @@ namespace UcAsp.RPC
             return this._url;
         }
 
-        public override Dictionary<string, Tuple<string, MethodInfo, int,long>> MemberInfos { get; set; }
+        public override Dictionary<string, Tuple<string, MethodInfo, int, long>> MemberInfos { get; set; }
 
         public override void StartListen(int port)
         {
-            web = new WebServer("http://localhost:" + port + "/");
-            web.DocumentRootPath = System.AppDomain.CurrentDomain.BaseDirectory + "wwwroot";
-            //web.AddPrefixes("http://127.0.0.1:" + port + "/");
-            web.AddPrefixes("http://0.0.0.0:" + port + "/");
-            IPAddress[] iplist = Dns.GetHostAddresses(Dns.GetHostName());
-            for (int i = 0; i < iplist.Length; i++)
+            _ocelotBuilder = new WebHostBuilder();
+            _ocelotBuilder.ConfigureServices(s =>
             {
-                this._url = "http://" + iplist[i] + ":" + port + "/";
-                web.AddPrefixes("http://" + iplist[i] + ":" + port + "/");
-            }
-            web.AddWebSocketService<ApiService>("/", () => new ApiService() { MemberInfos = MemberInfos }, null);
-            web.AddWebSocketService<ApiService>("/help", () => new ApiService() { MemberInfos = MemberInfos }, null);
-            web.AddWebSocketService<RegisterService>("/register|/validate", () => new RegisterService() { RegisterInfo = RegisterInfo }, null);
-            web.AddWebSocketService<ActionService>("/{md5}", () => new ActionService() { MemberInfos = MemberInfos }, new { md5 = "([a-zA-Z0-9]){32,32}" });
+                s.AddSingleton(_ocelotBuilder);
+                s.AddResponseCompression();
+            });
 
-            web.AddWebSocketService<ActionService>("/webapi/{clazz}/{method}", () => new ActionService() { MemberInfos = MemberInfos }, new { clazz = "[a-zA-Z0-9.]*", method = "[a-zA-Z0-9]*" });
-            web.AddWebSocketService<ActionService>("/websocket/call", () => new ActionService() { MemberInfos = MemberInfos }, null);
+            _ocelotBuilder.UseKestrel()
+                .UseUrls("http://0.0.0.0:" + port)
 
-            web.Start();
+                .ConfigureAppConfiguration((hostingContext, config) =>
+                {
+                    string path = hostingContext.HostingEnvironment.ContentRootPath;
+                    config.SetBasePath(path);
+                    var env = hostingContext.HostingEnvironment;
 
+                })
 
+                .Configure(app =>
+                {
 
+                    app.UseStaticFiles();
+                    app.UseUcAspRouter(router =>
+                    {
+                        router.MapRoute("^(/)$", new HelpBehavior(MemberInfos));
+                        router.MapRoute("^(/)help", new HelpBehavior(MemberInfos));
+                        router.MapRoute("^(/)register|^(/)validate", new RegisterBehavior(RegisterInfo));
+                        router.MapRoute("^(/)webapi/[a-zA-Z0-9.]*/[a-zA-Z0-9.]*", new ActionBehavior(MemberInfos));
+                        router.MapRoute("^(/)call/[a-zA-Z0-9.]*", new ActionBehavior(MemberInfos));
+                    });
+                    app.UseResponseCompression();
+
+                });
+            _ocelotHost = _ocelotBuilder.Build();
+            _ocelotHost.StartAsync();
         }
+
 
         public override void Stop()
         {
             try
             {
                 base.Stop();
-                web.Stop();
+
                 token.Cancel();
             }
             catch (Exception ex)
@@ -91,7 +108,7 @@ namespace UcAsp.RPC
             {
                 if (disposing)
                 {
-                    web.Stop();
+
 
                 }
 

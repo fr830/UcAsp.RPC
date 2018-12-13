@@ -1,9 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.136
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UcAsp.RPC", "src\UcAsp.RPC\UcAsp.RPC.csproj", "{4D6DB5DD-AB98-4342-BB71-825AD752EE7B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UcAsp.RPC", "src\UcAsp.RPC\UcAsp.RPC.csproj", "{4D6DB5DD-AB98-4342-BB71-825AD752EE7B}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IFace", "src\Sample\IFace\IFace.csproj", "{34CB8EFF-6268-4E05-BD6D-0112A31EF01F}"
 EndProject
@@ -56,5 +56,8 @@ Global
 		{B7910715-CFE1-4143-AE28-A57401CC47DF} = {7119E17D-25A5-4D41-BB46-033D53111138}
 		{19027C9E-573E-4821-BC3E-4AB96D7813E2} = {7119E17D-25A5-4D41-BB46-033D53111138}
 		{6785B58C-3A68-422F-A722-B3953D27DCA5} = {7119E17D-25A5-4D41-BB46-033D53111138}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {2F4CB1CB-1356-499B-BDD4-96B81D9A249F}
 	EndGlobalSection
 EndGlobal
