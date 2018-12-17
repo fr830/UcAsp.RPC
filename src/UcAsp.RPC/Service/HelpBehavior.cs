@@ -178,6 +178,7 @@ namespace UcAsp.RPC.Service
             }
             catch (Exception ex)
             {
+                Console.WriteLine(ex);
                 return ex.StackTrace.ToString();
             }
         }

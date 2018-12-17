@@ -77,7 +77,7 @@ namespace UcAsp.RPC.Service
                 }
                 catch (Exception ex)
                 {
-
+                    Console.WriteLine(ex);
                     ea.StatusCode = StatusCode.Serious;
                     ea.LastError = ex.Message;
                 }
@@ -299,6 +299,7 @@ namespace UcAsp.RPC.Service
             }
             catch (Exception ex)
             {
+                Console.WriteLine(ex);
                 _log.Error(ex);
                 Console.WriteLine(ex);
                 ea.LastError = ex.InnerException.Message + "\r\n" + ex.Message;

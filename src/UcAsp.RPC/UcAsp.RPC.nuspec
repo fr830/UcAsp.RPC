@@ -1,16 +1,29 @@
-<?xml version="1.0"?>
+﻿<?xml version="1.0"?>
 <package >
   <metadata>
     <id>$id$</id>
-    <version>1.0.0.6</version>
+    <version>1.2.0.8</version>
     <title>UcAsp.RPC</title>
     <authors>Rixiang.Yu</authors>
     <owners>Rixiang.Yu</owners>
-    <projectUrl>https://github.com/servucn/UcAsp.RPC</projectUrl>  
+    <projectUrl>https://github.com/servucn/UcAsp.RPC</projectUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>C# 开发的.Net框架下的RPC服务，路线:已经开发好的程序如何快速实现RPC. </description>
-    <releaseNotes>bug 提交地址：https://github.com/servucn/UcAsp.RPC/issues</releaseNotes>
+    <releaseNotes>bug 提交地址：https://github.com/servucn/UcAsp.RPC/issues </releaseNotes>
+    <iconUrl> http://www.ucasp.net/files/logo.png </iconUrl>
     <copyright>Copyright 2017</copyright>
     <tags>Rpc</tags>
+    <dependencies>
+      <dependency id="log4net" version="2.0.8" />
+      <dependency id="Microsoft.AspNetCore" version="2.2.0" />
+      <dependency id="protobuf-net" version="2.4.0"/>
+      <dependency id="System.CodeDom" version="4.5.0"/>
+      <dependency id="Microsoft.CSharp" version="4.5.0"/>
+      <dependency id="Microsoft.AspNetCore.ResponseCompression" version="2.2.0"/>
+      <dependency id="Microsoft.AspNetCore.StaticFiles" version="2.2.0"/>
+      <dependency id="Microsoft.Extensions.DependencyInjection" version="2.2.0"/>
+      <dependency id="Newtonsoft.Json" version="12.0.1"/>
+    </dependencies>
+
   </metadata>
 </package>

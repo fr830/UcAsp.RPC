@@ -114,6 +114,7 @@ namespace UcAsp.RPC
             }
             catch (Exception ex)
             {
+                Console.WriteLine(ex);
                
 
                 return default(T);

@@ -25,6 +25,7 @@ namespace UcAsp.RPC
     {
         private static CancellationTokenSource cancelTokenSource = new CancellationTokenSource();
         private readonly ILog _log = LogManager.GetLogger(typeof(ClientBase));
+        private Config _config;
         public virtual ISerializer Serializer { get { return new ProtoSerializer(); } }
         private ConcurrentQueue<DataEventArgs> _clientTask = new ConcurrentQueue<DataEventArgs>();
         private ConcurrentDictionary<int, DataEventArgs> _resultTask = new ConcurrentDictionary<int, DataEventArgs>();
@@ -38,95 +39,244 @@ namespace UcAsp.RPC
         public List<ChannelPool> Channels { get { return this._channels; } set { this._channels = value; } }
 
         protected List<DataEventArgs> _timeoutTask = new List<DataEventArgs>();
+
+        /// <summary>
+        /// 监控运算中的性能
+        /// </summary>
+
+        public ConcurrentDictionary<int, TaskTicks> RunTime { get; set; }
         internal ConcurrentDictionary<int, StateObject> RunStateObjects = new ConcurrentDictionary<int, StateObject>();
-        public virtual void Run()
+
+        public virtual void AddClient(Config config, Dictionary<string, dynamic> proxyobj)
+        {
+            _config = config; string[] ipport = ((string)config.GetValue("server", "ip")).Split(';');
+            int pool = Convert.ToInt32(config.GetValue("server", "pool", 2));
+            for (int i = 0; i < ipport.Length; i++)
+            {
+
+                if (ipport[i].Split(':').Length > 1)
+                {
+
+                    string[] ip = ipport[i].Split(':');
+                    ServerPort port = new ServerPort() { Ip = ip[0], Port = int.Parse(ip[1]), Pool = pool };
+                    addClient(port, config, proxyobj);
+
+                }
+            }
+            string[] relation = config.GetEntryNames("relation");
+            if (relation != null)
+            {
+                Proxy.RelationDll = new Dictionary<string, string>();
+                foreach (string va in relation)
+                {
+
+                    if (!Proxy.RelationDll.ContainsKey(va))
+                    {
+                        object rdll = config.GetValue("relation", va);
+                        if (rdll != null)
+                        {
+                            Proxy.RelationDll.Add(va, rdll.ToString());
+                        }
+
+                    }
+                }
+            }
+        }
+
+        private void addClient(object serverport, Config config, Dictionary<string, dynamic> proxobj)
         {
 
-            new Task(() =>
+
+            ServerPort sport = (ServerPort)serverport;
+            string ip = sport.Ip;
+            int port = sport.Port;
+            int pool = sport.Pool;
+
+            IClient _client;
+
+            string password = (string)config.GetValue("server", "password");
+            string username = (string)config.GetValue("server", "username");
+
+
+            ChannelPool channlepool = new ChannelPool { IpPoint = new IPEndPoint(IPAddress.Parse(ip), port), Available = true };
+            this.Channels.Add(channlepool);
+            this.Authorization = Convert.ToBase64String(Encoding.ASCII.GetBytes(username + ":" + password));
+            DataEventArgs vali = new DataEventArgs { ActionCmd = CallActionCmd.Validate.ToString(), ActionParam = this.Authorization, TaskId = 0 };
+            DataEventArgs valiresult = this.GetResult(vali, channlepool);
+            if (valiresult.StatusCode != StatusCode.Success)///如果验证失败退出
+                return;
+
+
+            this.Authorization = valiresult.HttpSessionId;
+
+            DataEventArgs callreg = new DataEventArgs() { HttpSessionId = this.Authorization, ActionCmd = CallActionCmd.Register.ToString(), ActionParam = "Register", T = typeof(List<RegisterInfo>) };
+
+
+            DataEventArgs reg = this.GetResult(callreg, channlepool);
+
+            if (reg.StatusCode != StatusCode.Success)
+                return;
+
+            this.Run();
+            List<RegisterInfo> registerInfos = new List<RegisterInfo>();
+            if (!string.IsNullOrEmpty(reg.Json))
             {
-                while (!cancelTokenSource.Token.IsCancellationRequested)
+                registerInfos = Serializer.ToEntity<List<RegisterInfo>>(reg.Json);
+            }
+            else
+            {
+                registerInfos = Serializer.ToEntity<List<RegisterInfo>>(reg.Binary);
+            }
+            if (registerInfos != null)
+            {
+
+                for (int i = 0; i < pool; i++)
                 {
-                    DataEventArgs e;
-                    if (ClientTask.TryPeek(out e))
+                    ChannelPool channel = new ChannelPool { IpPoint = new IPEndPoint(IPAddress.Parse(ip), port), Available = true };
+                    this.Channels.Add(channel);
+                }
+                foreach (RegisterInfo info in registerInfos)
+                {
+
+                    lock (proxobj)
                     {
                         try
                         {
-                            lock (_timeoutTask)
+                            string assname = string.Format("{0}.{1}", info.FaceNameSpace, info.InterfaceName);
+
+                            dynamic val = new { ClassName = info.ClassName, NameSpace = info.NameSpace, Client = this };
+                            if (!proxobj.ContainsKey(assname))
                             {
-                                try
-                                {
-                                    if (_timeoutTask.FirstOrDefault(o => o.TaskId == e.TaskId) != null)
-                                    {
-                                        ClientTask.TryDequeue(out e);
-                                        continue;
-                                    }
-                                }
-                                catch (Exception x)
-                                {
-                                }
-                            }
-                            ChannelPool channel = Channels[0];
-                            Dictionary<int, int> dic = GetChannel();
-                            int k = dic.Count;
-                            int cnum = new Random(unchecked((int)DateTime.Now.Ticks)).Next(k);
-                            int i = 0;
-                            if (dic.TryGetValue(cnum, out i))
-                            {
-                                channel = Channels[i];
+                                proxobj.Add(assname, val);
                             }
                             else
                             {
-                                int times = 0;
-                                while (k == 0 && times < 5000)
+                                bool pc = false;
+                                foreach (ChannelPool p in proxobj[assname].Client.Channels)
                                 {
-                                    dic = GetChannel();
-                                    k = dic.Count;
-                                    cnum = new Random(unchecked((int)DateTime.Now.Ticks)).Next(Channels.Count);
-                                    if (dic.TryGetValue(cnum, out i))
+                                    if (p.IpPoint == channlepool.IpPoint)
                                     {
-                                        channel = Channels[i];
-                                        break;
+                                        pc = true;
                                     }
-                                    Thread.Sleep(2);
-                                    times++;
                                 }
-                                if (times >= 5000 && Channels.Count < 50)
+                                if (!pc)
                                 {
-                                    Channels.Add(new ChannelPool { IpPoint = channel.IpPoint });
-                                    i = Channels.Count - 1;
+                                    proxobj[assname].Client.Channels.Add(channlepool);
+                                    for (int i = 0; i < 10; i++)
+                                    {
+                                        ChannelPool channel = new ChannelPool { IpPoint = new IPEndPoint(IPAddress.Parse(ip), port), Available = true };
+                                        proxobj[assname].Client.Channels.Add(channel);
+                                    }
                                 }
-                                else
-                                {
-
-                                    continue;
-                                }
-                            }
-
-
-                            if (ClientTask.TryDequeue(out e))
-                            {
-                                Channels[i].ActiveHash = 1;
-                                Channels[i].RunTimes++;
-                                Channels[i].PingActives = DateTime.Now.Ticks;
-                                e.CallHashCode = i;
-                                Call(e, i);
 
                             }
                         }
                         catch (Exception ex)
                         {
-                            _log.Error(ex);
+                            Console.WriteLine(ex);
                         }
-
                     }
-                    else
-                    {
-                        Thread.Sleep(5);
-                    }
-
                 }
+            }
 
-            }, TaskCreationOptions.LongRunning).Start();
+        }
+
+
+        public virtual void Run()
+        {
+
+            new Task(runworker =>
+             {
+                 while (!cancelTokenSource.Token.IsCancellationRequested)
+                 {
+                     DataEventArgs e;
+                     if (ClientTask.TryPeek(out e))
+                     {
+                         lock (_timeoutTask)
+                         {
+                             try
+                             {
+                                 if (_timeoutTask.FirstOrDefault(o => o.TaskId == e.TaskId) != null)
+                                 {
+                                     ClientTask.TryDequeue(out e);
+                                     continue;
+                                 }
+                             }
+                             catch (Exception ex)
+                             {
+                                 Console.WriteLine(ex);
+                             }
+                         }
+
+
+
+                         try
+                         {
+
+                             ChannelPool channel = Channels[0];
+                             Dictionary<int, int> dic = GetChannel();
+                             int k = dic.Count;
+                             int cnum = new Random(unchecked((int)DateTime.Now.Ticks)).Next(k);
+                             int i = 0;
+                             if (dic.TryGetValue(cnum, out i))
+                             {
+                                 channel = Channels[i];
+                             }
+                             else
+                             {
+                                 int times = 0;
+                                 while (k == 0 && times < 500)
+                                 {
+                                     dic = GetChannel();
+                                     k = dic.Count;
+                                     cnum = new Random(unchecked((int)DateTime.Now.Ticks)).Next(Channels.Count);
+                                     if (dic.TryGetValue(cnum, out i))
+                                     {
+                                         channel = Channels[i];
+                                         break;
+                                     }
+                                     Thread.Sleep(2);
+                                     times++;
+                                 }
+                                 if (times >= 500 && Channels.Count < 50)
+                                 {
+                                     Channels.Add(new ChannelPool { IpPoint = channel.IpPoint });
+                                     i = Channels.Count - 1;
+                                 }
+                                 else
+                                 {
+
+                                     continue;
+                                 }
+                             }
+
+
+                             if (ClientTask.TryDequeue(out e))
+                             {
+                                 Channels[i].ActiveHash = 1;
+                                 Channels[i].RunTimes++;
+                                 Channels[i].PingActives = DateTime.Now.Ticks;
+                                 e.CallHashCode = i;
+                                 Call(e, i);
+
+                             }
+                         }
+                         catch (Exception ex)
+                         {
+                             Console.WriteLine(ex);
+                             _log.Error(ex);
+                         }
+                     }
+                     else
+                     {
+                         Thread.Sleep(5);
+                     }
+
+                 }
+
+
+             }, TaskCreationOptions.LongRunning).Start();
+
 
         }
 
@@ -144,7 +294,10 @@ namespace UcAsp.RPC
 
             try
             {
+                if (RunTime == null)
+                    RunTime = new ConcurrentDictionary<int, TaskTicks>();
                 ClientTask.Enqueue(de);
+                RunTime.TryAdd(de.TaskId, new TaskTicks() { InitTime = DateTime.Now.Ticks, IntoQueTime = 0, OutQueTime = 0 });
 
             }
             catch (Exception ex)
@@ -158,7 +311,7 @@ namespace UcAsp.RPC
             DataEventArgs arg = new DataEventArgs();
             try
             {
-                var cts = new CancellationTokenSource(150000);
+                var cts = new CancellationTokenSource(_config.GetValue("server", "timeout", 15) * 1000);
                 while (!cts.Token.IsCancellationRequested)
                 {
 
@@ -170,13 +323,33 @@ namespace UcAsp.RPC
                         {
                             StateObject oo = new StateObject();
                             RunStateObjects.TryRemove(arg.TaskId, out oo);
-                            oo.Builder.ReSet();
+                            if (oo != null)
+                                oo.Builder.ReSet();
                             DataEventArgs outarg = new DataEventArgs();
                             ResultTask.TryRemove(arg.TaskId, out outarg);
                             RuningTask.TryRemove(arg.TaskId, out outarg);
 
                         }
-                        catch { }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine(ex);
+                        }
+                        try
+                        {
+                            TaskTicks time = new TaskTicks();
+                            if (RunTime.TryGetValue(arg.TaskId, out time))
+                            {
+
+                                time.EndTime = DateTime.Now.Ticks;
+                                RunTime.TryUpdate(arg.TaskId, time, time);
+                                _log.Debug("RunTime:\r\n" + arg + "\r\n" + time + "\r\n");
+                            }
+
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine(ex);
+                        }
                         return arg;
                     }
                     Thread.Sleep(3);
@@ -223,11 +396,30 @@ namespace UcAsp.RPC
                         dic.Add(k, num);
                         k++;
                     }
+                    if ((p.ActiveHash != 0 && p.Available == true))
+                    {
+                        if (DateTime.Now.Ticks - p.PingActives > (1000 * 10000))
+                        {
+                            dic.Add(k, num);
+                            k++;
+                        }
+                    }
                     num++;
                 }
             }
             return dic;
         }
 
+    }
+
+    public class TaskTicks
+    {
+        public long InitTime { get; set; }
+
+        public long IntoQueTime { get; set; }
+
+        public long OutQueTime { get; set; }
+
+        public long EndTime { get; set; }
     }
 }

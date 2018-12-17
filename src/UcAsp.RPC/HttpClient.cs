@@ -49,6 +49,13 @@ namespace UcAsp.RPC
 
             // base.CallServiceMethod(de);
         }
+
+
+        public override void AddClient(Config config, Dictionary<string, dynamic> proxyobj)
+        {
+            base.AddClient(config, proxyobj);
+
+        }
         private void Heatbeat_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
             CheckServer();
@@ -115,6 +122,7 @@ namespace UcAsp.RPC
             }
             catch (Exception ex)
             {
+                Console.WriteLine(ex);
                 _log.Error(ex + ex.StackTrace);
                 ea.StatusCode = StatusCode.TimeOut;
                 ea.TryTimes++;
@@ -247,6 +255,7 @@ namespace UcAsp.RPC
             }
 
         }
+
 
         protected internal class HttpPost
         {

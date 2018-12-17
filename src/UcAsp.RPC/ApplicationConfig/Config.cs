@@ -294,6 +294,7 @@ namespace UcAsp.RPC
             }
             catch (Exception ex)
             {
+                Console.WriteLine(ex);
                 return null;
             }
         }
@@ -315,6 +316,7 @@ namespace UcAsp.RPC
             }
             catch (Exception ex)
             {
+                Console.WriteLine(ex);
                 return null;
             }
         }

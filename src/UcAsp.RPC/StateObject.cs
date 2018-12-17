@@ -17,7 +17,7 @@ namespace UcAsp.RPC
     {
         public Socket WorkSocket = null;
 
-        public const int BufferSize = 1024;
+        public const int BufferSize = 1024*5;
 
         public byte[] Buffer = new byte[BufferSize];
 

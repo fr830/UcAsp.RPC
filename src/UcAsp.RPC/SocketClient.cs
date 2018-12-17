@@ -24,9 +24,10 @@ namespace UcAsp.RPC
     public class SocketClient : ClientBase
     {
         public override ISerializer Serializer => new ProtoSerializer();
+
         private static CancellationTokenSource cancelTokenSource = new CancellationTokenSource();
         private readonly ILog _log = LogManager.GetLogger(typeof(SocketClient));
-        //  Monitor monitor = new Monitor();
+        private Config _config;
         private System.Timers.Timer timer = new System.Timers.Timer();
 
 
@@ -37,9 +38,16 @@ namespace UcAsp.RPC
             timer.Start();
         }
 
+
+        public override void AddClient(Config config, Dictionary<string, dynamic> proxyobj)
+        {
+            base.AddClient(config, proxyobj);
+           
+        }
         private void Timer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
             CheckServer();
+            Console.WriteLine("超时数量：" + _timeoutTask.Count);
             if (_timeoutTask.Count > 50)
             {
                 for (int i = 0; i < 10; i++)
@@ -112,6 +120,7 @@ namespace UcAsp.RPC
 
             catch (Exception ex)
             {
+                Console.WriteLine(ex);
                 e.StatusCode = StatusCode.Error;
                 return e;
             }
@@ -129,9 +138,22 @@ namespace UcAsp.RPC
         /// 
         public override void Call(object dataev, int i)
         {
+            DataEventArgs e = (DataEventArgs)dataev;
+            try
+            {
+                TaskTicks time = new TaskTicks();
+                if (RunTime.TryGetValue(e.TaskId, out time))
+                {
+                    time.IntoQueTime = DateTime.Now.Ticks;
+                    RunTime.TryUpdate(e.TaskId, time, time);
+                }
+
+            }
+            catch (Exception ex)
+            { Console.WriteLine(ex); }
             Stopwatch watch = new Stopwatch();
             watch.Start();
-            DataEventArgs e = (DataEventArgs)dataev;
+
             ChannelPool channel = Channels[i];
             try
             {
@@ -189,6 +211,7 @@ namespace UcAsp.RPC
             }
             catch (Exception ex)
             {
+                Console.WriteLine(ex);
                 lock (ResultTask)
                 {
                     e.StatusCode = StatusCode.Serious;
@@ -235,9 +258,22 @@ namespace UcAsp.RPC
                         }
                         catch (Exception ex)
                         {
+                            Console.WriteLine(ex);
                             ResultTask.AddOrUpdate(dex.TaskId, dex, (key, value) => value = dex);
                         }
                     }
+                    try
+                    {
+                        TaskTicks time = new TaskTicks();
+                        if (RunTime.TryGetValue(dex.TaskId, out time))
+                        {
+                            time.OutQueTime = DateTime.Now.Ticks;
+                            RunTime.TryUpdate(dex.TaskId, time, time);
+                        }
+
+                    }
+                    catch (Exception ex)
+                    { Console.WriteLine(ex); }
                 }
                 else
                 {
@@ -257,7 +293,6 @@ namespace UcAsp.RPC
 
 
 
-
         public override void CheckServer()
         {
             foreach (ChannelPool channel in Channels)
@@ -271,7 +306,9 @@ namespace UcAsp.RPC
                         channel.Available = true;
                     }
                     catch (Exception ex)
-                    { }
+                    {
+                        Console.WriteLine(ex);
+                    }
                 }
             }
         }

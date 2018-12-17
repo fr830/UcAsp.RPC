@@ -46,7 +46,7 @@ namespace UcAsp.RPC
                 Assembly assembly = type.Assembly;
                 MemberInfo[] m = type.GetMethods();
                 PropertyInfo[] p = type.GetProperties();
-                ICodeCompiler complier = (new CSharpCodeProvider().CreateCompiler());
+                CSharpCodeProvider complier = new CSharpCodeProvider();
 
                 CompilerParameters paras = new CompilerParameters();
                 paras.ReferencedAssemblies.Add("System.dll");
@@ -185,7 +185,8 @@ namespace UcAsp.RPC
                 sb.AppendLine("       }catch (Exception ex)\r\n");
                 sb.AppendLine("       { Console.WriteLine(ex);}\r\n");
                 sb.AppendLine("            if (data.StatusCode != StatusCode.Success) {\r\n ");
-                sb.AppendLine("           Console.WriteLine(data.ActionCmd + \": \" + data.ActionParam+ \": \" +data.StatusCode+ \": \" +data.LastError);");
+                sb.AppendLine("                  Error(data);");
+                sb.AppendLine("                  Console.WriteLine(data.ActionCmd + \": \" + data.ActionParam+ \": \" +data.StatusCode+ \": \" +data.LastError);");
                 sb.AppendLine("                Exception ex = new Exception(\"Call Service Method \" + data.ActionCmd + \": \" + data.ActionParam+ \": \" +data.StatusCode+ \": \" +data.LastError);\r\n");
                 sb.AppendLine("                throw (ex);\r\n");
                 sb.AppendLine("            }\r\n");

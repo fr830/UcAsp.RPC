@@ -12,12 +12,18 @@ using System.Linq;
 using System.Text;
 using UcAsp.RPC;
 using Newtonsoft.Json;
+using log4net;
+
 namespace UcAsp.RPC
 {
     public class ProxyObject
     {
-
-
+        private readonly static ILog _log = LogManager.GetLogger(typeof(ProxyObject));
+        public void Error(DataEventArgs dataEvent)
+        {
+            _log.Error(Client.RunTime[dataEvent.TaskId]);
+            Console.WriteLine(Client.RunTime[dataEvent.TaskId]);
+        }
         public IClient Client { get; set; }
         public Binary GetBinary(List<object> entity)
         {

@@ -126,6 +126,7 @@ namespace UcAsp.RPC
                         }
                         catch (Exception ex)
                         {
+                            Console.WriteLine(ex);
                             _log.Error(ex);
                             e.LastError = ex.Message;
                             if (ex.InnerException != null)
@@ -167,6 +168,7 @@ namespace UcAsp.RPC
             }
             catch (Exception ex)
             {
+                Console.WriteLine(ex);
                 _log.Error(ex);
             }
         }

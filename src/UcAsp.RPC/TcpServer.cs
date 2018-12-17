@@ -54,6 +54,7 @@ namespace UcAsp.RPC
                 }
                 catch (Exception ex)
                 {
+                    Console.WriteLine(ex);
                     _log.Error(ex);
                 }
 
@@ -99,6 +100,7 @@ namespace UcAsp.RPC
             }
             catch (Exception ex)
             {
+                Console.WriteLine(ex);
                 _log.Error(ex);
             }
             foreach (KeyValuePair<string, Socket> kv in connection)
@@ -110,6 +112,7 @@ namespace UcAsp.RPC
                 }
                 catch (Exception ex)
                 {
+                    Console.WriteLine(ex);
                     Console.WriteLine(ex);
                 }
             }
@@ -162,6 +165,7 @@ namespace UcAsp.RPC
             }
             catch (Exception ex)
             {
+                Console.WriteLine(ex);
                 GC.Collect();
                 state.Builder.ReSet();
                 _log.Error(ex);
@@ -171,6 +175,7 @@ namespace UcAsp.RPC
                 }
                 catch (Exception e)
                 {
+                    Console.WriteLine(e);
                     _log.Error(e);
                 }
             }
